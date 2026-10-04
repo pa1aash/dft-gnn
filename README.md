@@ -16,7 +16,7 @@ first-principles calculations", Phys. Rev. Materials 5, 123803 (2021),
 doi:[10.1103/PhysRevMaterials.5.123803](https://doi.org/10.1103/PhysRevMaterials.5.123803).
 The database is distributed under the Creative Commons Attribution 4.0 International licence
 (CC BY 4.0, https://creativecommons.org/licenses/by/4.0/). Any derived tables here carry the same attribution.
-The BibTeX record is in `paper/refs-fetched.bib`.
+The BibTeX record is in `paper/refs.bib`.
 
 ## Layout
 - `src/dftgnn/`: package (`config`, `io`, `data`, `graphs`, `models`, `train`, `stats`, `probe`, `mlip`, `viz`, `report`)
@@ -26,7 +26,7 @@ The BibTeX record is in `paper/refs-fetched.bib`.
 - `figures/`: `main/`, `si/`, `demo/`
 - `blender/`, `schematics/`: rendering and schematic sources
 - `paper/`: manuscript sources
-- `docs/`: notes (`env-notes.md`)
+- `docs/`: notes (`env-notes.md`, `provenance.md`, `literature.md`, `venue.md`)
 - `env/`: conda and container specifications
 - `tests/`: pytest suite
 
