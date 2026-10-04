@@ -1,0 +1,62 @@
+# Identifiers for paper/refs.bib. One per line: doi:<doi> or arxiv:<id>.
+# Every entry was verified in session S01 (see docs/literature.md).
+# Core data
+doi:10.1103/physrevmaterials.5.123803
+doi:10.1103/h66h-y5k6
+# Graph networks and toolkits
+doi:10.1038/s41524-026-02037-6
+doi:10.1063/5.0129928
+doi:10.1021/acs.chemmater.9b01294
+doi:10.1038/s41524-025-01742-y
+doi:10.1103/physrevlett.120.145301
+doi:10.1038/s41524-021-00650-1
+# Interatomic potentials
+doi:10.1063/5.0297006
+doi:10.1038/s42256-023-00716-3
+doi:10.1038/s43588-022-00349-3
+# Software
+doi:10.1016/j.commatsci.2012.10.028
+doi:10.1088/1361-648x/aa680e
+doi:10.1145/3292500.3330701
+arxiv:1201.0490  # scikit-learn (JMLR 12, 2825; no DOI)
+# Defect theory
+doi:10.1103/revmodphys.86.253
+doi:10.1103/physrevlett.67.2339
+doi:10.1063/1.367120
+doi:10.1103/physrevlett.84.1232
+doi:10.1103/physrevb.63.075205
+doi:10.1063/1.1682673
+doi:10.1103/physrevb.78.235104
+# Perturbed host states
+doi:10.1103/physrevb.72.035215
+doi:10.1103/physrevb.74.041201
+doi:10.1103/physrevapplied.10.011001
+doi:10.1103/physrevb.90.125202
+# Defect machine learning
+doi:10.1038/s43588-023-00495-2
+doi:10.1021/acsnano.0c05267
+doi:10.1016/j.patter.2022.100450
+# Statistics
+doi:10.1111/ecog.02881
+doi:10.1039/c8me00012c
+arxiv:1612.01474  # deep ensembles (NeurIPS 2017; no DOI)
+doi:10.1214/aos/1176344552
+doi:10.1007/978-1-4899-4541-9  # Efron & Tibshirani 1993 (Springer record)
+doi:10.1007/bf01068419
+doi:10.1177/1948550617697177
+arxiv:1610.01644  # linear probes
+# Oxide-vacancy motivation
+doi:10.1103/physrevlett.98.045501
+doi:10.1038/nphoton.2012.282
+doi:10.1126/science.1111568
+doi:10.1021/cr3004949
+doi:10.1038/nmat2023
+doi:10.1038/nnano.2008.160
+doi:10.1126/science.1200448
+doi:10.1016/s0927-0248(99)00088-4
+doi:10.1146/annurev-matsci-070813-113426
+doi:10.1146/annurev.matsci.33.022802.091651
+# Physics floor
+doi:10.1021/acs.jpclett.5b00710
+doi:10.1039/c3ee43874k
+doi:10.1021/jacs.1c05570

@@ -25,7 +25,7 @@ UA = "dft-gnn-bib/0.1"
 SKIP_WORDS = {"a", "an", "the"}
 
 
-def http_get(url: str, accept: str | None = None, tries: int = 3) -> str:
+def http_get(url: str, accept: str | None = None, tries: int = 5) -> str:
     headers = {"User-Agent": UA}
     if accept:
         headers["Accept"] = accept
@@ -37,7 +37,7 @@ def http_get(url: str, accept: str | None = None, tries: int = 3) -> str:
                 return r.read().decode("utf-8")
         except (urllib.error.URLError, TimeoutError) as e:
             last = e
-            time.sleep(2 * (i + 1))
+            time.sleep(10 * (i + 1))
     raise RuntimeError(f"GET {url} failed: {last}")
 
 
@@ -49,7 +49,7 @@ def fetch(ident: str) -> tuple[str, str]:
         return http_get(url, accept="application/x-bibtex"), url
     if kind == "arxiv":
         url = f"https://arxiv.org/bibtex/{val}"
-        return http_get(url), url
+        return http_get(url, accept="*/*"), url
     raise ValueError(f"unknown identifier type: {ident}")
 
 
