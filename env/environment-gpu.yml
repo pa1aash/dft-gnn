@@ -1,0 +1,27 @@
+name: dftgnn-gpu
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - numpy
+  - scipy
+  - pandas
+  - scikit-learn
+  - pymatgen
+  - ase
+  - matplotlib
+  - seaborn
+  - optuna
+  - pyyaml
+  - pydantic
+  - jupyter
+  - pytest
+  - ruff
+  - colorspacious
+  - tqdm
+  - pip
+  - pip:
+      # CUDA build of torch comes from the base image; versions are resolved at build time
+      - torch_geometric
+      - mace-torch
+      - matgl

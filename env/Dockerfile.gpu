@@ -1,0 +1,13 @@
+# GPU image for the training pod (Linux, CUDA). No git credentials are baked in.
+# Base image tag is a placeholder to be set to the CUDA/PyTorch runtime image used on the pod.
+ARG BASE_IMAGE=pytorch/pytorch:latest
+FROM ${BASE_IMAGE}
+
+RUN apt-get update && apt-get install -y --no-install-recommends git build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# torch is provided by the base image; package list mirrors env/environment-gpu.yml
+RUN pip install --no-cache-dir numpy scipy pandas scikit-learn pymatgen ase matplotlib seaborn \
+    optuna pyyaml pydantic jupyter pytest ruff colorspacious tqdm torch_geometric mace-torch matgl
+
+WORKDIR /workspace
