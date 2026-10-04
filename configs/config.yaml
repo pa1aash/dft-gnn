@@ -1,0 +1,52 @@
+# Central configuration. TBD marks values that are not yet decided.
+data:
+  raw_dir: data/raw
+  processed_dir: data/processed
+  charge_state: 0
+  filters: []            # e.g. non-magnetic hosts only; list to be fixed once the data are inspected
+split:
+  group_key: formula
+  n_outer_resamples: 10
+  test_fraction: 0.2
+  seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+budgets:
+  hosts: []              # training budgets in HOSTS (learning-curve x-axis)
+  max: TBD
+models:
+  rf:
+    enabled: true
+  physics_floor:
+    enabled: true
+    n_parameters: 2
+  S:
+    enabled: true
+    backbone: megnet
+  D:
+    enabled: true
+    backbone: megnet
+  P:
+    enabled: true
+    backbone: megnet
+  injection_mode: TBD
+tuning:
+  optuna_trials_per_model_per_anchor: TBD
+  anchors: TBD
+training:
+  max_epochs: TBD
+  early_stopping:
+    patience: TBD
+    min_delta: TBD
+stats:
+  bootstrap_n: 10000
+  delta_eV: 0.05
+  ci: 0.95
+mlip:
+  model: mace-mp-0
+  version: TBD
+probe:
+  enabled: false
+  settings: TBD
+paths:
+  results_dir: results
+  figures_dir: figures
+  handoff_dir: handoff
