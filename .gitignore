@@ -1,0 +1,27 @@
+# data
+data/raw/
+data/processed/
+
+# model artefacts
+*.pt
+*.ckpt
+checkpoints/
+wandb/
+
+# python / notebooks / os
+__pycache__/
+.ipynb_checkpoints/
+.DS_Store
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# LaTeX build files
+*.aux
+*.log
+*.out
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.bbl
+*.blg
