@@ -1,0 +1,49 @@
+claims:
+  - id: B0
+    statement: "A two-parameter linear model in oxide stability and band gap provides the thermodynamic floor against which all learned models are measured."
+    tested_by: M1
+    figure: Fig2
+    falsifiable_how: "Descriptive baseline; reported, not tested."
+    status: planned
+  - id: C0
+    statement: "A structure-only MEGNet on pristine host supercells with a marked vacancy site reproduces the published structure-only accuracy for neutral oxygen vacancies (0.29 eV; Kiyohara et al., Phys. Rev. Lett. 135, 246101, 2025), on both our formula-grouped protocol and Kiyohara's released host split."
+    tested_by: M3
+    figure: Fig2 reference line; SI parity
+    falsifiable_how: "MAE on Kiyohara's split materially worse than 0.29 eV triggers debugging before any further claim."
+    status: planned
+  - id: C1
+    statement: "The MAE advantage of explicit DFT electronic descriptors over structure alone (D minus S) falls below delta = 0.05 eV, with the upper 95% bootstrap bound below delta at budget N* and all larger budgets; extends the descriptor-only learning curve of Kumagai et al. (2021) to the structure-versus-descriptor gap."
+    tested_by: M5
+    figure: Fig2, Fig3
+    falsifiable_how: "If the upper bound never falls below delta within available data, N* is reported as a lower bound."
+    status: planned
+  - id: C2
+    statement: "At maximum training budget, the D minus S gap, with 95% CI, bounds the improvement perfect pristine-host electronic information can provide."
+    tested_by: M5
+    figure: Fig3
+    falsifiable_how: "Measurement; reported with CI."
+    status: planned
+  - id: C3a
+    statement: "A staged model predicting pristine-site Bader descriptors and then formation energy (P) is compared with end-to-end S and oracle D at matched budgets, with a true-descriptor swap-in separating staging cost from descriptor-head error."
+    tested_by: M6
+    figure: Fig4
+    falsifiable_how: "P minus S indistinguishable from zero is reported as a null."
+    status: planned
+  - id: C3b
+    statement: "Under MACE-MP-0 relaxed host geometry, staged and end-to-end models degrade differently; degradation is decomposed into volumetric strain and internal displacement."
+    tested_by: M7
+    figure: Fig5
+    falsifiable_how: "Statistically indistinguishable degradation slopes, or negligible geometry change, are reported as a null."
+    status: planned
+  - id: C4
+    statement: "Linear-probe recovery of electronic descriptors from the structure-only model's embeddings increases with training budget and exceeds shuffled-label and random-encoder controls."
+    tested_by: M8
+    figure: Fig6
+    falsifiable_how: "Flat trend or failure to beat both controls moves C4 to SI."
+    status: planned
+  - id: C5
+    statement: "Screening demonstration on named oxide crystals."
+    tested_by: M10
+    figure: Fig7
+    falsifiable_how: "Demonstration, not a claim."
+    status: planned
