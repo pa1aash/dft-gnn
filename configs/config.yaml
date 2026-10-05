@@ -15,7 +15,7 @@ split:
   seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 budgets:
   hosts: []              # training budgets in HOSTS (learning-curve x-axis)
-  max: TBD
+  max: 654              # S03 G0: floor(0.8 x 818 hosts), results/g0.json
 models:
   rf:
     enabled: true
@@ -41,7 +41,7 @@ training:
     patience: TBD
     min_delta: TBD
 secondary_metric:
-  within_host: TBD       # set by the S03 rule: true if ICC_host >= 0.70
+  within_host: true      # S03 rule: ICC_host = 0.930 >= 0.70, results/variance_decomposition.json
 stats:
   bootstrap_n: 10000
   delta_eV: 0.05

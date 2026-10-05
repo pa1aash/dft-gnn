@@ -13,7 +13,10 @@ def test_default_config_loads():
     assert cfg.stats.delta_eV == 0.05
     assert cfg.stats.ci == 0.95
     assert cfg.mlip.model == "mace-mp-0"
-    assert cfg.budgets.max == "TBD"
+    assert cfg.budgets.max == 654
+    assert cfg.data.universe == "universe_v1"
+    assert cfg.secondary_metric.within_host is True
+    assert cfg.data.filters[0].startswith("D1")
 
 
 def _raw():
