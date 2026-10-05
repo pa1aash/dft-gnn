@@ -35,6 +35,12 @@ class BudgetsCfg(_Strict):
     max: int | TBD
 
 
+class CurveCfg(_Strict):
+    sizes: list[int]
+    n_resamples: int = Field(gt=0)
+    n_test_hosts: int = Field(gt=0)
+
+
 class ToggleCfg(_Strict):
     enabled: bool = True
 
@@ -117,6 +123,7 @@ class Config(_Strict):
     data: DataCfg
     split: SplitCfg
     budgets: BudgetsCfg
+    curve: CurveCfg
     models: ModelsCfg
     tuning: TuningCfg
     training: TrainingCfg

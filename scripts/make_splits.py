@@ -46,6 +46,9 @@ def main() -> None:
         "nested": "budget-B training set = first B hosts of budget_order",
         "coverage": coverage(outer, list(hosts.host_id)),
         "kiyohara_hosts": {k: len(v) for k, v in splits["kiyohara"].items()},
+        "curve": {"sizes": cfg.curve.sizes, "n_resamples": cfg.curve.n_resamples,
+                  "n_test_hosts": cfg.curve.n_test_hosts, "file": "rf_curve.json",
+                  "note": "Kumagai-style unstratified grouped resamples; train = first N of order"},
         "kiyohara_note": "released without-PHS lists mapped to universe_v1; all 818 hosts covered",
     }
     files = {f"{k}.json": dumps(v) for k, v in splits.items()}

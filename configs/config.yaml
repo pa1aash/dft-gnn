@@ -16,6 +16,10 @@ split:
 budgets:
   hosts: [25, 50, 100, 200, 400, 654]   # training budgets in HOSTS (learning-curve x-axis); nested subsets
   max: 654              # S03 G0: floor(0.8 x 818 hosts), results/g0.json
+curve:                   # Kumagai-style RF learning curve (S04): nominal sizes of K21 Fig. 5(a), 700 capped at the 654-host pool
+  sizes: [22, 70, 220, 654]
+  n_resamples: 100       # grouped random resamples per size, as in K21
+  n_test_hosts: 48       # K21 text; the released script uses 50 (docs/provenance.md, discrepancy 5)
 models:
   rf:
     enabled: true

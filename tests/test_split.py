@@ -11,6 +11,7 @@ from dftgnn.split import (
     SPLITS_DIR,
     budget_train,
     coverage,
+    curve_resample,
     derived_seed,
     dumps,
     host_table,
@@ -131,3 +132,17 @@ def test_val_split():
     assert len(va) == 3  # floor of min_hosts at small budgets
     with pytest.raises(ValueError):
         val_split(hosts[:3], 0.1, 3, 0)
+
+
+def test_curve_resamples(splits):
+    cur = splits["rf_curve"]
+    assert len(cur["resamples"]) == CFG.curve.n_resamples
+    for i in (0, 57, 99):
+        for n in CFG.curve.sizes:
+            train, test = curve_resample(cur, i, n)
+            assert len(train) == n and len(test) == CFG.curve.n_test_hosts
+            assert not set(train) & set(test)
+        small, _ = curve_resample(cur, i, 22)
+        big, _ = curve_resample(cur, i, 220)
+        assert big[:22] == small  # nested
+    assert len({tuple(r["test"]) for r in cur["resamples"]}) == CFG.curve.n_resamples

@@ -105,6 +105,31 @@ def kiyohara_hosts(universe: pd.DataFrame) -> dict[str, list[str]]:
     return {sp: sorted(h.index[h == sp]) for sp in ("train", "val", "test")}
 
 
+def curve_splits(hosts: pd.DataFrame, cfg: Config) -> dict:
+    """Kumagai-style learning-curve resamples (not stratified, as in K21).
+
+    Resample i: one random permutation (seed from ``(i, "rf_curve")``) of all hosts; the first
+    ``n_test_hosts`` are test, the next ``max(sizes)`` are the nested training order. Stored as
+    indices into the sorted ``hosts`` list.
+    """
+    ids = list(hosts.host_id)
+    c = cfg.curve
+    n_train = max(c.sizes)
+    res = []
+    for i in range(c.n_resamples):
+        perm = np.random.default_rng(derived_seed(i, "rf_curve")).permutation(len(ids))
+        res.append({"i": i, "test": sorted(int(k) for k in perm[: c.n_test_hosts]),
+                    "order": [int(k) for k in perm[c.n_test_hosts: c.n_test_hosts + n_train]]})
+    return {"hosts": ids, "sizes": c.sizes, "n_test_hosts": c.n_test_hosts, "resamples": res}
+
+
+def curve_resample(curve: dict, i: int, size: int) -> tuple[list[str], list[str]]:
+    """(train host_ids, test host_ids) of curve resample ``i`` at training ``size``."""
+    r = curve["resamples"][i]
+    ids = curve["hosts"]
+    return [ids[k] for k in r["order"][:size]], [ids[k] for k in r["test"]]
+
+
 def make_all(universe: pd.DataFrame, cfg: Config | None = None) -> dict[str, dict]:
     """Every split object, keyed by file stem. Pure function of (universe, config)."""
     cfg = cfg if cfg is not None else load_config()
@@ -113,6 +138,7 @@ def make_all(universe: pd.DataFrame, cfg: Config | None = None) -> dict[str, dic
     for r in range(cfg.split.n_outer_resamples):
         out[f"outer_r{r}"] = outer_split(hosts, r, cfg.split.seeds[r], cfg.split.test_fraction)
     out["kiyohara"] = kiyohara_hosts(universe)
+    out["rf_curve"] = curve_splits(hosts, cfg)
     return out
 
 
