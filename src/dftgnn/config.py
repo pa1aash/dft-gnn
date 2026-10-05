@@ -47,11 +47,18 @@ class NetCfg(ToggleCfg):
     backbone: Literal["megnet"] = "megnet"
 
 
+DescriptorClass = Literal["structural/compositional", "host-electronic DFT", "site-electronic DFT"]
+
+
+class DNetCfg(NetCfg):
+    descriptor_classes: list[DescriptorClass] = Field(min_length=1)
+
+
 class ModelsCfg(_Strict):
     rf: ToggleCfg
     physics_floor: PhysicsFloorCfg
     S: NetCfg
-    D: NetCfg
+    D: DNetCfg
     P: NetCfg
     injection_mode: str | TBD
 

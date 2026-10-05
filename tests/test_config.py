@@ -48,3 +48,12 @@ def test_tbd_only_where_allowed(tmp_path):
     p.write_text(yaml.safe_dump(raw))
     with pytest.raises(ValidationError):
         load_config(p)
+
+
+def test_model_d_descriptor_classes():
+    import pandas as pd
+
+    cfg = load_config()
+    taxonomy = set(pd.read_csv(DEFAULT_CONFIG.parents[1] / "docs" / "descriptor_taxonomy.csv")["class"])
+    assert cfg.models.D.descriptor_classes == ["host-electronic DFT", "site-electronic DFT"]
+    assert set(cfg.models.D.descriptor_classes) <= taxonomy

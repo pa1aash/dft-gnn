@@ -28,6 +28,8 @@ models:
   D:
     enabled: true
     backbone: megnet
+    # class strings exactly as in docs/descriptor_taxonomy.csv; fixed on physical grounds before any baseline
+    descriptor_classes: [host-electronic DFT, site-electronic DFT]
   P:
     enabled: true
     backbone: megnet
