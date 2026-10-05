@@ -48,6 +48,9 @@ stats:
   bootstrap_n: 10000
   delta_eV: 0.05
   ci: 0.95
+sensitivity:
+  exclude_high_moment:   # pre-registered (S03, before any model result): drop |defect moment| > threshold
+    threshold_muB: 0.5
 mlip:
   model: mace-mp-0
   version: TBD

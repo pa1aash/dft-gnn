@@ -57,3 +57,7 @@ def test_model_d_descriptor_classes():
     taxonomy = set(pd.read_csv(DEFAULT_CONFIG.parents[1] / "docs" / "descriptor_taxonomy.csv")["class"])
     assert cfg.models.D.descriptor_classes == ["host-electronic DFT", "site-electronic DFT"]
     assert set(cfg.models.D.descriptor_classes) <= taxonomy
+
+
+def test_sensitivity_high_moment_preregistered():
+    assert load_config().sensitivity.exclude_high_moment.threshold_muB == 0.5

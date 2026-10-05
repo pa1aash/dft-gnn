@@ -88,6 +88,14 @@ class StatsCfg(_Strict):
     ci: float = Field(gt=0, lt=1)
 
 
+class HighMomentCfg(_Strict):
+    threshold_muB: float = Field(gt=0)
+
+
+class SensitivityCfg(_Strict):
+    exclude_high_moment: HighMomentCfg
+
+
 class MlipCfg(_Strict):
     model: str
     version: str | TBD
@@ -113,6 +121,7 @@ class Config(_Strict):
     training: TrainingCfg
     stats: StatsCfg
     secondary_metric: SecondaryMetricCfg = Field(default_factory=SecondaryMetricCfg)
+    sensitivity: SensitivityCfg
     mlip: MlipCfg
     probe: ProbeCfg
     paths: PathsCfg
