@@ -39,7 +39,6 @@ def interpret(stab: float, gap: float) -> dict[str, str]:
          "vacancy formation energy" if stab < 0 else
          "positive: a less stable oxide (less negative formation energy per atom) has a higher "
          "vacancy formation energy, opposite to the bond-strength expectation")
-    g = ("positive: a wider gap goes with a costlier vacancy, as expected if the vacancy electrons "
-         "must be accommodated at the conduction-band edge" if gap > 0 else
-         "negative: a wider gap goes with a cheaper vacancy, opposite to the band-edge expectation")
+    g = ("positive: a wider-gap oxide goes with a costlier vacancy" if gap > 0 else
+         "negative: a wider-gap oxide goes with a cheaper vacancy")
     return {"stability": s, "gap": g}
