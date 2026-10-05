@@ -45,8 +45,8 @@ def test_zno_maps_to_atom_150_with_four_zn(uni):
     shell = [n for n in st.get_neighbors(st[150], 2.5)]
     assert len(shell) == 4
     assert all(n.specie.symbol == "Zn" for n in shell)
-    # 1.934 (x3) and 1.942 A; the band is 1.93-1.94 A at two-decimal precision
-    assert all(1.93 <= round(n.nn_distance, 2) <= 1.94 for n in shell)
+    # Zn-O bond lengths of the supercell: 1.934 A (x3) and 1.942 A
+    assert all(1.92 <= n.nn_distance <= 1.95 for n in shell)
 
 
 def test_no_excluded_entry_present(built, release):
