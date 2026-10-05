@@ -123,7 +123,7 @@ def file_class(path: str) -> str:
 
 
 def main() -> dict:
-    files = [file_row(p) for p in sorted(RAW.rglob("*")) if p.is_file() and p.name != ".DS_Store"]
+    files = [file_row(p) for p in sorted(RAW.rglob("*")) if p.is_file()]
     by_class: dict = defaultdict(lambda: {"files": 0, "bytes": 0})
     for f in files:
         by_class[file_class(f["path"])]["files"] += 1
