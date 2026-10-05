@@ -23,6 +23,10 @@ if [[ "${1:-}" != "--verify-only" ]]; then
   # site_info.tar.gz -> site_info/<formula>/{supercell.cif,cell_info.txt}
   [[ -d $UNP/oxygen_vacancies_db/site_info ]] || \
     tar -xzf "$UNP/oxygen_vacancies_db/site_info.tar.gz" -C "$UNP/oxygen_vacancies_db"
+  # per-formula archives -> oxygen_vacancies_db_data/<formula>/ (inner per-defect archives stay packed)
+  for t in "$UNP"/oxygen_vacancies_db/oxygen_vacancies_db_data/*.tar.gz; do
+    [[ -d "${t%.tar.gz}" ]] || tar -xzf "$t" -C "$(dirname "$t")"
+  done
 fi
 python3 scripts/make_manifest.py --verify
 echo "manifest verification: OK"
