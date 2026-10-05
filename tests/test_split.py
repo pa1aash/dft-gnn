@@ -7,8 +7,19 @@ import pytest
 
 from dftgnn.config import load_config
 from dftgnn.data import universe as U
-from dftgnn.split import (SPLITS_DIR, budget_train, coverage, derived_seed, dumps, host_table,
-                          kiyohara_hosts, load_meta, load_split, make_all, val_split)
+from dftgnn.split import (
+    SPLITS_DIR,
+    budget_train,
+    coverage,
+    derived_seed,
+    dumps,
+    host_table,
+    kiyohara_hosts,
+    load_meta,
+    load_split,
+    make_all,
+    val_split,
+)
 
 CFG = load_config()
 pytestmark = pytest.mark.skipif(not (U.REPO_ROOT / "data/processed/universe_v1.parquet").is_file(),

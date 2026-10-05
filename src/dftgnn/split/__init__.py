@@ -60,7 +60,7 @@ def outer_split(hosts: pd.DataFrame, r: int, seed: int, test_fraction: float) ->
     """Stratified grouped hold-out of resample ``r``. ``hosts`` comes from ``host_table``."""
     ranked = hosts.sort_values(["mean_Ef", "host_id"], kind="stable")
     strata = np.array_split(ranked.host_id.to_numpy(), N_STRATA)
-    n_test = int(round(test_fraction * len(hosts)))
+    n_test = round(test_fraction * len(hosts))
     alloc = _allocate(np.array([len(s) for s in strata], float), n_test)
     rng = np.random.default_rng(seed)
     test = sorted(h for s, k in zip(strata, alloc, strict=True)
@@ -88,7 +88,7 @@ def val_split(train_hosts, frac: float = 0.1, min_hosts: int = 3, seed: int = 0)
     host ids. Returns (train, val) as sorted lists. Raises if training would be left empty.
     """
     hosts = sorted(train_hosts)
-    n_val = max(min_hosts, int(round(frac * len(hosts))))
+    n_val = max(min_hosts, round(frac * len(hosts)))
     if n_val >= len(hosts):
         raise ValueError(f"cannot carve {n_val} validation hosts out of {len(hosts)}")
     perm = np.random.default_rng(seed).permutation(len(hosts))
