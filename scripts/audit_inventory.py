@@ -55,7 +55,8 @@ def column_inventory(df: pd.DataFrame, readme: str) -> list[dict]:
             "unique": int(s.nunique(dropna=True)),
             "min": float(s.min()) if num else None, "max": float(s.max()) if num else None,
             "examples": ex,
-            "in_readme": bool(re.search(rf"(?<![A-Za-z_]){re.escape(c)}(?![A-Za-z_])", readme)),
+            # element symbols and short words match README prose by accident, so require a name of 3+ characters
+            "in_readme": len(c) > 2 and bool(re.search(rf"(?<![A-Za-z_]){re.escape(c)}(?![A-Za-z_])", readme)),
         })
     return out
 
@@ -134,9 +135,13 @@ def main() -> dict:
         num = [c for c in csv.columns if pd.api.types.is_numeric_dtype(csv[c])]
         tables[f"charge{q}.csv"] = {
             "rows": len(csv), "columns": csv.shape[1], "inventory": column_inventory(csv, README),
-            "pickle_matches_csv": bool(list(pcl.columns) == list(csv.columns)
-                                       and np.allclose(pcl[num].to_numpy(float), csv[num].to_numpy(float), equal_nan=True)
-                                       and (pcl["full_name"].to_numpy() == csv["full_name"].to_numpy()).all()),
+            "pickle_nan_cells": int(pcl.isna().sum().sum()),
+            "pickle_nan_columns": int((pcl.isna().sum() > 0).sum()),
+            "pickle_matches_csv_after_nan_to_zero": bool(
+                list(pcl.columns) == list(csv.columns)
+                and np.allclose(pcl[num].fillna(0.0).to_numpy(float), csv[num].to_numpy(float), rtol=0, atol=1e-12)
+                and (pcl["full_name"].to_numpy() == csv["full_name"].to_numpy()).all()),
+            "pickle_max_abs_diff_non_nan_cells": float(np.nanmax(np.abs(pcl[num].to_numpy(float) - csv[num].to_numpy(float)))),
         }
     for sp in ("train", "val", "test"):
         for ph in ("wo", "w"):
