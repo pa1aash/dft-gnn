@@ -3,7 +3,11 @@ data:
   raw_dir: data/raw
   processed_dir: data/processed
   charge_state: 0
-  filters: []            # e.g. non-magnetic hosts only; list to be fixed once the data are inspected
+  filters:               # applied in order to Kumagai's neutral ML subset (charge0.csv); S03 decisions
+    - D1_defect_type_flags        # drop vacancy split / unknown / not same config from init (15 entries)
+    - D2_Sr2Zr7O16_label_mismatch # drop host Sr2Zr7O16: ML site labels do not match release targets
+    - D3_cell_metadata_shell_check # Ba4Nb2WO12, Sr2SnO4: keep only if site maps to O with matching shell
+  universe: universe_v1
 split:
   group_key: formula
   n_outer_resamples: 10
@@ -36,6 +40,8 @@ training:
   early_stopping:
     patience: TBD
     min_delta: TBD
+secondary_metric:
+  within_host: TBD       # set by the S03 rule: true if ICC_host >= 0.70
 stats:
   bootstrap_n: 10000
   delta_eV: 0.05

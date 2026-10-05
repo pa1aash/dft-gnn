@@ -20,6 +20,7 @@ class DataCfg(_Strict):
     processed_dir: str
     charge_state: int = 0
     filters: list[str] = Field(default_factory=list)
+    universe: str | TBD = "TBD"
 
 
 class SplitCfg(_Strict):
@@ -70,6 +71,10 @@ class TrainingCfg(_Strict):
     early_stopping: EarlyStoppingCfg
 
 
+class SecondaryMetricCfg(_Strict):
+    within_host: bool | TBD = "TBD"
+
+
 class StatsCfg(_Strict):
     bootstrap_n: int = Field(gt=0)
     delta_eV: float = Field(gt=0)
@@ -100,6 +105,7 @@ class Config(_Strict):
     tuning: TuningCfg
     training: TrainingCfg
     stats: StatsCfg
+    secondary_metric: SecondaryMetricCfg = Field(default_factory=SecondaryMetricCfg)
     mlip: MlipCfg
     probe: ProbeCfg
     paths: PathsCfg
