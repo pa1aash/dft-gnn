@@ -27,7 +27,7 @@ def test_max_features_grid():
 
 def test_interpretation_follows_sign():
     s = physics.interpret(-1.0, 0.3)
-    assert "more stable oxide" in s["stability"] and "wider gap goes with a costlier" in s["gap"]
+    assert "more stable oxide" in s["stability"] and "wider-gap oxide goes with a costlier" in s["gap"]
     assert "opposite" in physics.interpret(1.0, -0.3)["stability"]
 
 
