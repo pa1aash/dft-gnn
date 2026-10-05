@@ -4,6 +4,7 @@ Audit only. No filtering decision, no model, no descriptor-target analysis. Ever
 written by `scripts/run_s02_audit.py` through `write_result` into `results/` (names in brackets).
 Sources are cited as in `docs/provenance.md`: K21 (Kumagai et al., PRM 5, 123803), K21-SM, K25
 (Kiyohara et al., PRL 135, 246101), DB (the release), K25-code.
+Abbreviation: PHS = perturbed host states (the release's `is_shallow` flag).
 
 ## 1. Acquisition
 
