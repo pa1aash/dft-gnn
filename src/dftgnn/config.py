@@ -84,6 +84,7 @@ class SecondaryMetricCfg(_Strict):
 
 class StatsCfg(_Strict):
     bootstrap_n: int = Field(gt=0)
+    cluster_bootstrap_n: int = Field(2000, gt=0)
     delta_eV: float = Field(gt=0)
     ci: float = Field(gt=0, lt=1)
 

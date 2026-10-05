@@ -14,7 +14,7 @@ split:
   test_fraction: 0.2
   seeds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 budgets:
-  hosts: []              # training budgets in HOSTS (learning-curve x-axis)
+  hosts: [25, 50, 100, 200, 400, 654]   # training budgets in HOSTS (learning-curve x-axis); nested subsets
   max: 654              # S03 G0: floor(0.8 x 818 hosts), results/g0.json
 models:
   rf:
@@ -46,6 +46,7 @@ secondary_metric:
   within_host: true      # S03 rule: ICC_host = 0.930 >= 0.70, results/variance_decomposition.json
 stats:
   bootstrap_n: 10000
+  cluster_bootstrap_n: 2000   # test-host cluster bootstrap for held-out metrics (S04)
   delta_eV: 0.05
   ci: 0.95
 sensitivity:
