@@ -25,3 +25,4 @@ dependencies:
   - pip:
       - torch_geometric
       - mace-torch
+      - matgl==4.1.0   # install with core packages constrained to the conda versions (docs/env-notes.md)

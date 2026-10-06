@@ -18,6 +18,10 @@
   recorded after the first build.
 - The pod never holds git credentials; results are copied back and committed from the Mac.
 
-## matgl on the Mac (throwaway env, Python 3.11, pip install matgl)
-- Installed matgl 4.1.0 and `import matgl` succeeded on osx-arm64 (only a torch.jit.script deprecation warning).
-- Not added to the local env; it stays in the GPU specs.
+## matgl on the Mac (local env, from S06)
+- matgl 4.1.0 is installed in the local `dftgnn` env for graph construction, model code and CPU tests.
+- Install with the conda-provided core packages pinned, so pip does not pull a second torch (OpenMP clash):
+  `pip list --format=freeze | grep -iE '^(torch|numpy|scipy|pymatgen|pandas|scikit-learn|ase|pydantic|torch-geometric)==' > c.txt`
+  then `pip install matgl==4.1.0 -c c.txt`.
+- The optional `alchmtk` neighbour-list extension is not installed; matgl then uses pymatgen's
+  `find_points_in_spheres`, which the graph store was built with.
