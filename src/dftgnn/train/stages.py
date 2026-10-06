@@ -18,7 +18,7 @@ from dftgnn.models import HParams
 from dftgnn.split import budget_train, load_split
 from dftgnn.train import RunSpec, admission, run_id, val_seed
 
-STAGES = ("tune", "sweep", "kiyohara", "loco", "sensitivity", "smoke", "pilot_epochs", "c0_pilot", "c0_ablate")
+STAGES = ("tune", "sweep", "kiyohara", "loco", "sensitivity", "smoke", "pilot_epochs", "c0_pilot", "c0_ablate", "c0_capcheck")
 # smoke only: fixed, untuned optimiser settings for a pipeline check (not a hyperparameter choice)
 SMOKE_OPT = {"lr": 1e-3, "weight_decay": 1e-5, "batch_size": 16}
 SMOKE_EPOCHS = 3
@@ -137,3 +137,16 @@ def build_c0_pilot(code: str, gsha: str, cfg: Config | None = None, table: dict 
                        seed=seed, ablate=ablate, results_subdir=sub, tags={"pilot": "c0"})
         jobs.append(_job(spec, "c0_pilot" if ablate is None else "c0_ablate", code, gsha, table=table))
     return jobs
+
+
+def build_c0_capcheck(code: str, gsha: str, table: dict | None = None, seeds=(0, 2),
+                      max_epochs: int = 600) -> list[dict]:
+    """Diagnostic only (S07): the C0-pilot seeds whose best epoch fell at the 200-epoch cap, rerun with a
+    larger cap and the same patience, to see whether the cap truncates training. Excluded from every
+    analysis."""
+    cfg = load_config()
+    n_train = len(load_split("kiyohara")["train"])
+    return [_job(RunSpec(model="S", hp=PILOT_HP, **PILOT_OPT, split="kiyohara", r=-1, budget=n_train,
+                         seed=seed, max_epochs=max_epochs, patience=cfg.training.early_stopping.patience,
+                         results_subdir="c0_cap_check", tags={"pilot": "c0_cap_check"}),
+                 "c0_capcheck", code, gsha, table=table) for seed in seeds]

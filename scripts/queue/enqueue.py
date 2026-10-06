@@ -3,7 +3,7 @@
     python scripts/queue/enqueue.py smoke
     python scripts/queue/enqueue.py kiyohara --hparams tuned.json [--d-variant D-state]
 
-Builders exist for smoke, kiyohara, pilot_epochs, c0_pilot and c0_ablate; tune, sweep, loco and
+Builders exist for smoke, kiyohara, pilot_epochs, c0_pilot, c0_ablate and c0_capcheck; tune, sweep, loco and
 sensitivity come later.
 """
 from __future__ import annotations
@@ -38,6 +38,8 @@ def main() -> None:
         jobs = ST.build_pilot_epochs(code, gsha, table)
     elif a.stage == "c0_pilot":
         jobs = ST.build_c0_pilot(code, gsha, table=table)
+    elif a.stage == "c0_capcheck":
+        jobs = ST.build_c0_capcheck(code, gsha, table)
     elif a.stage == "c0_ablate":
         jobs = ST.build_c0_pilot(code, gsha, table=table, ablate="vacancy_flag")
     elif a.stage == "kiyohara":
