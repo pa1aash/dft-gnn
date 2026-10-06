@@ -6,23 +6,35 @@ set -euo pipefail
 REPO_URL="https://github.com/pa1aash/dft-gnn.git"
 CMD="${1:?usage: setup.sh install <commit> [workdir] | verify [workdir]}"
 ENV_NAME="dftgnn-gpu"
-CONDA_DIR="${CONDA_DIR:-/workspace/miniforge}"
+CONDA_DIR="${CONDA_DIR:-/workspace/miniforge3}"
 
+# Reuse whatever is already there: a conda/mamba on PATH, then an earlier miniforge under /workspace;
+# install miniforge non-interactively only if neither exists.
 conda_bin() {
   if command -v mamba >/dev/null 2>&1; then echo mamba; return; fi
   if command -v conda >/dev/null 2>&1; then echo conda; return; fi
   if [ ! -x "$CONDA_DIR/bin/mamba" ]; then
+    mkdir -p "$(dirname "$CONDA_DIR")"
     curl -fsSL -o /tmp/miniforge.sh \
       "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh"
-    bash /tmp/miniforge.sh -b -p "$CONDA_DIR"
+    bash /tmp/miniforge.sh -b -p "$CONDA_DIR" >&2
   fi
   echo "$CONDA_DIR/bin/mamba"
+}
+
+ensure_tools() {
+  command -v rsync >/dev/null 2>&1 || { apt-get update -qq && apt-get install -y -qq rsync; }
+  command -v git >/dev/null 2>&1 || { apt-get update -qq && apt-get install -y -qq git; }
 }
 
 case "$CMD" in
   install)
     COMMIT="${2:?commit SHA required}"
     WORK="${3:-/workspace/dft-gnn}"
+    mkdir -p /workspace
+    ensure_tools
+    nvidia-smi --query-gpu=name,driver_version --format=csv,noheader
+    df -h /workspace; mount | grep workspace || echo "/workspace is on the container disk"
     if [ ! -d "$WORK/.git" ]; then git clone "$REPO_URL" "$WORK"; fi
     cd "$WORK"
     git fetch --quiet origin
