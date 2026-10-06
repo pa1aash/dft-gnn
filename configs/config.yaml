@@ -106,12 +106,12 @@ training:
     name: reduce_lr_on_plateau
     factor: 0.5
     patience: 15
-  max_epochs: TBD-S07
+  max_epochs: 200        # S07, rule and evidence in docs/deviations.md (2026-10-06, 2026-10-07)
   early_stopping:
     monitor: val_mae
     restore_best: true
-    patience: TBD-S07
-    min_delta: 0.0       # clarification, docs/deviations.md (2026-10-06)
+    patience: 30           # S07, max(30, round(0.15 x max_epochs))
+    min_delta: 0.0       # clarification, docs/deviations.md (2026-10-06, 2026-10-07)
   validation:            # dftgnn.split.val_split on the training hosts
     frac: 0.1
     min_hosts: 3

@@ -42,9 +42,13 @@ def test_outer_val_split_is_carved_from_training_hosts():
     assert not set(h["test"]) & (set(h["train"]) | set(h["val"]))
 
 
-def test_tbd_epochs_require_override():
+def test_epoch_limits_come_from_the_config_unless_overridden():
+    cfg = load_config()
+    assert epoch_limits(_spec(max_epochs=None, patience=None), cfg) == (200, 30)
+    assert epoch_limits(_spec(max_epochs=7, patience=2), cfg) == (7, 2)
+    cfg.training.max_epochs = "TBD-S07"
     with pytest.raises(ValueError):
-        epoch_limits(_spec(max_epochs=None, patience=None), load_config())
+        epoch_limits(_spec(max_epochs=None, patience=None), cfg)
 
 
 def test_run_id_sensitivity():

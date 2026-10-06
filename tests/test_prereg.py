@@ -64,3 +64,25 @@ def test_tagged_plan_equals_working_copy():
     tagged = check_prereg.tagged_plan()
     if tagged is not None:
         assert tagged == _plan()
+
+
+def test_epoch_values_are_set_logged_and_follow_the_rule():
+    cfg = _cfg()
+    assert isinstance(cfg["training"]["max_epochs"], int)
+    logged = check_prereg.logged_values(_log())
+    assert check_prereg.epoch_rule_errors(cfg, logged) == []
+    assert {r["key"] for r in logged} >= set(check_prereg.EPOCH_KEYS)
+
+
+def test_epoch_rule_violations_detected():
+    logged = check_prereg.logged_values(_log())
+    for me, pa in ((210, 30), (200, 25), (300, 30), ("TBD-S07", "TBD-S07")):
+        cfg = _cfg()
+        cfg["training"]["max_epochs"] = me
+        cfg["training"]["early_stopping"]["patience"] = pa
+        assert check_prereg.epoch_rule_errors(cfg, logged), (me, pa)
+
+
+def test_unlogged_epoch_values_detected():
+    errs = check_prereg.epoch_rule_errors(_cfg(), [])
+    assert sum("not set by a logged CLARIFICATION row" in e for e in errs) == 2

@@ -65,8 +65,8 @@ def test_sensitivity_high_moment_preregistered():
 
 def test_prereg_decisions():
     cfg = load_config()
-    assert cfg.training.max_epochs == "TBD-S07"
-    assert cfg.training.early_stopping.patience == "TBD-S07"
+    assert cfg.training.max_epochs == 200
+    assert cfg.training.early_stopping.patience == 30
     assert cfg.tuning.anchors == [50, 200, 654]
     assert set(cfg.tuning.budget_to_anchor) == set(cfg.budgets.hosts)
     assert set(cfg.tuning.budget_to_anchor.values()) == set(cfg.tuning.anchors)
