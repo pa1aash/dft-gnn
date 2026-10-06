@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends git build-essen
 
 # torch is provided by the base image; package list mirrors env/environment-gpu.yml
 RUN pip install --no-cache-dir numpy scipy pandas scikit-learn pymatgen ase matplotlib seaborn \
-    optuna pyyaml pydantic jupyter pytest ruff colorspacious tqdm torch_geometric mace-torch matgl
+    optuna pyyaml pydantic jupyter pytest ruff colorspacious tqdm torch_geometric==2.8.0.post1 mace-torch \
+    matgl==4.1.0
 
 WORKDIR /workspace
