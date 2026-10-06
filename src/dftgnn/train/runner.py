@@ -29,7 +29,7 @@ from dftgnn.train import (
 
 
 def results_dir_for(spec: RunSpec, root: Path = REPO_ROOT) -> Path:
-    return root / "results" / ("smoke" if spec.smoke else "")
+    return root / "results" / ("smoke" if spec.smoke else (spec.results_subdir or ""))
 
 
 def _rel(p: Path) -> str:

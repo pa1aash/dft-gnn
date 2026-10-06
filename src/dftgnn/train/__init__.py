@@ -105,6 +105,9 @@ class RunSpec:
     max_epochs: int | None = None
     patience: int | None = None
     smoke: bool = False
+    results_subdir: str | None = None     # results/<subdir>/ instead of results/ (pilots)
+    eval_test: bool = True                # False: the test hosts are never loaded or predicted (epoch pilot)
+    ablate: str | None = None             # "vacancy_flag": zero the flag (C0 diagnosis only)
     p1_run: str | None = None
     d_run: str | None = None
     tags: dict = field(default_factory=dict)
@@ -125,6 +128,12 @@ def run_id(spec: RunSpec, code: str, graphs_sha: str) -> str:
            "code_sha": code, "graphs_manifest_sha256": graphs_sha}
     if spec.hosts is not None:
         key["hosts"] = spec.hosts
+    if not spec.eval_test:
+        key["eval_test"] = False
+    if spec.ablate is not None:
+        key["ablate"] = spec.ablate
+    if spec.results_subdir is not None:
+        key["results_subdir"] = spec.results_subdir
     if spec.max_epochs is not None or spec.patience is not None:
         key["epoch_override"] = [spec.max_epochs, spec.patience]
     if spec.model == "P":
@@ -139,11 +148,11 @@ def resolve_hosts(spec: RunSpec, cfg: Config) -> dict[str, list[str]]:
         return {k: sorted(v) for k, v in spec.hosts.items()}
     sp = load_split(spec.split)
     if spec.split == "kiyohara":
-        return {"train": sp["train"], "val": sp["val"], "test": sp["test"]}
+        return {"train": sp["train"], "val": sp["val"], "test": sp["test"] if spec.eval_test else []}
     train = budget_train(sp, spec.budget)
     v = cfg.training.validation
     tr, va = val_split(train, frac=v.frac, min_hosts=v.min_hosts, seed=val_seed(spec.r, spec.budget, spec.seed))
-    return {"train": tr, "val": va, "test": sp["test"]}
+    return {"train": tr, "val": va, "test": sp["test"] if spec.eval_test else []}
 
 
 def epoch_limits(spec: RunSpec, cfg: Config) -> tuple[int, int]:
@@ -188,12 +197,14 @@ def _batches(positions: np.ndarray, size: int, gen: torch.Generator | None):
         yield order[k:k + size]
 
 
-def _predict(net, data: Store, pos, y, desc, batch_size, device) -> torch.Tensor:
+def _predict(net, data: Store, pos, y, desc, batch_size, device, ablate=None) -> torch.Tensor:
     net.eval()
     out = []
     with torch.no_grad():
         for idx in _batches(pos, batch_size, None):
             b = collate_sites(data.graphs, data.sites, idx, y=y, desc=desc).to(device)
+            if ablate == "vacancy_flag":
+                b.vac_flag.zero_()
             out.append(net(b).cpu())
     return torch.cat(out)
 
@@ -229,7 +240,7 @@ def train_run(spec: RunSpec, data: Store, cfg: Config | None = None, *, device: 
     gen = torch.Generator().manual_seed(spec.seed)
 
     def val_metric() -> float:
-        p = _predict(net, data, pos["val"], y, desc, spec.batch_size, device)
+        p = _predict(net, data, pos["val"], y, desc, spec.batch_size, device, spec.ablate)
         if is_p1:
             return float((p - desc[pos["val"]]).abs().mean())
         return float((y_st.inverse(p.double().view(-1, 1)).view(-1) - target[pos["val"]]).abs().mean())
@@ -240,6 +251,8 @@ def train_run(spec: RunSpec, data: Store, cfg: Config | None = None, *, device: 
         tot, n = 0.0, 0
         for idx in _batches(pos["train"], spec.batch_size, gen):
             b = collate_sites(data.graphs, data.sites, idx, y=y, desc=desc).to(device)
+            if spec.ablate == "vacancy_flag":
+                b.vac_flag.zero_()
             out = net(b)
             if is_p1:
                 loss = torch.nn.functional.mse_loss(out, torch.cat([b.desc_host, b.desc_site], -1))
@@ -265,11 +278,14 @@ def train_run(spec: RunSpec, data: Store, cfg: Config | None = None, *, device: 
             break
     net.load_state_dict(best_state)
 
-    p = _predict(net, data, pos["test"], y, desc, spec.batch_size, device)
     te = pos["test"]
+    p = _predict(net, data, te, y, desc, spec.batch_size, device, spec.ablate) if len(te) else None
     frame = pd.DataFrame({"site_id": [data.sites["site_id"][i] for i in te], "host_id": data.site_host[te]})
     names = data.sites["desc_host_names"] + data.sites["desc_site_names"]
-    if is_p1:
+    if p is None:                             # epoch pilot: the test hosts are never evaluated
+        frame = pd.DataFrame({"site_id": [], "host_id": []})
+        metrics = {}
+    elif is_p1:
         pr = d_st.inverse(p.double()).numpy()
         tr = desc_raw[te].numpy()
         for j, nm in enumerate(names):

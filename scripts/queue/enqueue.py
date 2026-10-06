@@ -3,7 +3,8 @@
     python scripts/queue/enqueue.py smoke
     python scripts/queue/enqueue.py kiyohara --hparams tuned.json [--d-variant D-state]
 
-Only the smoke and kiyohara builders exist (S06); tune, sweep, loco and sensitivity come later.
+Builders exist for smoke, kiyohara, pilot_epochs, c0_pilot and c0_ablate; tune, sweep, loco and
+sensitivity come later.
 """
 from __future__ import annotations
 
@@ -14,7 +15,7 @@ from _common import QUEUE
 
 from dftgnn import jobqueue as Q
 from dftgnn.graphs.store import manifest_sha
-from dftgnn.train import code_sha
+from dftgnn.train import admission, code_sha
 from dftgnn.train import stages as ST
 
 
@@ -26,12 +27,23 @@ def main() -> None:
     ap.add_argument("--queue", default=str(QUEUE))
     a = ap.parse_args()
     code, gsha = code_sha(), manifest_sha()
+    try:
+        table = admission.load_benchmark()
+    except (OSError, KeyError):
+        table = None
+        print("no results/gpu_benchmark.json: jobs carry no est_peak_gb (workers treat them as solo)")
     if a.stage == "smoke":
-        jobs = ST.build_smoke(code, gsha)
+        jobs = ST.build_smoke(code, gsha, table)
+    elif a.stage == "pilot_epochs":
+        jobs = ST.build_pilot_epochs(code, gsha, table)
+    elif a.stage == "c0_pilot":
+        jobs = ST.build_c0_pilot(code, gsha, table=table)
+    elif a.stage == "c0_ablate":
+        jobs = ST.build_c0_pilot(code, gsha, table=table, ablate="vacancy_flag")
     elif a.stage == "kiyohara":
         if not a.hparams:
             raise SystemExit("kiyohara needs --hparams (tuned values; tuning has not run yet)")
-        jobs = ST.build_kiyohara(code, gsha, ST.load_hparams(a.hparams), d_variant=a.d_variant)
+        jobs = ST.build_kiyohara(code, gsha, ST.load_hparams(a.hparams), d_variant=a.d_variant, table=table)
     else:
         raise SystemExit(f"stage {a.stage!r} has no builder yet")
     root = Q.init(Path(a.queue))
