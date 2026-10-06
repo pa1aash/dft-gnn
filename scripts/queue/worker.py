@@ -16,7 +16,7 @@ from pathlib import Path
 from _common import QUEUE
 
 
-def child(queue: str, name: str, device: str, threads: int) -> None:
+def child(queue: str, name: str, device: str, threads: int, vram_gb: float | None) -> None:
     import torch
 
     from dftgnn import jobqueue as Q
@@ -36,7 +36,15 @@ def child(queue: str, name: str, device: str, threads: int) -> None:
         return {"status": out["status"], "result": str(out["result"]), "device": str(dev),
                 "torch_threads": threads}
 
-    n = Q.run_worker(Path(queue), name, run, log=lambda m: print(m, flush=True))
+    def free() -> None:
+        if dev.type == "cuda":
+            import gc
+
+            gc.collect()
+            torch.cuda.empty_cache()
+
+    n = Q.run_worker(Path(queue), name, run, log=lambda m: print(m, flush=True), vram_gb=vram_gb,
+                     on_oom=free)
     print(f"{name}: ran {n} jobs", flush=True)
 
 
@@ -54,11 +62,27 @@ def main() -> None:
             raise SystemExit("--device cuda but CUDA is unavailable")
     from dftgnn.train import available_cpus
 
-    threads = a.threads or max(1, int(available_cpus() // a.max_concurrent))
+    n_workers, vram_gb = a.max_concurrent, None
+    if a.device == "cuda":
+        import torch
+
+        from dftgnn.train import admission
+
+        vram_gb = torch.cuda.get_device_properties(0).total_memory / admission.GIB
+        try:
+            host_gb = admission.est_host_gb(admission.load_benchmark())
+        except (OSError, KeyError):
+            host_gb = None
+        if host_gb:
+            cap = admission.max_workers_by_ram(host_gb)
+            if cap < n_workers:
+                print(f"host-RAM cap: {n_workers} -> {cap} workers (est {host_gb:.1f} GiB each)", flush=True)
+            n_workers = min(n_workers, cap)
+    threads = a.threads or max(1, int(available_cpus() // n_workers))
     host = socket.gethostname()
     ctx = mp.get_context("spawn")
-    procs = [ctx.Process(target=child, args=(a.queue, f"{host}-{os.getpid()}-w{i}", a.device, threads))
-             for i in range(a.max_concurrent)]
+    procs = [ctx.Process(target=child, args=(a.queue, f"{host}-{os.getpid()}-w{i}", a.device, threads, vram_gb))
+             for i in range(n_workers)]
     for p in procs:
         p.start()
     for p in procs:

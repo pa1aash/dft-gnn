@@ -9,9 +9,19 @@ A claim is ``os.rename`` from pending/ to running/. On one filesystem it is atom
 worker wins each job. A running job whose heartbeat is older than ``STALE_S`` (10 min) returns to
 pending. A job may list ``after`` run ids (e.g. P after its P1 and D runs) and is claimable only when
 all of them are in done/.
+
+VRAM-aware admission (S07). A job may carry ``est_peak_gb`` (the benchmark's realistic peak times a
+1.25 safety factor, ``dftgnn.train.admission``). With ``vram_gb`` given, ``claim`` admits a job only
+if the sum of ``est_peak_gb`` over the running jobs plus the new one is at most ``ADMIT_FRACTION`` (0.85)
+of ``vram_gb``. The check and the claim run under an exclusive ``fcntl`` lock on ``<root>/.admit.lock``,
+so concurrent workers cannot over-admit. A job whose estimate is missing is treated as needing the
+whole admissible budget. An out-of-memory error requeues the job with ``needs_solo = true``; a solo job
+is admitted only when nothing else is running, no other job is admitted while a solo job runs, and
+while a solo job is ready and pending no other job is admitted either (so it cannot starve).
 """
 from __future__ import annotations
 
+import fcntl
 import json
 import os
 import threading
@@ -20,6 +30,7 @@ import traceback
 from pathlib import Path
 
 STATES = ("pending", "running", "done", "failed")
+ADMIT_FRACTION = 0.85
 STALE_S = 600
 HEARTBEAT_S = 30
 
@@ -62,8 +73,48 @@ def requeue_stale(root: Path, max_age: float = STALE_S, now: float | None = None
     return back
 
 
-def claim(root: Path, worker: str) -> dict | None:
-    """Atomically move one ready pending job to running/ and start its heartbeat file."""
+def is_oom(exc: BaseException) -> bool:
+    """CUDA out-of-memory (``torch.cuda.OutOfMemoryError`` or a RuntimeError saying so)."""
+    return type(exc).__name__ in ("OutOfMemoryError", "SimulatedOOM") or "out of memory" in str(exc).lower()
+
+
+def _running_jobs(root: Path) -> list[dict]:
+    out = []
+    for f in (root / "running").glob("*.json"):
+        try:
+            out.append(json.loads(f.read_text()))
+        except (FileNotFoundError, json.JSONDecodeError):
+            continue
+    return out
+
+
+def _need_gb(job: dict, budget: float) -> float:
+    est = job.get("est_peak_gb")
+    return budget if est is None else float(est)
+
+
+def claim(root: Path, worker: str, *, vram_gb: float | None = None) -> dict | None:
+    """Atomically move one ready, admissible pending job to running/ and start its heartbeat file.
+
+    ``vram_gb`` (total device memory) switches on admission control; see the module docstring.
+    """
+    if vram_gb is None:
+        return _claim(root, worker, None)
+    init(root)
+    with open(root / ".admit.lock", "a+") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        try:
+            return _claim(root, worker, vram_gb)
+        finally:
+            fcntl.flock(lock, fcntl.LOCK_UN)
+
+
+def _claim(root: Path, worker: str, vram_gb: float | None) -> dict | None:
+    budget = None if vram_gb is None else ADMIT_FRACTION * vram_gb
+    running = [] if vram_gb is None else _running_jobs(root)
+    if vram_gb is not None and any(j.get("needs_solo") for j in running):
+        return None
+    used = sum(_need_gb(j, budget) for j in running) if budget is not None else 0.0
     for f in sorted((root / "pending").glob("*.json")):
         try:
             job = json.loads(f.read_text())
@@ -71,6 +122,12 @@ def claim(root: Path, worker: str) -> dict | None:
             continue
         if not _ready(root, job):
             continue
+        if budget is not None:
+            if job.get("needs_solo"):
+                if running:
+                    return None            # drain: let the running jobs finish, admit nothing else
+            elif running and used + _need_gb(job, budget) > budget + 1e-9:
+                continue                   # (a job that alone exceeds the budget runs only on an idle device)
         dst = root / "running" / f.name
         try:
             os.rename(f, dst)
@@ -80,6 +137,26 @@ def claim(root: Path, worker: str) -> dict | None:
         job["_claimed_by"] = worker
         return job
     return None
+
+
+def requeue_solo(root: Path, job: dict) -> bool:
+    """Return a job that hit an out-of-memory error to pending/ with ``needs_solo = true``.
+
+    False if it already was a solo job (it failed with the whole device to itself): the caller records it
+    as failed.
+    """
+    if job.get("needs_solo"):
+        return False
+    name = f"{job['run_id']}.json"
+    rec = {k: v for k, v in job.items() if not k.startswith("_")}
+    rec["needs_solo"] = True
+    rec["oom_requeues"] = int(rec.get("oom_requeues", 0)) + 1
+    tmp = root / "pending" / f".{name}.tmp"
+    tmp.write_text(json.dumps(rec, indent=1, sort_keys=True))
+    os.replace(tmp, root / "pending" / name)
+    (root / "running" / name).unlink(missing_ok=True)
+    (root / "running" / name).with_suffix(".hb").unlink(missing_ok=True)
+    return True
 
 
 def finish(root: Path, job: dict, *, ok: bool, info: dict) -> None:
@@ -122,12 +199,16 @@ class Heartbeat:
 
 
 def run_worker(root: Path, worker: str, execute, *, idle_exit: bool = True, poll: float = 5.0,
-               log=print) -> int:
-    """Claim and execute jobs until none is left. ``execute(job) -> info dict``. Returns jobs run."""
+               log=print, vram_gb: float | None = None, on_oom=None) -> int:
+    """Claim and execute jobs until none is left. ``execute(job) -> info dict``. Returns jobs run.
+
+    ``vram_gb`` turns on admission control. A CUDA out-of-memory error requeues the job as a solo job
+    (``on_oom`` is called first, e.g. to empty the CUDA cache).
+    """
     n = 0
     while True:
         requeue_stale(root)
-        job = claim(root, worker)
+        job = claim(root, worker, vram_gb=vram_gb)
         if job is None:
             pend = list((root / "pending").glob("*.json"))
             run = list((root / "running").glob("*.json"))
@@ -144,7 +225,13 @@ def run_worker(root: Path, worker: str, execute, *, idle_exit: bool = True, poll
             with Heartbeat(root, job["run_id"]):
                 info = execute(job)
             finish(root, job, ok=True, info={"wall_time_s": time.time() - t0, **info})
-        except Exception:  # noqa: BLE001 - every failure is recorded with its traceback
+        except Exception as exc:  # noqa: BLE001 - every failure is recorded with its traceback
+            if is_oom(exc):
+                if on_oom is not None:
+                    on_oom()
+                if requeue_solo(root, job):
+                    log(f"{worker}: {job['run_id']} ran out of memory; requeued as needs_solo")
+                    continue
             finish(root, job, ok=False, info={"wall_time_s": time.time() - t0,
                                               "traceback": traceback.format_exc()})
         n += 1
