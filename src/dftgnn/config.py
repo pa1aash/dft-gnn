@@ -147,13 +147,14 @@ class EarlyStoppingCfg(_Strict):
     monitor: Literal["val_mae"]
     restore_best: bool
     patience: int | TBD_S07
-    min_delta: float | TBD
+    min_delta: float = Field(ge=0)
 
 
 class ValidationCfg(_Strict):
     frac: float = Field(gt=0, lt=1)
     min_hosts: int = Field(gt=0)
     seed_from: list[Literal["resample", "budget", "seed"]]
+    seed_rule: Literal["sha256_val_r_B_seed_first4_bigendian"]
 
 
 class TrainingCfg(_Strict):
@@ -301,7 +302,7 @@ class ProbeCfg(_Strict):
 
 
 class LocoCfg(_Strict):
-    grouping: str
+    grouping: Literal["s02_definition_ii_a_distinct_group_set"]
     k: int = Field(gt=1)
     training_size: Literal["max_feasible"]
     models: list[str]
