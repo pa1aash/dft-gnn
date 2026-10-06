@@ -276,7 +276,8 @@ def train_run(spec: RunSpec, data: Store, cfg: Config | None = None, *, device: 
         log(f"{spec.model} epoch {epoch} train {tot / n:.4f} val {vm:.4f}")
         if wait >= patience:
             break
-    net.load_state_dict(best_state)
+    if best_state is not None:                # None: the validation metric was never finite
+        net.load_state_dict(best_state)
 
     te = pos["test"]
     p = _predict(net, data, te, y, desc, spec.batch_size, device, spec.ablate) if len(te) else None
