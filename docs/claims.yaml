@@ -4,7 +4,8 @@ claims:
     tested_by: M1
     figure: Fig2
     falsifiable_how: "Descriptive baseline; reported, not tested."
-    status: planned
+    status: measured
+    result_ref: results/b0_physics_floor.json
   - id: C0
     statement: "A structure-only MEGNet on pristine host supercells with a marked vacancy site reproduces the published structure-only accuracy for neutral oxygen vacancies (0.29 eV; Kiyohara et al., Phys. Rev. Lett. 135, 246101, 2025), on both our formula-grouped protocol and Kiyohara's released host split."
     tested_by: M3

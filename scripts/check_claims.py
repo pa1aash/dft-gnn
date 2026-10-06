@@ -8,8 +8,9 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 FIELDS = ("id", "statement", "tested_by", "figure", "falsifiable_how", "status")
+OPTIONAL = ("result_ref",)
 REQUIRED_NONEMPTY = ("tested_by", "figure", "falsifiable_how")
-STATUSES = {"planned", "in_progress", "supported", "refuted", "moved_to_si", "dropped"}
+STATUSES = {"planned", "in_progress", "measured", "supported", "refuted", "moved_to_si", "dropped"}
 
 
 def check(path: Path) -> list[str]:
@@ -26,7 +27,7 @@ def check(path: Path) -> list[str]:
         where = f"claim {c.get('id', i)}"
         if missing := [f for f in FIELDS if f not in c]:
             errs.append(f"{where}: missing {missing}")
-        if extra := sorted(set(c) - set(FIELDS)):
+        if extra := sorted(set(c) - set(FIELDS) - set(OPTIONAL)):
             errs.append(f"{where}: unknown fields {extra}")
         for f in FIELDS:
             if f in c and (not isinstance(c[f], str) or not c[f].strip()):
@@ -37,6 +38,11 @@ def check(path: Path) -> list[str]:
         if c.get("id") in seen:
             errs.append(f"{where}: duplicate id")
         seen.add(c.get("id"))
+        if "result_ref" in c:
+            if not isinstance(c["result_ref"], str) or not (ROOT / c["result_ref"]).is_file():
+                errs.append(f"{where}: result_ref must name an existing file")
+        if c.get("status") == "measured" and "result_ref" not in c:
+            errs.append(f"{where}: status measured requires result_ref")
         if "status" in c and c["status"] not in STATUSES:
             errs.append(f"{where}: status {c['status']!r} not in {sorted(STATUSES)}")
     return errs
