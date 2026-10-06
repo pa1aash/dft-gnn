@@ -52,7 +52,7 @@ def main() -> None:
             torch.cuda.synchronize()
             ev.append(time.perf_counter() - t0)
         rows.append({"split": name, "budget_hosts": b if name != "kiyohara" else len(h["train"]) + len(h["val"]),
-                     "n_train_sites": int(len(pos)), "n_val_sites": int(len(val)),
+                     "n_train_sites": len(pos), "n_val_sites": len(val),
                      "train_epoch_s_median": float(np.median(tr)), "val_pass_s_median": float(np.median(ev)),
                      "epoch_total_s": float(np.median(tr) + np.median(ev))})
         print(rows[-1], flush=True)
