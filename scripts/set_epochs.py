@@ -64,8 +64,9 @@ def main() -> None:
     curves = {b: [h["val_metric"] for h in pay["history"]] for b, pay in runs.items()}
     conv = {b: e_conv(v) for b, v in curves.items()}
     max_epochs, patience = rule(conv)
-    detail = {b: {"e_conv": conv[b], "min_val_mae_eV": min(v), "epoch_of_min": 1 + v.index(min(v)),
-                  "val_mae_at_e_conv_eV": v[conv[b] - 1], "epochs_run": len(v),
+    detail = {b: {"e_conv": conv[b], "min_val_mae_eV": min(curves[b]),
+                  "epoch_of_min": 1 + curves[b].index(min(curves[b])),
+                  "val_mae_at_e_conv_eV": curves[b][conv[b] - 1], "epochs_run": len(curves[b]),
                   "n_train_hosts": runs[b]["n_hosts"]["train"], "n_val_hosts": runs[b]["n_hosts"]["val"],
                   "run_id": runs[b]["run_id"]} for b in sorted(runs)}
     csv = PILOT_DIR / "curves.csv"
