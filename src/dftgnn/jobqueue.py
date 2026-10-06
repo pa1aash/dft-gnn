@@ -115,19 +115,23 @@ def _claim(root: Path, worker: str, vram_gb: float | None) -> dict | None:
     if vram_gb is not None and any(j.get("needs_solo") for j in running):
         return None
     used = sum(_need_gb(j, budget) for j in running) if budget is not None else 0.0
+    ready = []
     for f in sorted((root / "pending").glob("*.json")):
         try:
             job = json.loads(f.read_text())
         except (FileNotFoundError, json.JSONDecodeError):
             continue
-        if not _ready(root, job):
+        if _ready(root, job):
+            ready.append((f, job))
+    if budget is not None and running and any(j.get("needs_solo") for _, j in ready):
+        return None                            # drain: let the running jobs finish, admit nothing else
+    if budget is not None:
+        ready.sort(key=lambda fj: not fj[1].get("needs_solo"))     # a ready solo job goes first (stable)
+    for f, job in ready:
+        # (a job that alone exceeds the budget runs only on an idle device)
+        if (budget is not None and not job.get("needs_solo") and running
+                and used + _need_gb(job, budget) > budget + 1e-9):
             continue
-        if budget is not None:
-            if job.get("needs_solo"):
-                if running:
-                    return None            # drain: let the running jobs finish, admit nothing else
-            elif running and used + _need_gb(job, budget) > budget + 1e-9:
-                continue                   # (a job that alone exceeds the budget runs only on an idle device)
         dst = root / "running" / f.name
         try:
             os.rename(f, dst)
