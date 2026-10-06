@@ -25,3 +25,7 @@ __pycache__/
 *.synctex.gz
 *.bbl
 *.blg
+
+# job queue and pod transfer
+jobs/
+outbox/

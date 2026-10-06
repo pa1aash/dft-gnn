@@ -1,0 +1,164 @@
+"""File-based, resumable job queue for training runs (no database, no git needed on the pod).
+
+    jobs/pending/<run_id>.json   waiting
+    jobs/running/<run_id>.json   claimed; jobs/running/<run_id>.hb is its heartbeat (mtime)
+    jobs/done/<run_id>.json      finished (adds status, result path, wall time)
+    jobs/failed/<run_id>.json    raised (adds the traceback)
+
+A claim is ``os.rename`` from pending/ to running/. On one filesystem it is atomic, so exactly one
+worker wins each job. A running job whose heartbeat is older than ``STALE_S`` (10 min) returns to
+pending. A job may list ``after`` run ids (e.g. P after its P1 and D runs) and is claimable only when
+all of them are in done/.
+"""
+from __future__ import annotations
+
+import json
+import os
+import threading
+import time
+import traceback
+from pathlib import Path
+
+STATES = ("pending", "running", "done", "failed")
+STALE_S = 600
+HEARTBEAT_S = 30
+
+
+def init(root: Path) -> Path:
+    for s in STATES:
+        (root / s).mkdir(parents=True, exist_ok=True)
+    return root
+
+
+def enqueue(root: Path, job: dict) -> bool:
+    """Add a job unless its run id is already known in any state. Returns True if added."""
+    init(root)
+    name = f"{job['run_id']}.json"
+    if any((root / s / name).exists() for s in STATES):
+        return False
+    tmp = root / "pending" / f".{name}.tmp"
+    tmp.write_text(json.dumps(job, indent=1, sort_keys=True))
+    os.replace(tmp, root / "pending" / name)
+    return True
+
+
+def _ready(root: Path, job: dict) -> bool:
+    return all((root / "done" / f"{a}.json").exists() for a in job.get("after", []))
+
+
+def requeue_stale(root: Path, max_age: float = STALE_S, now: float | None = None) -> list[str]:
+    now = time.time() if now is None else now
+    back = []
+    for f in sorted((root / "running").glob("*.json")):
+        hb = f.with_suffix(".hb")
+        age = now - (hb.stat().st_mtime if hb.exists() else f.stat().st_mtime)
+        if age > max_age:
+            try:
+                os.rename(f, root / "pending" / f.name)
+            except FileNotFoundError:
+                continue                       # finished or requeued by someone else meanwhile
+            hb.unlink(missing_ok=True)
+            back.append(f.stem)
+    return back
+
+
+def claim(root: Path, worker: str) -> dict | None:
+    """Atomically move one ready pending job to running/ and start its heartbeat file."""
+    for f in sorted((root / "pending").glob("*.json")):
+        try:
+            job = json.loads(f.read_text())
+        except (FileNotFoundError, json.JSONDecodeError):
+            continue
+        if not _ready(root, job):
+            continue
+        dst = root / "running" / f.name
+        try:
+            os.rename(f, dst)
+        except FileNotFoundError:
+            continue                           # another worker won this one
+        dst.with_suffix(".hb").write_text(worker)
+        job["_claimed_by"] = worker
+        return job
+    return None
+
+
+def finish(root: Path, job: dict, *, ok: bool, info: dict) -> None:
+    name = f"{job['run_id']}.json"
+    src = root / "running" / name
+    rec = {**job, **info, "finished_at": time.time()}
+    dst = root / ("done" if ok else "failed") / name
+    tmp = dst.with_name(f".{name}.tmp")
+    tmp.write_text(json.dumps(rec, indent=1, sort_keys=True, default=str))
+    os.replace(tmp, dst)
+    src.unlink(missing_ok=True)
+    src.with_suffix(".hb").unlink(missing_ok=True)
+    if ok:
+        (root / "pending" / name).unlink(missing_ok=True)   # a stale requeue of a job that did finish
+
+
+class Heartbeat:
+    """Touch ``running/<run_id>.hb`` every ``every`` seconds while a job runs."""
+
+    def __init__(self, root: Path, run_id: str, every: float = HEARTBEAT_S):
+        self.path = root / "running" / f"{run_id}.hb"
+        self.every = every
+        self._stop = threading.Event()
+        self._t = threading.Thread(target=self._loop, daemon=True)
+
+    def _loop(self):
+        while not self._stop.wait(self.every):
+            try:
+                os.utime(self.path)
+            except FileNotFoundError:
+                return
+
+    def __enter__(self):
+        self._t.start()
+        return self
+
+    def __exit__(self, *exc):
+        self._stop.set()
+        self._t.join()
+
+
+def run_worker(root: Path, worker: str, execute, *, idle_exit: bool = True, poll: float = 5.0,
+               log=print) -> int:
+    """Claim and execute jobs until none is left. ``execute(job) -> info dict``. Returns jobs run."""
+    n = 0
+    while True:
+        requeue_stale(root)
+        job = claim(root, worker)
+        if job is None:
+            pend = list((root / "pending").glob("*.json"))
+            run = list((root / "running").glob("*.json"))
+            if idle_exit and not run and not pend:
+                return n
+            if idle_exit and pend and not run:
+                log(f"{worker}: {len(pend)} pending jobs have unmet dependencies; exiting")
+                return n
+            time.sleep(poll)
+            continue
+        t0 = time.time()
+        log(f"{worker}: claimed {job['run_id']} ({job['spec']['model']})")
+        try:
+            with Heartbeat(root, job["run_id"]):
+                info = execute(job)
+            finish(root, job, ok=True, info={"wall_time_s": time.time() - t0, **info})
+        except Exception:  # noqa: BLE001 - every failure is recorded with its traceback
+            finish(root, job, ok=False, info={"wall_time_s": time.time() - t0,
+                                              "traceback": traceback.format_exc()})
+        n += 1
+
+
+def status(root: Path) -> dict:
+    init(root)
+    counts = {s: len(list((root / s).glob("*.json"))) for s in STATES}
+    done = [json.loads(f.read_text()) for f in (root / "done").glob("*.json")]
+    failed = [json.loads(f.read_text()) for f in (root / "failed").glob("*.json")]
+    walls = [d["wall_time_s"] for d in done if "wall_time_s" in d]
+    mean = sum(walls) / len(walls) if walls else None
+    conc = max(counts["running"], 1)
+    eta = None if mean is None else mean * (counts["pending"] + counts["running"]) / conc
+    return {"counts": counts, "mean_wall_time_s": mean, "eta_s": eta, "concurrency_assumed": conc,
+            "failures": [{"run_id": f["run_id"], "model": f["spec"]["model"],
+                          "traceback": f.get("traceback", "")} for f in failed]}
