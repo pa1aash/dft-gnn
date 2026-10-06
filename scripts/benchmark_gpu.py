@@ -234,9 +234,11 @@ def main() -> None:
     from dftgnn.train import Store, available_cpus
 
     device = torch.device("cuda")
+    threads = max(1, int(available_cpus()))          # the container's CPU quota, not the host's 128 cores
+    torch.set_num_threads(threads)
     data = Store(verify=False)
     pos, hosts = train_positions(data)
-    payload = {"definition": __doc__, "device": torch.cuda.get_device_name(0),
+    payload = {"grid_torch_threads": threads, "definition": __doc__, "device": torch.cuda.get_device_name(0),
                "total_vram_bytes": torch.cuda.get_device_properties(0).total_memory,
                "available_cpus": available_cpus(), "n_train_hosts": len(hosts["train"]),
                "n_train_sites": len(pos), "test_hosts_used": 0,

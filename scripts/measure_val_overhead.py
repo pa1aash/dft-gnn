@@ -26,9 +26,10 @@ def main() -> None:
 
     from dftgnn.config import load_config
     from dftgnn.io.results import write_result
-    from dftgnn.train import RunSpec, Store, _predict, resolve_hosts
+    from dftgnn.train import RunSpec, Store, _predict, available_cpus, resolve_hosts
 
     device = torch.device("cuda")
+    torch.set_num_threads(max(1, int(available_cpus())))   # the container's CPU quota, not the host's cores
     data = Store(verify=False)
     cfg = load_config()
     spec = RunSpec(model="S", hp={}, lr=1e-3, weight_decay=1e-5, batch_size=32, split="outer_r0", r=0,
