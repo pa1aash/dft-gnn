@@ -88,12 +88,12 @@ def site_records(universe: pd.DataFrame, host_ids: list[str]) -> dict:
     """Column-wise site records in universe (site_id) order, referencing hosts by position."""
     hidx = {h: i for i, h in enumerate(host_ids)}
     host, site = descriptor_names(universe.attrs["descriptor_class"])
-    desc = universe[host + site].to_numpy(np.float64)
+    desc = np.array(universe[host + site].to_numpy(np.float64), copy=True)
     return {
         "site_id": list(universe.site_id),
         "host_idx": torch.tensor([hidx[h] for h in universe.host_id], dtype=torch.int64),
-        "vacancy_atom_index": torch.tensor(universe.vacancy_atom_index.to_numpy(), dtype=torch.int64),
-        "target": torch.tensor(universe.target_Ef_eV.to_numpy(), dtype=torch.float64),
+        "vacancy_atom_index": torch.tensor(np.array(universe.vacancy_atom_index), dtype=torch.int64),
+        "target": torch.tensor(np.array(universe.target_Ef_eV), dtype=torch.float64),
         "desc": torch.from_numpy(desc),
         "p1_target": torch.from_numpy(desc.copy()),
         "desc_host_names": host,
