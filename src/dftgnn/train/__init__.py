@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import random
 import resource
 import subprocess
@@ -57,6 +58,25 @@ def val_seed(r: int, budget: int, seed: int) -> int:
 def pick_device() -> torch.device:
     """cuda if available, else cpu. MPS is never used for training."""
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+def available_cpus() -> float:
+    """CPUs this process may use: the cgroup quota when one is set (containers report the host's
+    cores through ``os.cpu_count``), else the scheduler affinity."""
+    for quota, period in (("/sys/fs/cgroup/cpu/cpu.cfs_quota_us", "/sys/fs/cgroup/cpu/cpu.cfs_period_us"),):
+        try:
+            q, per = int(Path(quota).read_text()), int(Path(period).read_text())
+            if q > 0:
+                return q / per
+        except (OSError, ValueError):
+            pass
+    try:
+        mx = Path("/sys/fs/cgroup/cpu.max").read_text().split()
+        if mx[0] != "max":
+            return int(mx[0]) / int(mx[1])
+    except (OSError, ValueError, IndexError):
+        pass
+    return float(len(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else (os.cpu_count() or 1))
 
 
 def code_sha(root: Path = REPO_ROOT) -> str:

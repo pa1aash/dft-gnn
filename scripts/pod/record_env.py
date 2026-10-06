@@ -14,13 +14,13 @@ sys.path.insert(0, str(ROOT / "src"))
 
 
 def sh(cmd: str) -> str:
-    return subprocess.run(cmd, shell=True, capture_output=True, text=True).stdout.strip()
+    return subprocess.run(cmd, shell=True, capture_output=True, text=True, check=False).stdout.strip()
 
 
 def main() -> None:
+    import matgl
     import torch
 
-    import matgl
     from dftgnn.io.results import write_result
     from dftgnn.models import HParams, build_model
 

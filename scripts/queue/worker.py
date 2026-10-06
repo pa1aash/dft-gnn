@@ -2,8 +2,8 @@
 
     python scripts/queue/worker.py --max-concurrent 8 --device cuda
 
-Launch one invocation per GPU (CUDA_VISIBLE_DEVICES selects it). On CPU the torch threads are split
-evenly between the processes.
+Launch one invocation per GPU (CUDA_VISIBLE_DEVICES selects it). Torch threads are split evenly between the
+processes over the CPUs the container may use (cgroup quota, not the host core count).
 """
 from __future__ import annotations
 
@@ -52,7 +52,9 @@ def main() -> None:
 
         if not torch.cuda.is_available():
             raise SystemExit("--device cuda but CUDA is unavailable")
-    threads = a.threads or max(1, (os.cpu_count() or 1) // a.max_concurrent)
+    from dftgnn.train import available_cpus
+
+    threads = a.threads or max(1, int(available_cpus() // a.max_concurrent))
     host = socket.gethostname()
     ctx = mp.get_context("spawn")
     procs = [ctx.Process(target=child, args=(a.queue, f"{host}-{os.getpid()}-w{i}", a.device, threads))
