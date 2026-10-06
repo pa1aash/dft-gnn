@@ -1,6 +1,7 @@
 """Pack finished runs into outbox/<name>.tar.gz for rsync back to the Mac (no git needed).
 
     python scripts/queue/outbox.py pack [--stage smoke]
+    python scripts/queue/outbox.py pack-files --name <name> results/x.json [more repo-relative files]
     python scripts/queue/outbox.py unpack outbox/<name>.tar.gz
 
 The tarball holds, for every done job: its result JSON, its predictions parquet, its checkpoint and
@@ -50,8 +51,20 @@ def pack(queue: Path, outbox: Path, stage: str | None) -> Path:
     files = members(queue, stage)
     if not files:
         raise SystemExit("no done jobs to pack")
+    return _pack_files(files, outbox, f"outbox_{stage or 'all'}_{time.strftime('%Y%m%dT%H%M%S')}.tar.gz")
+
+
+def pack_files(paths: list[str], outbox: Path, label: str) -> Path:
+    """Pack explicit repo-relative files (benchmark and pilot results that are not queue jobs)."""
+    files = [ROOT / p for p in paths]
+    missing = [str(f) for f in files if not f.is_file()]
+    if missing:
+        raise SystemExit(f"missing: {missing}")
+    return _pack_files(files, outbox, f"outbox_{label}_{time.strftime('%Y%m%dT%H%M%S')}.tar.gz")
+
+
+def _pack_files(files: list[Path], outbox: Path, name: str) -> Path:
     outbox.mkdir(parents=True, exist_ok=True)
-    name = f"outbox_{stage or 'all'}_{time.strftime('%Y%m%dT%H%M%S')}.tar.gz"
     tar_path = outbox / name
     rel = [f.resolve().relative_to(ROOT) for f in files]
     manifest = "".join(f"{_sha(ROOT / r)}  {r}\n" for r in rel).encode()
@@ -92,11 +105,17 @@ def main() -> None:
     p.add_argument("--stage")
     p.add_argument("--queue", default=str(QUEUE))
     p.add_argument("--outbox", default=str(OUTBOX))
+    f = sub.add_parser("pack-files")
+    f.add_argument("--name", required=True)
+    f.add_argument("--outbox", default=str(OUTBOX))
+    f.add_argument("paths", nargs="+")
     u = sub.add_parser("unpack")
     u.add_argument("tarball")
     a = ap.parse_args()
     if a.cmd == "pack":
         pack(Path(a.queue), Path(a.outbox), a.stage)
+    elif a.cmd == "pack-files":
+        pack_files(a.paths, Path(a.outbox), a.name)
     else:
         unpack(Path(a.tarball))
 
