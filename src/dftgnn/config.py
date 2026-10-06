@@ -8,6 +8,7 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
 TBD = Literal["TBD"]
+TBD_S07 = Literal["TBD-S07"]  # set by S07 from the benchmark, frozen before tuning
 DEFAULT_CONFIG = Path(__file__).resolve().parents[2] / "configs" / "config.yaml"
 
 
@@ -21,6 +22,13 @@ class DataCfg(_Strict):
     charge_state: int = 0
     filters: list[str] = Field(default_factory=list)
     universe: str | TBD = "TBD"
+    exclude_never_tested_from_per_host: bool = True
+
+
+class KiyoharaProtocolCfg(_Strict):
+    train: Literal["train"] = "train"
+    early_stopping: Literal["val"] = "val"
+    test: Literal["test"] = "test"
 
 
 class SplitCfg(_Strict):
@@ -28,6 +36,7 @@ class SplitCfg(_Strict):
     n_outer_resamples: int = Field(10, gt=0)
     test_fraction: float = Field(gt=0, lt=1)
     seeds: list[int]
+    kiyohara_protocol: KiyoharaProtocolCfg
 
 
 class BudgetsCfg(_Strict):
@@ -41,47 +50,121 @@ class CurveCfg(_Strict):
     n_test_hosts: int = Field(gt=0)
 
 
+class GraphCfg(_Strict):
+    structure: Literal["pristine_release_supercell"]
+    vacancy_atom: Literal["kept_with_binary_flag"]
+    type: Literal["radius"]
+    cutoff_A: float = Field(gt=0)
+    periodic: bool
+    node_features: list[str]
+    edge_features: Literal["gaussian_distance_expansion"]
+    gaussian_centres: Literal["megnet_default"] | int
+    gaussian_width: Literal["megnet_default"] | float
+
+
 class ToggleCfg(_Strict):
     enabled: bool = True
 
 
 class PhysicsFloorCfg(ToggleCfg):
     n_parameters: int = 2
+    descriptors: list[str] = Field(min_length=2, max_length=2)
+    intercept: bool = True
 
 
 class NetCfg(ToggleCfg):
     backbone: Literal["megnet"] = "megnet"
 
 
+class SNetCfg(NetCfg):
+    backbone_package: Literal["matgl"]
+    backbone_version: str
+    backbone_backend: Literal["pyg"]
+    readout: list[str]
+    pooling: Literal["tuned"]
+
+
 DescriptorClass = Literal["structural/compositional", "host-electronic DFT", "site-electronic DFT"]
+InjectionVariant = Literal["D-state", "D-late"]
 
 
 class DNetCfg(NetCfg):
     descriptor_classes: list[DescriptorClass] = Field(min_length=1)
+    standardisation: Literal["training_set"]
+    injection_variants: dict[InjectionVariant, dict[DescriptorClass, str]]
+    injection_selection: Literal["lowest_mean_val_mae_over_anchors"]
+
+
+class P1NetCfg(NetCfg):
+    architecture: Literal["S_backbone_and_readout"]
+    head: str
+    loss: Literal["mse"]
+    loss_weights: Literal["equal"]
+    report: list[str]
+
+
+class PNetCfg(NetCfg):
+    composition: list[Literal["P1", "D"]]
+    D_trained_on: Literal["true_descriptors"]
+    true_descriptor_swap_in: Literal["D"]
 
 
 class ModelsCfg(_Strict):
     rf: ToggleCfg
     physics_floor: PhysicsFloorCfg
-    S: NetCfg
+    S: SNetCfg
     D: DNetCfg
-    P: NetCfg
-    injection_mode: str | TBD
+    P1: P1NetCfg
+    P: PNetCfg
+    injection_mode: InjectionVariant | TBD
+
+
+class SearchParamCfg(_Strict):
+    dist: Literal["log_uniform", "uniform", "categorical"]
+    low: float | None = None
+    high: float | None = None
+    choices: list[int | str] | None = None
 
 
 class TuningCfg(_Strict):
-    optuna_trials_per_model_per_anchor: int | TBD
-    anchors: list[int] | TBD
+    sampler: Literal["optuna_tpe"]
+    optuna_trials_per_model_per_anchor: int = Field(gt=0)
+    models: list[str]
+    anchors: list[int]
+    anchor_resample: int = Field(ge=0)
+    objective: Literal["inner_val_mae"]
+    budget_to_anchor: dict[int, int]
+    search_space: dict[str, SearchParamCfg]
+
+
+class SchedulerCfg(_Strict):
+    name: Literal["reduce_lr_on_plateau"]
+    factor: float = Field(gt=0, lt=1)
+    patience: int = Field(gt=0)
 
 
 class EarlyStoppingCfg(_Strict):
-    patience: int | TBD
+    monitor: Literal["val_mae"]
+    restore_best: bool
+    patience: int | TBD_S07
     min_delta: float | TBD
 
 
+class ValidationCfg(_Strict):
+    frac: float = Field(gt=0, lt=1)
+    min_hosts: int = Field(gt=0)
+    seed_from: list[Literal["resample", "budget", "seed"]]
+
+
 class TrainingCfg(_Strict):
-    max_epochs: int | TBD
+    loss: Literal["l1_standardised_target"]
+    optimiser: Literal["adamw"]
+    scheduler: SchedulerCfg
+    max_epochs: int | TBD_S07
     early_stopping: EarlyStoppingCfg
+    validation: ValidationCfg
+    seeds: list[int]
+    checkpoints: list[str]
 
 
 class SecondaryMetricCfg(_Strict):
@@ -95,22 +178,162 @@ class StatsCfg(_Strict):
     ci: float = Field(gt=0, lt=1)
 
 
+class BootstrapCfg(_Strict):
+    type: Literal["paired_hierarchical"]
+    levels: list[Literal["resample", "test_host"]]
+    draws: int = Field(gt=0)
+
+
+class NStarCfg(_Strict):
+    upper_quantile: float = Field(gt=0, lt=1)
+    alpha: float = Field(gt=0, lt=1)
+    must_hold_for_all_larger_budgets: bool
+    if_none: Literal["lower_bound_gt_max_budget"]
+
+
+class AnalysisCfg(_Strict):
+    primary_metric: Literal["site_mae"]
+    secondary_metrics: list[str]
+    advantage: Literal["mae_S_minus_mae_D"]
+    prediction: Literal["seed_ensemble_mean"]
+    bootstrap: BootstrapCfg
+    n_star: NStarCfg
+    c2_ceiling_budget: int
+    c2_ceiling_ci: float = Field(gt=0, lt=1)
+    display_ci: float = Field(gt=0, lt=1)
+    repeat_for_secondary: str
+    multiplicity_correction: Literal["none"]
+    staging_contrasts: list[str]
+    staging_null_ci: float = Field(gt=0, lt=1)
+
+
 class HighMomentCfg(_Strict):
     threshold_muB: float = Field(gt=0)
+    models: list[str]
+    budget: int
+
+
+class ModelListCfg(_Strict):
+    models: list[str]
+
+
+class CgcnnCheckCfg(_Strict):
+    models: list[str]
+    budgets: list[int]
+    resamples: list[int]
+    seeds: list[int]
 
 
 class SensitivityCfg(_Strict):
     exclude_high_moment: HighMomentCfg
+    kiyohara_split: ModelListCfg
+    cgcnn_check: CgcnnCheckCfg
+    unselected_injection_variant: Literal["tuning_runs_only"]
+
+
+class RelaxCfg(_Strict):
+    cell: Literal["unit"]
+    relax_cell: bool
+    relax_positions: bool
+    optimiser: Literal["FIRE"]
+    fmax_eV_per_A: float = Field(gt=0)
+    max_steps: int = Field(gt=0)
+
+
+class StratifyCfg(_Strict):
+    by: Literal["cation_d_electron_count"]
+    oxidation_states: Literal["pymatgen_oxi_state_guess"]
+    bins: list[str]
+
+
+class MlipNullCfg(_Strict):
+    median_internal_rmsd_A_below: float = Field(gt=0)
+    delta_mae_ci_includes_zero: bool
 
 
 class MlipCfg(_Strict):
     model: str
+    size: Literal["medium"]
+    dtype: Literal["float64"]
     version: str | TBD
+    relax: RelaxCfg
+    tiling: Literal["release_supercell_matrix"]
+    geometry_components: list[str]
+    conditions: list[str]
+    retrain: Literal[False]
+    models: list[str]
+    budgets: list[int | Literal["N_star"]]
+    budget_if_no_n_star: int
+    D_descriptors: Literal["dft"]
+    stratify: StratifyCfg
+    null_rule: MlipNullCfg
+
+
+class ProbeCheckpointsCfg(_Strict):
+    model: Literal["S"]
+    seeds: list[int]
+    resamples: Literal["all"]
+    budgets: Literal["all"]
+
+
+class AlphaCvCfg(_Strict):
+    folds: int = Field(gt=1)
+    grouped: bool
+    fit_on: Literal["training_sites"]
+
+
+class ProbePassCfg(_Strict):
+    trend: str
+    beats_controls_min_budget: int
+    otherwise: Literal["move_to_si"]
 
 
 class ProbeCfg(_Strict):
-    enabled: bool = False
-    settings: dict | TBD = "TBD"
+    enabled: bool
+    checkpoints: ProbeCheckpointsCfg
+    features: Literal["readout_input_vector"]
+    regressor: Literal["ridge"]
+    alpha_cv: AlphaCvCfg
+    targets: Literal["D_descriptors"]
+    report: list[str]
+    controls: list[str]
+    pass_rule: ProbePassCfg
+
+
+class LocoCfg(_Strict):
+    grouping: str
+    k: int = Field(gt=1)
+    training_size: Literal["max_feasible"]
+    models: list[str]
+    seeds: list[int]
+    uncertainty: Literal["host_bootstrap"]
+
+
+class EnsembleUncertaintyCfg(_Strict):
+    spread: str
+    calibration: str
+
+
+class RobustnessCfg(_Strict):
+    loco: LocoCfg
+    ensemble_uncertainty: EnsembleUncertaintyCfg
+    variance_tables: list[str]
+
+
+class ScreeningCfg(_Strict):
+    candidates: list[str]
+    all_polymorphs: bool
+    min_resamples_tested: int = Field(ge=1)
+    model: Literal["S"]
+    budget: int
+    aggregate: Literal["mean_over_resamples_tested"]
+
+
+class GatesCfg(_Strict):
+    G1: str
+    C0_kiyohara_max_mae_eV: float = Field(gt=0)
+    G2_tag: str
+    cost_gate: str
 
 
 class PathsCfg(_Strict):
@@ -124,14 +347,20 @@ class Config(_Strict):
     split: SplitCfg
     budgets: BudgetsCfg
     curve: CurveCfg
+    graph: GraphCfg
     models: ModelsCfg
     tuning: TuningCfg
     training: TrainingCfg
     stats: StatsCfg
+    analysis: AnalysisCfg
     secondary_metric: SecondaryMetricCfg = Field(default_factory=SecondaryMetricCfg)
     sensitivity: SensitivityCfg
     mlip: MlipCfg
     probe: ProbeCfg
+    robustness: RobustnessCfg
+    screening: ScreeningCfg
+    gates: GatesCfg
+    deviations_log: str
     paths: PathsCfg
 
 

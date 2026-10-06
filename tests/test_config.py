@@ -61,3 +61,23 @@ def test_model_d_descriptor_classes():
 
 def test_sensitivity_high_moment_preregistered():
     assert load_config().sensitivity.exclude_high_moment.threshold_muB == 0.5
+
+
+def test_prereg_decisions():
+    cfg = load_config()
+    assert cfg.training.max_epochs == "TBD-S07"
+    assert cfg.training.early_stopping.patience == "TBD-S07"
+    assert cfg.tuning.anchors == [50, 200, 654]
+    assert set(cfg.tuning.budget_to_anchor) == set(cfg.budgets.hosts)
+    assert set(cfg.tuning.budget_to_anchor.values()) == set(cfg.tuning.anchors)
+    assert cfg.analysis.bootstrap.draws == 2000
+    assert cfg.graph.cutoff_A == 5.0
+
+
+def test_tbd_s07_only_where_allowed(tmp_path):
+    raw = _raw()
+    raw["tuning"]["anchors"] = "TBD-S07"
+    p = tmp_path / "c.yaml"
+    p.write_text(yaml.safe_dump(raw))
+    with pytest.raises(ValidationError):
+        load_config(p)
