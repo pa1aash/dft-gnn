@@ -133,7 +133,7 @@ def grid(data, pos, device) -> list[dict]:
     return rows
 
 
-def worker(i, n, threads, barrier, out):
+def worker(i, n, threads, barrier, out, n_epochs=1):
     import torch
 
     from dftgnn.train import Store
@@ -151,7 +151,7 @@ def worker(i, n, threads, barrier, out):
     gen = torch.Generator().manual_seed(1000 + i)
     barrier.wait()
     t0 = time.time()
-    secs = epoch(net, opt, data, pos, y, 32, gen, device)
+    secs = sum(epoch(net, opt, data, pos, y, 32, gen, device) for _ in range(n_epochs))
     t1 = time.time()
     out.put({"worker": i, "t_start": t0, "t_end": t1, "epoch_s": secs,
              "gpu_peak_bytes": int(torch.cuda.max_memory_allocated()),
@@ -179,7 +179,7 @@ class Sampler(threading.Thread):
         self.join()
 
 
-def concurrency(levels, reps) -> list[dict]:
+def concurrency(levels, reps, n_epochs=1) -> list[dict]:
     from dftgnn.train import available_cpus
 
     cpus = available_cpus()
@@ -189,7 +189,7 @@ def concurrency(levels, reps) -> list[dict]:
         threads = max(1, int(cpus // n))
         for rep in range(reps):
             barrier, out = ctx.Barrier(n), ctx.Queue()
-            procs = [ctx.Process(target=worker, args=(i, n, threads, barrier, out)) for i in range(n)]
+            procs = [ctx.Process(target=worker, args=(i, n, threads, barrier, out, n_epochs)) for i in range(n)]
             samp = Sampler()
             samp.start()
             for p in procs:
@@ -202,8 +202,8 @@ def concurrency(levels, reps) -> list[dict]:
             wall = t1 - t0
             win = [(u, m) for t, u, m in samp.samples if t0 <= t <= t1]
             rows.append({
-                "workers": n, "rep": rep, "torch_threads_per_worker": threads, "wall_s": wall,
-                "aggregate_epochs_per_hour": n * 3600 / wall,
+                "workers": n, "rep": rep, "epochs_per_worker": n_epochs, "torch_threads_per_worker": threads, "wall_s": wall,
+                "aggregate_epochs_per_hour": n * n_epochs * 3600 / wall,
                 "per_worker_epoch_s": sorted(r["epoch_s"] for r in res),
                 "gpu_util_mean_pct": float(np.mean([u for u, _ in win])) if win else None,
                 "gpu_util_max_pct": float(max(u for u, _ in win)) if win else None,
@@ -211,7 +211,7 @@ def concurrency(levels, reps) -> list[dict]:
                 "n_util_samples": len(win),
                 "gpu_peak_bytes_per_worker": max(r["gpu_peak_bytes"] for r in res),
                 "host_peak_rss_bytes_per_worker": max(r["host_peak_rss_bytes"] for r in res)})
-            print(f"{n} workers rep {rep}: wall {wall:.1f}s, {n * 3600 / wall:.0f} epochs/h, "
+            print(f"{n} workers x {n_epochs} epochs rep {rep}: wall {wall:.1f}s, {n * n_epochs * 3600 / wall:.0f} epochs/h, "
                   f"util {rows[-1]['gpu_util_mean_pct']}", flush=True)
     return rows
 
@@ -222,6 +222,10 @@ def main() -> None:
     ap.add_argument("--reps", type=int, default=3)
     ap.add_argument("--skip-grid", action="store_true")
     ap.add_argument("--no-write", action="store_true")
+    ap.add_argument("--sustained-epochs", type=int, default=5,
+                    help="extra concurrency pass with this many epochs per worker (0: skip); more nvidia-smi samples")
+    ap.add_argument("--name", default="gpu_benchmark")
+    ap.add_argument("--note", default="")
     a = ap.parse_args()
 
     import torch
@@ -238,9 +242,11 @@ def main() -> None:
                "n_train_sites": len(pos), "test_hosts_used": 0,
                "dropout": DROPOUT, "lr": LR, "weight_decay": WD,
                "grid": [] if a.skip_grid else grid(data, pos, device),
-               "concurrency": concurrency(a.levels, a.reps)}
+               "note": a.note, "concurrency": concurrency(a.levels, a.reps),
+               "concurrency_sustained": (concurrency(a.levels, 2, a.sustained_epochs)
+                                         if a.sustained_epochs else [])}
     if not a.no_write:
-        print(write_result("gpu_benchmark", payload))
+        print(write_result(a.name, payload))
 
 
 if __name__ == "__main__":
