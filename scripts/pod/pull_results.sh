@@ -17,7 +17,7 @@ done
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT"
 mkdir -p outbox
-rsync -az -e "ssh -p $PORT -i $KEY -o StrictHostKeyChecking=accept-new" "$USER_@$HOST:$DEST/outbox/" outbox/
+rsync -az --no-owner --no-group -e "ssh -p $PORT -i $KEY -o StrictHostKeyChecking=accept-new" "$USER_@$HOST:$DEST/outbox/" outbox/
 for t in outbox/*.tar.gz; do
   [ -e "$t" ] || continue
   [ -e "$t.unpacked" ] && continue

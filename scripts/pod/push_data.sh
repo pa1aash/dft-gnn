@@ -26,6 +26,6 @@ bad = [n for s, n in (l.split("  ", 1) for l in m if l and not l.startswith("#")
 raise SystemExit(f"local shards do not match the manifest: {bad}" if bad else 0)
 PY
 $SSH "$USER_@$HOST" "mkdir -p $DEST/data/processed/graphs_v1 $DEST/splits"
-rsync -az --info=progress2 -e "$SSH" data/processed/graphs_v1/ "$USER_@$HOST:$DEST/data/processed/graphs_v1/"
-rsync -az -e "$SSH" splits/ "$USER_@$HOST:$DEST/splits/"
+rsync -az --no-owner --no-group --info=progress2 -e "$SSH" data/processed/graphs_v1/ "$USER_@$HOST:$DEST/data/processed/graphs_v1/"
+rsync -az --no-owner --no-group -e "$SSH" splits/ "$USER_@$HOST:$DEST/splits/"
 echo "pushed graphs_v1 and splits to $HOST:$DEST; now run on the pod: bash scripts/pod/setup.sh verify $DEST"
