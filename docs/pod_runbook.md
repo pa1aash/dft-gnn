@@ -65,10 +65,18 @@ ssh -p $PORT -i $KEY root@$HOST
 export PATH=/workspace/miniforge3/bin:$PATH     # only if setup.sh had to install miniforge
 cd /workspace/dft-gnn
 mamba run -n dftgnn-gpu python scripts/queue/enqueue.py <stage>        # e.g. smoke, kiyohara --hparams ...
-nohup mamba run -n dftgnn-gpu python scripts/queue/worker.py --max-concurrent 8 --device cuda \
+bash scripts/pod/mps.sh start        # CUDA MPS: without it, concurrent workers are slower than one
+nohup mamba run -n dftgnn-gpu python scripts/queue/worker.py --max-concurrent 4 --device cuda \
     > worker.log 2>&1 &
 mamba run -n dftgnn-gpu python scripts/queue/status.py                  # counts, ETA, failures
 ```
+
+On the L40S the aggregate throughput saturates at about 4 workers under MPS (results/gpu_benchmark_mps.json).
+Workers admit a job only if the summed `est_peak_gb` of the running jobs stays within 0.85 of the device memory,
+cap their number by host RAM, release the CUDA cache after every job, and requeue a job that runs out of memory
+as `needs_solo` (it then runs alone). Never delete or edit tracked files under `results/` on the pod:
+`write_result` refuses a dirty tree. Remove untracked duplicates of files already committed before checking
+out a newer commit.
 
 For several GPUs, start one worker per GPU with `CUDA_VISIBLE_DEVICES=<i>`. A worker that dies leaves
 its jobs in `jobs/running/`; after 10 minutes without a heartbeat they return to pending, so restarting
