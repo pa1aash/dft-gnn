@@ -2,16 +2,22 @@
 
     python scripts/queue/enqueue.py smoke
     python scripts/queue/enqueue.py kiyohara --hparams tuned.json [--d-variant D-state]
+    python scripts/queue/enqueue.py sweep [--tuned configs/tuned_v1.yaml] --dry-run
+    python scripts/queue/enqueue.py c0_official [--tuned configs/tuned_v1.yaml]
 
-Builders exist for smoke, kiyohara, pilot_epochs, c0_pilot, c0_ablate and c0_capcheck; tune, sweep, loco and
-sensitivity come later.
+Builders exist for smoke, kiyohara, pilot_epochs, c0_pilot, c0_ablate, c0_capcheck, sweep and c0_official;
+loco and sensitivity come later (tuning runs through scripts/tune/, not the queue). ``sweep`` builds the
+primary sweep (S, D, P1 and P over resamples x budgets x seeds) together with the Kiyohara-split jobs.
+``--dry-run`` prints job counts, the cost-table GPU-hours and the run-id check, and enqueues nothing.
 """
 from __future__ import annotations
 
 import argparse
+import json
+from collections import Counter
 from pathlib import Path
 
-from _common import QUEUE
+from _common import QUEUE, ROOT
 
 from dftgnn import jobqueue as Q
 from dftgnn.graphs.store import manifest_sha
@@ -24,6 +30,8 @@ def main() -> None:
     ap.add_argument("stage", choices=ST.STAGES)
     ap.add_argument("--hparams", help="JSON of tuned hyperparameters per model (kiyohara)")
     ap.add_argument("--d-variant", choices=["D-state", "D-late"])
+    ap.add_argument("--tuned", default=str(ST.TUNED), help="tuned hyperparameters (sweep, c0_official)")
+    ap.add_argument("--dry-run", action="store_true", help="print counts and cost; enqueue nothing")
     ap.add_argument("--queue", default=str(QUEUE))
     a = ap.parse_args()
     code, gsha = code_sha(), manifest_sha()
@@ -46,11 +54,51 @@ def main() -> None:
         if not a.hparams:
             raise SystemExit("kiyohara needs --hparams (tuned values; tuning has not run yet)")
         jobs = ST.build_kiyohara(code, gsha, ST.load_hparams(a.hparams), d_variant=a.d_variant, table=table)
+    elif a.stage == "sweep":
+        tuned = ST.load_tuned(Path(a.tuned))
+        jobs = ST.build_sweep(code, gsha, tuned, table=table)
+        jobs += ST.build_kiyohara(code, gsha, ST.kiyohara_hparams_from_tuned(tuned), d_variant=tuned["d_variant"],
+                                  table=table)
+    elif a.stage == "c0_official":
+        jobs = ST.build_c0_official(code, gsha, ST.load_tuned(Path(a.tuned)), table=table)
     else:
         raise SystemExit(f"stage {a.stage!r} has no builder yet")
+    if a.dry_run:
+        dry_run_report(a.stage, jobs)
+        return
     root = Q.init(Path(a.queue))
     added = sum(Q.enqueue(root, j) for j in jobs)
     print(f"{a.stage}: {len(jobs)} jobs built, {added} added, {len(jobs) - added} already known")
+
+
+def dry_run_report(stage: str, jobs: list[dict]) -> None:
+    """Job counts by stage and model, run-id uniqueness and the cost table's GPU-hours."""
+    ids = [j["run_id"] for j in jobs]
+    if len(set(ids)) != len(ids):
+        raise SystemExit(f"run ids are not unique: {len(ids) - len(set(ids))} duplicates")
+    known = set(ids)
+    missing = [a for j in jobs for a in j["after"] if a not in known]
+    if missing:
+        raise SystemExit(f"{len(missing)} dependencies point outside the stage")
+    split = Counter("kiyohara" if j["spec"]["split"] == "kiyohara" else "outer" for j in jobs)
+    by = Counter((("kiyohara" if j["spec"]["split"] == "kiyohara" else "outer"), j["spec"]["model"]) for j in jobs)
+    trained = sum(j["spec"]["model"] != "P" for j in jobs)
+    print(f"{stage} dry run: {len(jobs)} jobs ({trained} trained, {len(jobs) - trained} P evaluations); "
+          f"run ids unique: {len(set(ids))}; " + ", ".join(f"{k} {v}" for k, v in sorted(split.items())))
+    for (sp, m), n in sorted(by.items()):
+        print(f"  {sp:9s} {m:8s} {n}")
+    est = [j.get("est_peak_gb") for j in jobs]
+    if all(e is not None for e in est):
+        print(f"  est_peak_gb: min {min(est):.2f}, max {max(est):.2f} GiB")
+    try:
+        stages = {s["stage"]: s for s in json.loads((ROOT / "results" / "cost_table.json").read_text())
+                  ["payload"]["stages"]}
+    except (OSError, KeyError):
+        return
+    for s in ("sweep", "kiyohara") if stage == "sweep" else (stage,):
+        if s in stages:
+            print(f"  cost table {s}: {stages[s]['runs']} runs, central {stages[s]['central_gpu_h']:.1f} GPU-h, "
+                  f"upper {stages[s]['upper_gpu_h']:.1f} GPU-h")
 
 
 if __name__ == "__main__":
