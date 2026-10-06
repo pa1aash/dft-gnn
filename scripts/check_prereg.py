@@ -25,7 +25,7 @@ REQUIRED = (
     "graph.cutoff_A",
     "analysis.bootstrap.draws",
 )
-BLOCK = re.compile(r"^```yaml prereg\n(.*?)^```", re.S | re.M)
+BLOCK = re.compile(r"^```yaml prereg\n(.*?)^```", re.DOTALL | re.MULTILINE)
 
 
 def plan_block(text: str) -> dict:
