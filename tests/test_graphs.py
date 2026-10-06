@@ -26,7 +26,10 @@ def universe():
 
 
 def _cif(universe, host_id):
-    return S.REPO_ROOT / universe.loc[universe.host_id == host_id, "supercell_cif_path"].iloc[0]
+    path = S.REPO_ROOT / universe.loc[universe.host_id == host_id, "supercell_cif_path"].iloc[0]
+    if not path.is_file():
+        pytest.skip("Kumagai release CIFs not unpacked (Mac only, not pushed to the pod)")
+    return path
 
 
 def test_counts_and_vacancy_on_oxygen(built):
