@@ -133,8 +133,10 @@ def render(p, R, oracle, curve, sens, deltas, kiy_delta) -> str:
                  f"{fmt(o[k]['within_host_mae']['mean'], o[k]['within_host_mae']['ci'])} | "
                  f"{fmt(o[k]['rmse']['mean'])} | {fmt(o[k]['r2']['mean'])} |")
     L += ["", "The host-mean oracle predicts each test site with the true mean over its host's sites. No predictor that",
-          "cannot tell the O sites of one host apart can beat its MAE. Within-host spread of the site energies",
-          f"(mean sd over hosts with two or more sites): {oracle['within_host_spread_universe']['sd_eV']['mean']:.3f} eV; "
+          "cannot tell the O sites of one host apart can beat its MAE.",
+          "Within-host residual MAE is the zero-skill value for any predictor that is constant within a host: the oracle and B0 "
+          "(both host-level) share it by construction, so it is the reference for within-host skill, not a lower bound.", "",
+          f"Within-host spread of the site energies (mean sd over hosts with two or more sites): {oracle['within_host_spread_universe']['sd_eV']['mean']:.3f} eV; "
           f"mean range {oracle['within_host_spread_universe']['range_eV']['mean']:.3f} eV.", "",
           "## Kiyohara split (train on their 571 train hosts, test on their 126 test hosts)", "",
           "| Predictor | MAE | within-host residual MAE | RMSE | R2 |", "|---|---|---|---|---|"]
