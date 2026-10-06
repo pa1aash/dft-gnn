@@ -29,19 +29,22 @@ def child(queue: str, name: str, device: str, threads: int, vram_gb: float | Non
         raise SystemExit("MPS is not used for training")
     data = Store()
 
-    def run(job: dict) -> dict:
-        out = execute(RunSpec.from_dict(job["spec"]), data, device=dev, log=lambda *_: None)
-        if out["run_id"] != job["run_id"]:
-            raise RuntimeError(f"run id mismatch {out['run_id']} != {job['run_id']} (code or graphs differ)")
-        return {"status": out["status"], "result": str(out["result"]), "device": str(dev),
-                "torch_threads": threads}
-
     def free() -> None:
         if dev.type == "cuda":
             import gc
 
             gc.collect()
             torch.cuda.empty_cache()
+
+    def run(job: dict) -> dict:
+        try:
+            out = execute(RunSpec.from_dict(job["spec"]), data, device=dev, log=lambda *_: None)
+        finally:
+            free()      # the caching allocator otherwise keeps ~2x the live peak between jobs
+        if out["run_id"] != job["run_id"]:
+            raise RuntimeError(f"run id mismatch {out['run_id']} != {job['run_id']} (code or graphs differ)")
+        return {"status": out["status"], "result": str(out["result"]), "device": str(dev),
+                "torch_threads": threads}
 
     n = Q.run_worker(Path(queue), name, run, log=lambda m: print(m, flush=True), vram_gb=vram_gb,
                      on_oom=free)
