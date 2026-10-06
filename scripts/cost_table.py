@@ -1,13 +1,14 @@
 """S07 step 6: GPU-hour and cost table for the remaining pre-registered workload (runs on the Mac).
 
 Inputs (all committed results): ``gpu_benchmark.json`` (seconds per epoch for every (hidden, batch,
-blocks) cell at budget 654, and the concurrency scaling), ``gpu_val_overhead.json`` (validation pass
-as a fraction of a training epoch), ``pilot_epochs.json`` (e_conv per budget, max_epochs, patience)
+blocks) cell at budget 654, and the concurrency scaling), ``gpu_epoch_scaling.json`` (measured seconds
+per epoch, training plus validation pass, at every budget and on the Kiyohara split; the ratio to the
+654-host training epoch scales a cell's time to any budget), ``pilot_epochs.json`` (e_conv per budget, max_epochs, patience)
 and ``configs/config.yaml`` (the workload). Prices are fetched headlessly from RunPod's public GraphQL
 endpoint; a failed fetch is logged and the price left blank, never estimated.
 
 Model of one run's GPU time (central)
-    s_epoch(cell, B) = s_epoch_654(cell) x n_train_sites(B) / n_train_sites(654) x (1 + val_overhead)
+    s_epoch(cell, B) = s_epoch_654(cell) x epoch_total(B) / train_epoch(654)
     epochs           = e_conv(B) + patience               (expected early-stopping point)
     GPU-hours        = runs x epochs x s_epoch / speedup / 3600
 with ``cell`` the mean over the 18 benchmarked (hidden, batch, blocks) cells for tuning trials (the
@@ -134,7 +135,7 @@ def main() -> None:
     from dftgnn.io.results import write_result
 
     cfg = load_config()
-    bench, val, pilot = load("gpu_benchmark"), load("gpu_val_overhead"), load("pilot_epochs")
+    bench, scaling, pilot = load("gpu_benchmark"), load("gpu_epoch_scaling"), load("pilot_epochs")
     mps = load("gpu_benchmark_mps")
     grid = {(r["hidden"], r["batch"], r["blocks"]): r["s_per_epoch"] for r in bench["grid"]}
     cells = {"mean": float(np.mean(list(grid.values()))), "slowest": max(grid.values()),
@@ -142,7 +143,9 @@ def main() -> None:
     # "tuned" cells are unknown until tuning: use the mean of the grid as the central value and the
     # slowest cell as the bound, exactly as for tuning trials; (64, 32, 3) is reported for reference.
     cells["tuned"] = cells["mean"]
-    ov = val["val_overhead_fraction"]
+    rows_by = {("kiyohara" if r["split"] == "kiyohara" else r["budget_hosts"]): r for r in scaling["rows"]}
+    ref = rows_by[cfg.budgets.max]["train_epoch_s_median"]
+    epoch_scale = {b: r["epoch_total_s"] / ref for b, r in rows_by.items()}
     conv = {int(b): d["e_conv"] for b, d in pilot["budgets"].items()}
     max_epochs, patience = pilot["max_epochs"], pilot["patience"]
 
@@ -159,7 +162,6 @@ def main() -> None:
     stages = workload(cfg)
     budgets = sorted({g["budget"] for s in stages for g in s["groups"] if isinstance(g["budget"], int)})
     sites = train_sites(budgets)
-    s654 = sites[cfg.budgets.max]
     prices, notes = fetch_prices()
     rows, tot_c, tot_u = [], 0.0, 0.0
     for s in stages:
@@ -168,7 +170,7 @@ def main() -> None:
         for g in s["groups"]:
             b = g["budget"]
             n_sites = sites[b]
-            scale = n_sites / s654 * (1 + ov)
+            scale = epoch_scale[b]
             epochs_c = interp_e_conv(sites_budget(b), conv) + patience
             c_h_g = g["runs"] * epochs_c * cells[g["cell"]] * scale / central_speedup / 3600
             u_h_g = g["runs"] * max_epochs * cells["slowest"] * scale / 1.0 / 3600
@@ -192,7 +194,8 @@ def main() -> None:
         "max_epochs": max_epochs, "patience": patience, "e_conv": conv,
         "s_per_epoch_cells": {"mean": cells["mean"], "slowest": cells["slowest"],
                               "h64_b32_k3": grid[(64, 32, 3)]},
-        "val_overhead_fraction": ov, "train_sites": {str(k): v for k, v in sites.items()},
+        "epoch_scale_vs_654_train_epoch": {str(k): v for k, v in epoch_scale.items()},
+        "train_sites": {str(k): v for k, v in sites.items()},
         "speedup_mps": speed, "speedup_no_mps": plain, "central_speedup_used": central_speedup,
         "epochs_per_h_mps": {str(n): speed[n] * one_worker(mps_rows) for n in speed},
         "epochs_per_h_no_mps": {str(n): plain[n] * one_worker(bench["concurrency"]) for n in plain},
@@ -249,8 +252,11 @@ def render_md(p: dict) -> str:
         f"- Seconds per epoch at 654 hosts (set2set, single worker): mean over the 18 benchmarked "
         f"(hidden, batch, blocks) cells {p['s_per_epoch_cells']['mean']:.2f} s (central), slowest cell "
         f"{p['s_per_epoch_cells']['slowest']:.2f} s (upper); the mid-space cell (64, 32, 3) takes "
-        f"{p['s_per_epoch_cells']['h64_b32_k3']:.2f} s. Scaled by training sites per budget and by "
-        f"{1 + p['val_overhead_fraction']:.3f} for the per-epoch validation pass.",
+        f"{p['s_per_epoch_cells']['h64_b32_k3']:.2f} s. Scaled to each budget by the measured epoch time "
+        f"(training plus the validation pass, `results/gpu_epoch_scaling.json`): "
+        f"{', '.join(f'{k}: x{v:.3f}' for k, v in p['epoch_scale_vs_654_train_epoch'].items())}. "
+        f"The cell of the tuned model is unknown until tuning, so the central value uses the grid mean for "
+        f"every stage and the upper bound the slowest cell.",
         f"- Central: expected epochs = e_conv(B) + patience (log-linear interpolation of e_conv between the "
         f"piloted budgets); concurrency speedup {p['central_speedup_used']:.2f}x (CUDA MPS, 4 workers). "
         f"Upper: slowest cell, max_epochs epochs, no concurrency gain.",
