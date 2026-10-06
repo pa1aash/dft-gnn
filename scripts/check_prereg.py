@@ -9,9 +9,16 @@ must equal it. Rows of ``docs/deviations.md`` carry machine-readable ``config: <
 A logged key must hold its logged value in the config, and a plan key whose config value differs from
 the plan is accepted only if a logged row sets that key to the config value (the whitelist). The keys
 in ``CLARIFIED`` must be covered by the plan block or by a logged row.
+
+Tuned hyperparameters (S08). Once ``models.injection_mode`` is set, ``configs/tuned_v1.yaml`` must exist and
+agree with the twelve study results in ``results/tuning/``: every (model, anchor) holds its study's best
+parameters, each study has the configured number of COMPLETE trials, every value lies in the search space,
+``d_variant`` is the variant with the lower mean best-trial validation MAE over the anchors, it equals
+``models.injection_mode``, and ``D`` is a copy of that variant.
 """
 from __future__ import annotations
 
+import json
 import math
 import re
 import subprocess
@@ -24,6 +31,9 @@ ROOT = Path(__file__).resolve().parents[1]
 PLAN = ROOT / "docs" / "ANALYSIS_PLAN.md"
 CONFIG = ROOT / "configs" / "config.yaml"
 DEVIATIONS = ROOT / "docs" / "deviations.md"
+TUNED = ROOT / "configs" / "tuned_v1.yaml"
+TUNING_RESULTS = ROOT / "results" / "tuning"
+TUNED_MODELS = ("S", "D-state", "D-late", "P1")
 TAG = "prereg-v1"
 REQUIRED = (
     "stats.delta_eV",
@@ -117,6 +127,53 @@ def epoch_rule_errors(cfg: dict, logged: list[dict]) -> list[str]:
     return errs
 
 
+def _in_space(v, p: dict) -> bool:
+    if p["dist"] == "categorical":
+        return v in p["choices"]
+    return isinstance(v, (int, float)) and p["low"] <= v <= p["high"]
+
+
+def tuned_errors(cfg: dict, tuned_path: Path = TUNED, results: Path = TUNING_RESULTS) -> list[str]:
+    """``tuned_v1.yaml`` against the study results and the D-selection rule (see the module docstring)."""
+    mode = lookup(cfg, "models.injection_mode")
+    if not tuned_path.is_file():
+        return [] if mode == "TBD" else [f"models.injection_mode is {mode!r} but {tuned_path.name} is missing"]
+    t = yaml.safe_load(tuned_path.read_text(encoding="utf-8"))
+    tc = lookup(cfg, "tuning")
+    anchors, n_trials, space = tc["anchors"], tc["optuna_trials_per_model_per_anchor"], tc["search_space"]
+    errs, best = [], {}
+    models = {m: {int(a): p for a, p in by.items()} for m, by in t.get("models", {}).items()}
+    for m in TUNED_MODELS:
+        for a in anchors:
+            f = results / f"tuning_{m}_a{a}.json"
+            if not f.is_file():
+                errs.append(f"{f.name} missing")
+                continue
+            pay = json.loads(f.read_text())["payload"]
+            best[(m, a)] = pay["best_value"]
+            if pay["n_complete"] != n_trials:
+                errs.append(f"{f.name}: {pay['n_complete']} complete trials, want {n_trials}")
+            got = models.get(m, {}).get(a)
+            if got != pay["best_params"]:
+                errs.append(f"tuned {m} a{a} != best params of {f.name}")
+                continue
+            if set(got) != set(space):
+                errs.append(f"tuned {m} a{a}: parameters {sorted(got)} != search space")
+            errs += [f"tuned {m} a{a}: {k} = {v!r} outside the search space" for k, v in got.items()
+                     if k in space and not _in_space(v, space[k])]
+    if errs:
+        return errs
+    means = {v: sum(best[(v, a)] for a in anchors) / len(anchors) for v in ("D-state", "D-late")}
+    rule = min(means, key=lambda v: (means[v], v))
+    if t.get("d_variant") != rule:
+        errs.append(f"d_variant {t.get('d_variant')!r} != rule output {rule!r} (means {means})")
+    if mode != t.get("d_variant"):
+        errs.append(f"models.injection_mode {mode!r} != d_variant {t.get('d_variant')!r}")
+    if models.get("D") != models.get(rule):
+        errs.append("tuned D is not a copy of the selected variant")
+    return errs
+
+
 def check(plan_text: str, cfg: dict, log_text: str | None = None) -> list[str]:
     log_text = DEVIATIONS.read_text(encoding="utf-8") if log_text is None else log_text
     logged = logged_values(log_text)
@@ -141,6 +198,7 @@ def check(plan_text: str, cfg: dict, log_text: str | None = None) -> list[str]:
     covered = set(block) | {r["key"] for r in logged}
     errs += [f"{k}: neither pre-registered nor logged" for k in CLARIFIED if k not in covered]
     errs += epoch_rule_errors(cfg, logged)
+    errs += tuned_errors(cfg)
     return errs
 
 
@@ -160,6 +218,9 @@ def main() -> int:
     src = f"tag {TAG}" if plan is not None else "working copy (tag unavailable)"
     print(f"{PLAN.relative_to(ROOT)} ({src}): {len(plan_block(plan or working))} pre-registered values "
           f"and {n_log} logged values match {CONFIG.relative_to(ROOT)}")
+    if TUNED.is_file():
+        print(f"{TUNED.relative_to(ROOT)}: matches the tuning results; D = {cfg['models']['injection_mode']} by the "
+              "logged rule")
     return 0
 
 
