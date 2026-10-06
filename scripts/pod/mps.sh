@@ -5,8 +5,8 @@
 #   bash scripts/pod/mps.sh start | stop | status
 set -euo pipefail
 case "${1:?usage: mps.sh start|stop|status}" in
-  start) pgrep -x nvidia-cuda-mps-control >/dev/null || nvidia-cuda-mps-control -d; sleep 1; pgrep -ax nvidia-cuda-mps-control ;;
+  start) pgrep -f nvidia-cuda-mps-control >/dev/null || nvidia-cuda-mps-control -d; sleep 1; pgrep -fa nvidia-cuda-mps-control ;;
   stop) echo quit | nvidia-cuda-mps-control || true ;;
-  status) pgrep -ax nvidia-cuda-mps || echo "MPS not running" ;;
+  status) pgrep -fa nvidia-cuda-mps || echo "MPS not running" ;;
   *) echo "unknown command" >&2; exit 2 ;;
 esac

@@ -39,6 +39,7 @@ CLARIFIED = (
     "training.validation.seed_rule",
     "robustness.loco.grouping",
 )
+EPOCH_KEYS = ("training.max_epochs", "training.early_stopping.patience")   # set by S07, rule in deviations.md
 TOKEN = re.compile(r"`config: ([\w.]+) = ([^`]+)`")
 BLOCK = re.compile(r"^```yaml prereg\n(.*?)^```", re.DOTALL | re.MULTILINE)
 
@@ -93,6 +94,29 @@ def tagged_plan(tag: str = TAG) -> str | None:
         return None
 
 
+def round_half_up(x: float) -> int:
+    return math.floor(x + 0.5)
+
+
+def epoch_rule_errors(cfg: dict, logged: list[dict]) -> list[str]:
+    """max_epochs and patience must be set, logged and consistent with the S07 rule (docs/deviations.md):
+    max_epochs a multiple of 50 and patience = max(30, round_half_up(0.15 x max_epochs))."""
+    me, pa = (lookup(cfg, k) for k in EPOCH_KEYS)
+    errs = []
+    for k in EPOCH_KEYS:
+        rows = [r for r in logged if r["key"] == k and r["kind"] == "CLARIFICATION"]
+        if not rows:
+            errs.append(f"{k}: not set by a logged CLARIFICATION row")
+    if not (isinstance(me, int) and not isinstance(me, bool) and isinstance(pa, int)
+            and not isinstance(pa, bool)):
+        return [*errs, f"max_epochs / patience not set: {me!r}, {pa!r}"]
+    if me <= 0 or me % 50:
+        errs.append(f"training.max_epochs {me} is not a positive multiple of 50")
+    if pa != max(30, round_half_up(0.15 * me)):
+        errs.append(f"training.early_stopping.patience {pa} != max(30, round(0.15 x {me}))")
+    return errs
+
+
 def check(plan_text: str, cfg: dict, log_text: str | None = None) -> list[str]:
     log_text = DEVIATIONS.read_text(encoding="utf-8") if log_text is None else log_text
     logged = logged_values(log_text)
@@ -116,6 +140,7 @@ def check(plan_text: str, cfg: dict, log_text: str | None = None) -> list[str]:
             errs.append(f"{r['key']}: deviations log {r['value']!r} != config {got!r}")
     covered = set(block) | {r["key"] for r in logged}
     errs += [f"{k}: neither pre-registered nor logged" for k in CLARIFIED if k not in covered]
+    errs += epoch_rule_errors(cfg, logged)
     return errs
 
 
