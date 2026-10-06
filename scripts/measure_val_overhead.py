@@ -47,7 +47,7 @@ def main() -> None:
         _predict(net, data, val, y, desc, 32, device)
         torch.cuda.synchronize()
         ev.append(time.perf_counter() - t0)
-    payload = {"definition": __doc__, "n_train_sites": int(len(pos)), "n_val_sites": int(len(val)),
+    payload = {"definition": __doc__, "n_train_sites": len(pos), "n_val_sites": len(val),
                "train_epoch_s": tr, "val_pass_s": ev, "train_epoch_s_median": float(np.median(tr)),
                "val_pass_s_median": float(np.median(ev)),
                "val_overhead_fraction": float(np.median(ev) / np.median(tr))}
