@@ -126,6 +126,11 @@ class SearchParamCfg(_Strict):
     choices: list[int | str] | None = None
 
 
+class OptunaCfg(_Strict):
+    sampler_seed: int
+    pruner: Literal["none"]
+
+
 class TuningCfg(_Strict):
     sampler: Literal["optuna_tpe"]
     optuna_trials_per_model_per_anchor: int = Field(gt=0)
@@ -135,6 +140,9 @@ class TuningCfg(_Strict):
     objective: Literal["inner_val_mae"]
     budget_to_anchor: dict[int, int]
     search_space: dict[str, SearchParamCfg]
+    trial_seed: int = 0                     # clarification, docs/deviations.md (2026-10-07)
+    nonfinite_objective: float = 1000.0     # clarification, docs/deviations.md (2026-10-07)
+    optuna: OptunaCfg = OptunaCfg(sampler_seed=0, pruner="none")
 
 
 class SchedulerCfg(_Strict):
