@@ -1,7 +1,8 @@
 """CPU seconds per training step for pod sizing (S06 step 7). Writes results/cpu_step_timing.json.
 
 A step is forward + L1 loss + backward + AdamW update of model S (3 MEGNet blocks, Set2Set pooling)
-on a batch of 32 copies of one host graph: the largest host (480 atoms) and a median-size host. It is
+on a batch of 32 copies of one host graph: the host with the most atoms, the host with the most edges
+(the memory worst case) and a median-size host. It is
 timed at hidden width 64 and 128 with the default torch thread count and with 1 thread. The bytes of
 tensors saved for backward per step are summed through ``saved_tensors_hooks``. That sum does not
 depend on the device, so it estimates the activation memory of the same step on a GPU.
@@ -17,7 +18,7 @@ from dftgnn.graphs import collate_sites
 from dftgnn.models import HParams, build_model, n_parameters
 from dftgnn.train import Store
 
-BATCH, WARMUP, REPS = 32, 2, 5
+BATCH, WARMUP, REPS = 32, 1, 3
 
 
 def saved_bytes(net, batch) -> int:
@@ -61,15 +62,19 @@ def main() -> None:
 
     cfg = load_config()
     data = Store()
-    natoms = np.array([data.graphs[h]["z"].shape[0] for h in data.sites["host_idx"].tolist()])
+    hidx = data.sites["host_idx"].tolist()
+    natoms = np.array([data.graphs[h]["z"].shape[0] for h in hidx])
+    nedges = np.array([data.graphs[h]["edge_index"].shape[1] for h in hidx])
     med = int(np.median([g["z"].shape[0] for g in data.graphs]))
-    picks = {"largest": int(np.argmax(natoms)), "median": int(np.nonzero(natoms == med)[0][0])}
+    picks = {"largest": int(np.argmax(natoms)), "most_edges": int(np.argmax(nedges)),
+             "median": int(np.nonzero(natoms == med)[0][0])}
     default_threads = torch.get_num_threads()
     rows = []
     for label, pos in picks.items():
         for hidden in (64, 128):
             for threads in (default_threads, 1):
                 r = {"host": label, "site_id": data.sites["site_id"][pos], "atoms": int(natoms[pos]),
+                     "edges": int(nedges[pos]),
                      **time_step(data, pos, hidden, threads)}
                 print(r, flush=True)
                 rows.append(r)
