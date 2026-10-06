@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Runs on the Mac: copy the graph shards and the splits to the pod.
+# Runs on the Mac: copy the graph shards, the universe table and the splits to the pod.
 #   bash scripts/pod/push_data.sh [--host <ip> --port <port> --key <ssh key>]  (or env POD_HOST POD_PORT POD_KEY POD_DEST) [--dest /workspace/dft-gnn]
 set -euo pipefail
 HOST="${POD_HOST:-}"; PORT="${POD_PORT:-}"; KEY="${POD_KEY:-$HOME/.ssh/id_ed25519}"; DEST="${POD_DEST:-/workspace/dft-gnn}"; USER_="${POD_USER:-root}"
@@ -27,5 +27,6 @@ raise SystemExit(f"local shards do not match the manifest: {bad}" if bad else 0)
 PY
 $SSH "$USER_@$HOST" "mkdir -p $DEST/data/processed/graphs_v1 $DEST/splits"
 rsync -az --no-owner --no-group --info=progress2 -e "$SSH" data/processed/graphs_v1/ "$USER_@$HOST:$DEST/data/processed/graphs_v1/"
+rsync -az --no-owner --no-group -e "$SSH" data/processed/universe_v1.parquet "$USER_@$HOST:$DEST/data/processed/"
 rsync -az --no-owner --no-group -e "$SSH" splits/ "$USER_@$HOST:$DEST/splits/"
 echo "pushed graphs_v1 and splits to $HOST:$DEST; now run on the pod: bash scripts/pod/setup.sh verify $DEST"
