@@ -117,9 +117,11 @@ def test_smoke_jobs():
     assert len({j["run_id"] for j in jobs}) == 5
 
 
-def test_kiyohara_refuses_until_s07():
+def test_kiyohara_refuses_while_epochs_are_tbd():
+    cfg = load_config()
+    cfg.training.max_epochs = "TBD-S07"
     with pytest.raises(ValueError, match="TBD-S07"):
-        ST.build_kiyohara("c", "g", {}, load_config(), d_variant="D-state")
+        ST.build_kiyohara("c", "g", {}, cfg, d_variant="D-state")
 
 
 def test_kiyohara_jobs_when_configured():
@@ -162,3 +164,25 @@ def test_outbox_round_trip(tmp_path, monkeypatch):
     with pytest.raises(SystemExit):
         tar.write_bytes(tar.read_bytes()[:-5] + b"xxxxx")
         ob.unpack(tar, dest)
+
+
+def test_epoch_pilot_jobs_never_touch_test_hosts():
+    from dftgnn.train import RunSpec, resolve_hosts
+
+    jobs = ST.build_pilot_epochs("c", "g")
+    assert [j["spec"]["budget"] for j in jobs] == [25, 200, 654]
+    for j in jobs:
+        s = j["spec"]
+        assert (s["model"], s["seed"], s["r"], s["max_epochs"], s["patience"]) == ("S", 0, 0, 1500, 1500)
+        assert s["eval_test"] is False and s["results_subdir"] == "pilot_epochs"
+        assert resolve_hosts(RunSpec.from_dict(s), load_config())["test"] == []
+
+
+def test_c0_pilot_jobs():
+    jobs = ST.build_c0_pilot("c", "g", load_config())
+    assert [j["spec"]["seed"] for j in jobs] == [0, 1, 2]
+    assert all(j["spec"]["split"] == "kiyohara" and j["spec"]["model"] == "S" and j["spec"]["ablate"] is None
+               and j["spec"]["tags"] == {"pilot": "c0"} for j in jobs)
+    ab = ST.build_c0_pilot("c", "g", load_config(), ablate="vacancy_flag")
+    assert {j["run_id"] for j in jobs}.isdisjoint(j["run_id"] for j in ab)
+    assert all(j["stage"] == "c0_ablate" for j in ab)
