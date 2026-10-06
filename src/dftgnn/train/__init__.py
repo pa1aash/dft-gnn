@@ -302,7 +302,7 @@ def evaluate_p(spec: RunSpec, data: Store, ckpt_dir: Path = CKPT_DIR, cfg: Confi
                 Standardiser(ckd["desc_mean"], ckd["desc_sd"])).to(device).eval()
     te = data.positions(resolve_hosts(spec, cfg)["test"])
     target = data.sites["target"]
-    y_st = Standardiser(ckd["target_mean"], ckd["target_sd"])
+    y_st = Standardiser(ckd["target_mean"].cpu(), ckd["target_sd"].cpu())   # predictions are on the CPU here
     out = _predict(p, data, te, None, None, spec.batch_size, device)
     frame = pd.DataFrame({"site_id": [data.sites["site_id"][i] for i in te], "host_id": data.site_host[te],
                           "y_true": target[te].numpy(),
