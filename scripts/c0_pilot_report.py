@@ -93,7 +93,7 @@ def main() -> None:
     ens = s.pop("_ens")
 
     rf = pd.read_parquet(ROOT / "results" / "predictions" / "rf_kumagai.parquet")
-    rf = rf[rf.resample == -1].set_index("site_id").loc[ens.site_id]
+    rf = rf[rf["resample"] == -1].set_index("site_id").loc[ens.site_id]
     same = bool((rf.y_true.to_numpy() == ens.y_true.to_numpy()).all())
     rf_ci = cluster_bootstrap_ci(rf.y_true, rf.y_pred, rf.host_id, n_boot=n_boot)
     # paired host-bootstrap of MAE(S) - MAE(RF) on the same hosts
