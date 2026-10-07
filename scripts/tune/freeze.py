@@ -155,13 +155,33 @@ def doc(studies: dict, decision: dict, cfg, wave_info: dict | None) -> str:
           f"{other}; difference {abs(decision['difference_eV']):.4f} eV). `models.injection_mode` is set to "
           f"`{decision['selected']}` and its tuned values are copied under `D` in `configs/tuned_v1.yaml`. "
           f"{other} is reported from its tuning runs only, in the SI (ANALYSIS_PLAN section 12d).")]
+    spreads = [studies[(v, a)]["top5_spread"] for v in ("D-state", "D-late") for a in anchors]
+    pa = decision["per_anchor_eV"]
+    wins = {v: [str(a) for a in anchors if pa[v][str(a)] < pa["D-late" if v == "D-state" else "D-state"][str(a)]]
+            for v in ("D-state", "D-late")}
+    L += ["", (f"The margin, {abs(decision['difference_eV']):.6f} eV, is far below the top-5 spreads of the D studies "
+               f"({min(spreads):.4f} to {max(spreads):.4f} eV), and the variants win at different anchors (D-state at "
+               f"{', '.join(wins['D-state']) or 'none'}; D-late at {', '.join(wins['D-late']) or 'none'}). The two "
+               "variants are therefore indistinguishable on this objective. The logged rule is applied as written; "
+               "the selection is not evidence that one injection route is better.")]
+    capped = [f"{m} at anchor {a}" for m in MODELS for a in anchors
+              if studies[(m, a)]["best_trial_epochs_run"] == cfg.training.max_epochs]
+    L += ["", "## Epoch cap", "",
+          (f"The cap of {cfg.training.max_epochs} epochs (frozen before tuning) stopped the best trial of "
+           f"{', '.join(capped) if capped else 'no study'}; the other best trials stopped early. The cap is part of "
+           "the frozen protocol and was not changed; the number of trials per study that reached it is in the table "
+           "above.")]
     if wave_info:
         L += ["", "## Cost", "", "| Wave | Anchor | Wall time (h) | GPU-hours |", "|---|---:|---:|---:|"]
         for w in wave_info["waves"]:
             L.append(f"| {w['wave']} | {w['anchor']} | {w['wall_h']:.2f} | {w['gpu_h']:.2f} |")
         L += ["", (f"Total {wave_info['total_gpu_h']:.2f} GPU-hours on one L40S with four studies sharing the card "
               f"under CUDA MPS, against {wave_info['central_gpu_h']:.1f} (central) and "
-              f"{wave_info['upper_gpu_h']:.1f} (upper) projected in `docs/cost_table.md`.")]
+              f"{wave_info['upper_gpu_h']:.1f} (upper) projected in `docs/cost_table.md`. From wave 1 onwards the "
+              "studies were started by the unattended scheduler as GPU slots freed, so the anchors overlapped in "
+              "time: a wave's wall time runs from its first study start to its last trial, and its GPU-hours are its "
+              "summed trial wall time divided by the four concurrent studies. The total is the billed wall time "
+              "from the first launch to the last trial.")]
     return "\n".join(L) + "\n"
 
 
