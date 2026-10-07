@@ -81,7 +81,7 @@ models:
     composition: [P1, D]                 # P = P1 then D; D receives P1's predicted descriptors at inference
     D_trained_on: true_descriptors
     true_descriptor_swap_in: D           # evaluated against D on identical test hosts
-  injection_mode: TBD    # D-state or D-late, chosen by models.D.injection_selection after tuning
+  injection_mode: D-state   # selected by models.D.injection_selection in S08 (docs/tuning.md)
 tuning:
   sampler: optuna_tpe
   optuna_trials_per_model_per_anchor: 30
