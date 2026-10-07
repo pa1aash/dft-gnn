@@ -36,6 +36,7 @@ def main() -> None:
     ap.add_argument("--tuned", default=str(ST.TUNED), help="tuned hyperparameters (sweep, c0_official)")
     ap.add_argument("--dry-run", action="store_true", help="print counts and cost; enqueue nothing")
     ap.add_argument("--queue", default=str(QUEUE))
+    ap.add_argument("--manifest", help="write the run ids of the built jobs to this JSON file (session, capsens)")
     a = ap.parse_args()
     code, gsha = code_sha(), manifest_sha()
     try:
@@ -76,6 +77,8 @@ def main() -> None:
     if a.dry_run:
         dry_run_report(a.stage, jobs)
         return
+    if a.manifest:
+        Path(a.manifest).write_text(json.dumps([j["run_id"] for j in jobs]))
     root = Q.init(Path(a.queue))
     added = sum(Q.enqueue(root, j) for j in jobs)
     print(f"{a.stage}: {len(jobs)} jobs built, {added} added, {len(jobs) - added} already known")
