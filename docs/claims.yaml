@@ -6,12 +6,15 @@ claims:
     falsifiable_how: "Descriptive baseline; reported, not tested."
     status: measured
     result_ref: results/b0_physics_floor.json
+  # C0: the Kiyohara-split half is measured (results/c0_official.json, S08: seed-ensemble MAE 0.283 eV, gate passed);
+  # the formula-grouped-protocol half is measured in the sweep, so the status stays planned.
   - id: C0
     statement: "A structure-only MEGNet on pristine host supercells with a marked vacancy site reproduces the published structure-only accuracy for neutral oxygen vacancies (0.29 eV; Kiyohara et al., Phys. Rev. Lett. 135, 246101, 2025), on both our formula-grouped protocol and Kiyohara's released host split."
     tested_by: M3
     figure: Fig2 reference line; SI parity
     falsifiable_how: "MAE on Kiyohara's split materially worse than 0.29 eV triggers debugging before any further claim."
     status: planned
+    result_ref: results/c0_official.json
   - id: C1
     statement: "The MAE advantage of explicit DFT electronic descriptors over structure alone (D minus S) falls below delta = 0.05 eV, with the upper 95% bootstrap bound below delta at budget N* and all larger budgets; extends the descriptor-only learning curve of Kumagai et al. (2021) to the structure-versus-descriptor gap."
     tested_by: M5
