@@ -1,5 +1,5 @@
 """Job-spec builders for the queue stages: ``smoke`` and ``kiyohara`` (S06), ``pilot_epochs``,
-``c0_pilot`` and ``c0_ablate`` (S07), ``sweep`` (S08).
+``c0_pilot`` and ``c0_ablate`` (S07), ``sweep`` (S08), ``capsens`` and the scheduled ``session`` (S09).
 
 Every job is ``{"run_id", "stage", "spec", "after", "est_peak_gb"}``. The run id is computed at enqueue
 time from the code SHA and the graphs manifest sha256, so the pod computes the same id from the same
@@ -19,7 +19,7 @@ from dftgnn.split import budget_train, load_split
 from dftgnn.train import RunSpec, admission, run_id, val_seed
 
 STAGES = ("tune", "sweep", "kiyohara", "loco", "sensitivity", "smoke", "pilot_epochs", "c0_pilot", "c0_ablate",
-          "c0_capcheck", "c0_official")
+          "c0_capcheck", "c0_official", "capsens", "session")
 # smoke only: fixed, untuned optimiser settings for a pipeline check (not a hyperparameter choice)
 SMOKE_OPT = {"lr": 1e-3, "weight_decay": 1e-5, "batch_size": 16}
 SMOKE_EPOCHS = 3
@@ -150,6 +150,85 @@ def build_sweep(code: str, gsha: str, tuned: dict, cfg: Config | None = None,
                 jobs.append(_job(p, "sweep", code, gsha, after=[made["P1"]["run_id"], made[d]["run_id"]],
                                  table=table))
     return jobs
+
+
+def build_capsens(code: str, gsha: str, tuned: dict, cfg: Config | None = None,
+                  table: dict | None = None) -> list[dict]:
+    """Epoch-cap sensitivity (docs/deviations.md, 2026-10-07): S and D at B = 654, resamples and seeds of
+    ``sensitivity.epoch_cap``, ``max_epochs`` 600 and the same patience, with the a654 tuned
+    hyperparameters. The epoch override enters the run id, so none of these is a twin of a 200-epoch run;
+    results go to ``results/capsens/``."""
+    cfg = cfg if cfg is not None else load_config()
+    ec = cfg.sensitivity.epoch_cap
+    d = tuned["d_variant"]
+    anchor = cfg.tuning.budget_to_anchor[ec.budget]
+    jobs = []
+    for r in ec.resamples:
+        for seed in ec.seeds:
+            for m in ec.models:
+                model = d if m == "D" else m
+                spec = RunSpec(model=model, **tuned_hparams(tuned, model, anchor), split=f"outer_r{r}", r=r,
+                               budget=ec.budget, seed=seed, max_epochs=ec.max_epochs, patience=ec.patience,
+                               results_subdir="capsens", tags={"capsens": f"max_epochs_{ec.max_epochs}"})
+                jobs.append(_job(spec, "capsens", code, gsha, table=table))
+    return jobs
+
+
+def _is_p1(j: dict) -> bool:
+    return j["spec"]["model"] == "P1"
+
+
+def schedule(jobs: list[dict], cfg: Config | None = None) -> list[dict]:
+    """Attach ``priority`` (0 runs first) and ``tranche`` (T1-T4) to the jobs of the sweep session.
+
+    Order: (1) Kiyohara-split S and D; (2) sweep S and D by budget descending, then resample, then seed;
+    (3) epoch-cap runs; (4) P1 runs (Kiyohara split first, then sweep by budget descending). Tranches: T1
+    Kiyohara S and D and sweep S and D at B = 654 and 400; T2 sweep S and D at the other budgets; T3 the
+    epoch-cap runs; T4 every P1 run. P evaluation jobs are not scheduled.
+    """
+    mo = {"S": 0, "D-state": 1, "D-late": 1}
+
+    def key(j):
+        sp, m = j["spec"], j["spec"]["model"]
+        if j["stage"] == "capsens":
+            return (3, sp["r"], sp["seed"], mo[m])
+        kiy = sp["split"] == "kiyohara"
+        if _is_p1(j):
+            return (4, 0 if kiy else 1, -sp["budget"], sp["r"], sp["seed"])
+        if kiy:
+            return (1, sp["seed"], mo[m])
+        return (2, -sp["budget"], sp["r"], sp["seed"], mo[m])
+
+    def tranche(j):
+        sp = j["spec"]
+        if j["stage"] == "capsens":
+            return "T3"
+        if _is_p1(j):
+            return "T4"
+        return "T1" if sp["split"] == "kiyohara" or sp["budget"] in (654, 400) else "T2"
+
+    out = sorted((dict(j) for j in jobs), key=key)
+    for i, j in enumerate(out):
+        j["priority"], j["tranche"] = i, tranche(j)
+    return out
+
+
+def build_session(code: str, gsha: str, tuned: dict, cfg: Config | None = None, table: dict | None = None,
+                  c0_code: str | None = None) -> tuple[list[dict], list[dict]]:
+    """Every job of the S09 sweep session, scheduled: S, D, P1 over resamples x budgets x seeds, the same
+    three models on the Kiyohara split, and the epoch-cap runs. No P evaluation. The Kiyohara-split S runs
+    are the official C0 runs (``build_c0_official`` at ``c0_code``, the code SHA that produced them): they
+    are not rebuilt and are returned as the second list (``reused``). Returns ``(jobs, reused)``."""
+    cfg = cfg if cfg is not None else load_config()
+    jobs = [j for j in build_sweep(code, gsha, tuned, cfg, table) if j["spec"]["model"] != "P"]
+    kiy = [j for j in build_kiyohara(code, gsha, kiyohara_hparams_from_tuned(tuned), cfg,
+                                     d_variant=tuned["d_variant"], table=table) if j["spec"]["model"] != "P"]
+    reused = []
+    if c0_code is not None:
+        reused = build_c0_official(c0_code, gsha, tuned, cfg, table)
+        kiy = [j for j in kiy if j["spec"]["model"] != "S"]
+    jobs += kiy + build_capsens(code, gsha, tuned, cfg, table)
+    return schedule(jobs, cfg), reused
 
 
 def kiyohara_hparams_from_tuned(tuned: dict, anchor: int = 654) -> dict:

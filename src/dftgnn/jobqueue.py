@@ -7,7 +7,7 @@
 
 A claim is ``os.rename`` from pending/ to running/. On one filesystem it is atomic, so exactly one
 worker wins each job. A running job whose heartbeat is older than ``STALE_S`` (10 min) returns to
-pending. A job may list ``after`` run ids (e.g. P after its P1 and D runs) and is claimable only when
+pending. A job may carry an integer ``priority`` (lower runs first; absent means 0, i.e. file-name order). A job may list ``after`` run ids (e.g. P after its P1 and D runs) and is claimable only when
 all of them are in done/.
 
 VRAM-aware admission (S07). A job may carry ``est_peak_gb`` (the benchmark's realistic peak times a
@@ -125,8 +125,9 @@ def _claim(root: Path, worker: str, vram_gb: float | None) -> dict | None:
             ready.append((f, job))
     if budget is not None and running and any(j.get("needs_solo") for _, j in ready):
         return None                            # drain: let the running jobs finish, admit nothing else
-    if budget is not None:
-        ready.sort(key=lambda fj: not fj[1].get("needs_solo"))     # a ready solo job goes first (stable)
+    # a ready solo job goes first, then the lowest ``priority`` (default 0: file-name order, stable)
+    ready.sort(key=lambda fj: (not fj[1].get("needs_solo") if budget is not None else False,
+                               fj[1].get("priority", 0)))
     for f, job in ready:
         # (a job that alone exceeds the budget runs only on an idle device)
         if (budget is not None and not job.get("needs_solo") and running
@@ -203,14 +204,18 @@ class Heartbeat:
 
 
 def run_worker(root: Path, worker: str, execute, *, idle_exit: bool = True, poll: float = 5.0,
-               log=print, vram_gb: float | None = None, on_oom=None) -> int:
+               log=print, vram_gb: float | None = None, on_oom=None, should_stop=None) -> int:
     """Claim and execute jobs until none is left. ``execute(job) -> info dict``. Returns jobs run.
 
     ``vram_gb`` turns on admission control. A CUDA out-of-memory error requeues the job as a solo job
-    (``on_oom`` is called first, e.g. to empty the CUDA cache).
+    (``on_oom`` is called first, e.g. to empty the CUDA cache). ``should_stop()`` is checked before every
+    claim (a HALT file): a True ends the worker once its current job is done.
     """
     n = 0
     while True:
+        if should_stop is not None and should_stop():
+            log(f"{worker}: stop requested; exiting")
+            return n
         requeue_stale(root)
         job = claim(root, worker, vram_gb=vram_gb)
         if job is None:

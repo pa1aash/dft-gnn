@@ -25,6 +25,9 @@ from dftgnn.train import admission, code_sha
 from dftgnn.train import stages as ST
 
 
+C0_CODE_SHA = "1e4d6340a865dbbb0bb93f4bbffbe9f7a7271a4f"     # code SHA of the official C0 runs (tag tuned-v1)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("stage", choices=ST.STAGES)
@@ -59,6 +62,13 @@ def main() -> None:
         jobs = ST.build_sweep(code, gsha, tuned, table=table)
         jobs += ST.build_kiyohara(code, gsha, ST.kiyohara_hparams_from_tuned(tuned), d_variant=tuned["d_variant"],
                                   table=table)
+    elif a.stage == "capsens":
+        jobs = ST.build_capsens(code, gsha, ST.load_tuned(Path(a.tuned)), table=table)
+    elif a.stage == "session":
+        jobs, reused = ST.build_session(code, gsha, ST.load_tuned(Path(a.tuned)), table=table,
+                                        c0_code=C0_CODE_SHA)
+        print(f"reusing {len(reused)} official C0 runs as the Kiyohara-split S runs: "
+              + ", ".join(sorted(j["run_id"] for j in reused)))
     elif a.stage == "c0_official":
         jobs = ST.build_c0_official(code, gsha, ST.load_tuned(Path(a.tuned)), table=table)
     else:
@@ -82,6 +92,8 @@ def dry_run_report(stage: str, jobs: list[dict]) -> None:
         raise SystemExit(f"{len(missing)} dependencies point outside the stage")
     split = Counter("kiyohara" if j["spec"]["split"] == "kiyohara" else "outer" for j in jobs)
     by = Counter((("kiyohara" if j["spec"]["split"] == "kiyohara" else "outer"), j["spec"]["model"]) for j in jobs)
+    if stage == "session":
+        print("  tranches: " + ", ".join(f"{k} {v}" for k, v in sorted(Counter(j["tranche"] for j in jobs).items())))
     trained = sum(j["spec"]["model"] != "P" for j in jobs)
     print(f"{stage} dry run: {len(jobs)} jobs ({trained} trained, {len(jobs) - trained} P evaluations); "
           f"run ids unique: {len(set(ids))}; " + ", ".join(f"{k} {v}" for k, v in sorted(split.items())))
@@ -95,7 +107,7 @@ def dry_run_report(stage: str, jobs: list[dict]) -> None:
                   ["payload"]["stages"]}
     except (OSError, KeyError):
         return
-    for s in ("sweep", "kiyohara") if stage == "sweep" else (stage,):
+    for s in ("sweep", "kiyohara") if stage in ("sweep", "session") else (stage,):
         if s in stages:
             print(f"  cost table {s}: {stages[s]['runs']} runs, central {stages[s]['central_gpu_h']:.1f} GPU-h, "
                   f"upper {stages[s]['upper_gpu_h']:.1f} GPU-h")

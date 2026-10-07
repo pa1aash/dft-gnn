@@ -16,7 +16,8 @@ from pathlib import Path
 from _common import QUEUE
 
 
-def child(queue: str, name: str, device: str, threads: int, vram_gb: float | None) -> None:
+def child(queue: str, name: str, device: str, threads: int, vram_gb: float | None,
+          halt_file: str | None = None) -> None:
     import torch
 
     from dftgnn import jobqueue as Q
@@ -46,8 +47,9 @@ def child(queue: str, name: str, device: str, threads: int, vram_gb: float | Non
         return {"status": out["status"], "result": str(out["result"]), "device": str(dev),
                 "torch_threads": threads}
 
+    stop = (lambda: Path(halt_file).exists()) if halt_file else None
     n = Q.run_worker(Path(queue), name, run, log=lambda m: print(m, flush=True), vram_gb=vram_gb,
-                     on_oom=free)
+                     on_oom=free, should_stop=stop)
     print(f"{name}: ran {n} jobs", flush=True)
 
 
@@ -57,6 +59,7 @@ def main() -> None:
     ap.add_argument("--device", default="cuda", choices=["cuda", "cpu"])
     ap.add_argument("--queue", default=str(QUEUE))
     ap.add_argument("--threads", type=int, default=0, help="torch threads per process (0: auto)")
+    ap.add_argument("--halt-file", default=None, help="stop claiming jobs once this file exists")
     a = ap.parse_args()
     if a.device == "cuda":
         import torch
@@ -84,7 +87,7 @@ def main() -> None:
     threads = a.threads or max(1, int(available_cpus() // n_workers))
     host = socket.gethostname()
     ctx = mp.get_context("spawn")
-    procs = [ctx.Process(target=child, args=(a.queue, f"{host}-{os.getpid()}-w{i}", a.device, threads, vram_gb))
+    procs = [ctx.Process(target=child, args=(a.queue, f"{host}-{os.getpid()}-w{i}", a.device, threads, vram_gb, a.halt_file))
              for i in range(n_workers)]
     for p in procs:
         p.start()

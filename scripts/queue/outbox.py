@@ -1,6 +1,6 @@
 """Pack finished runs into outbox/<name>.tar.gz for rsync back to the Mac (no git needed).
 
-    python scripts/queue/outbox.py pack [--stage smoke]
+    python scripts/queue/outbox.py pack [--stage smoke] [--tranche T1]
     python scripts/queue/outbox.py pack-files --name <name> results/x.json [more repo-relative files]
     python scripts/queue/outbox.py unpack outbox/<name>.tar.gz
 
@@ -33,11 +33,13 @@ def _sha(path: Path) -> str:
     return h.hexdigest()
 
 
-def members(queue: Path, stage: str | None) -> list[Path]:
+def members(queue: Path, stage: str | None, tranche: str | None = None) -> list[Path]:
     out = []
     for f in sorted((queue / "done").glob("*.json")):
         job = json.loads(f.read_text())
         if stage and job.get("stage") != stage:
+            continue
+        if tranche and job.get("tranche") != tranche:
             continue
         res = Path(job["result"])
         pay = json.loads(res.read_text())["payload"]
@@ -47,11 +49,13 @@ def members(queue: Path, stage: str | None) -> list[Path]:
     return out
 
 
-def pack(queue: Path, outbox: Path, stage: str | None) -> Path:
-    files = members(queue, stage)
+def pack(queue: Path, outbox: Path, stage: str | None, tranche: str | None = None) -> Path:
+    """Snapshot of the finished (done/) runs of a stage and/or tranche; a running job is never included."""
+    files = members(queue, stage, tranche)
     if not files:
         raise SystemExit("no done jobs to pack")
-    return _pack_files(files, outbox, f"outbox_{stage or 'all'}_{time.strftime('%Y%m%dT%H%M%S')}.tar.gz")
+    label = "_".join(x for x in (stage, tranche) if x) or "all"
+    return _pack_files(files, outbox, f"outbox_{label}_{time.strftime('%Y%m%dT%H%M%S')}.tar.gz")
 
 
 def pack_files(paths: list[str], outbox: Path, label: str) -> Path:
@@ -103,6 +107,7 @@ def main() -> None:
     sub = ap.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("pack")
     p.add_argument("--stage")
+    p.add_argument("--tranche")
     p.add_argument("--queue", default=str(QUEUE))
     p.add_argument("--outbox", default=str(OUTBOX))
     f = sub.add_parser("pack-files")
@@ -113,7 +118,7 @@ def main() -> None:
     u.add_argument("tarball")
     a = ap.parse_args()
     if a.cmd == "pack":
-        pack(Path(a.queue), Path(a.outbox), a.stage)
+        pack(Path(a.queue), Path(a.outbox), a.stage, a.tranche)
     elif a.cmd == "pack-files":
         pack_files(a.paths, Path(a.outbox), a.name)
     else:
