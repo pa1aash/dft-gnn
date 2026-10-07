@@ -34,3 +34,16 @@ split, seed or stopping rule. GPU runs are reproducible up to floating-point sum
 scatter-add aggregations of PyTorch Geometric have no deterministic CUDA kernel, so two runs with the
 same seed agree closely but not bitwise. Runs on the CPU with the same seed and thread count are
 bit-identical.
+
+## Limitation: tuning hosts that are Kiyohara test hosts
+
+The hyperparameters were tuned on resample 0's nested training sets (ANALYSIS_PLAN §6), and the tuning
+objective was the validation MAE on hosts carved out of those sets. Kiyohara's released split was drawn
+independently, so many of these hosts are Kiyohara test hosts. Of the 126 Kiyohara test hosts, 97 lie in
+the 654-host anchor set (8 of them among its 65 validation hosts), 30 in the 200-host anchor set (1 of 20
+validation hosts) and 9 in the 50-host anchor set (1 of 5 validation hosts). The official C0, which uses
+the 654-host anchor's hyperparameters, is therefore not a fully held-out evaluation on Kiyohara's split: the
+hyperparameters were chosen with the labels of 97 of its 126 test hosts in the training data and 8 of them
+in the objective. Model weights never saw those hosts' labels in the C0 runs themselves (they train only
+on Kiyohara's training hosts). The counts are recorded in `results/c0_official.json`
+(`tuning_overlap_with_kiyohara_test`).
