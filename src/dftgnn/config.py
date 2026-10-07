@@ -233,8 +233,20 @@ class CgcnnCheckCfg(_Strict):
     seeds: list[int]
 
 
+class EpochCapCfg(_Strict):
+    """Logged 2026-10-07 (docs/deviations.md): S and D rerun with a larger epoch cap; stage ``capsens``."""
+    models: list[str]
+    budget: int
+    resamples: list[int]
+    seeds: list[int]
+    max_epochs: int = Field(gt=0)
+    patience: int = Field(gt=0)
+    cap_insensitive_if_abs_delta_A_le_eV: float = Field(gt=0)
+
+
 class SensitivityCfg(_Strict):
     exclude_high_moment: HighMomentCfg
+    epoch_cap: EpochCapCfg
     kiyohara_split: ModelListCfg
     cgcnn_check: CgcnnCheckCfg
     unselected_injection_variant: Literal["tuning_runs_only"]

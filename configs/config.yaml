@@ -158,6 +158,14 @@ sensitivity:
     threshold_muB: 0.5
     models: [S, D]
     budget: 654
+  epoch_cap:             # pre-specified before any sweep result (docs/deviations.md, 2026-10-07)
+    models: [S, D]
+    budget: 654
+    resamples: [0, 1, 2]
+    seeds: [0, 1, 2]
+    max_epochs: 600
+    patience: 30
+    cap_insensitive_if_abs_delta_A_le_eV: 0.02
   kiyohara_split:
     models: [S, D, P]
   cgcnn_check:           # SI
