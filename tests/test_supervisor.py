@@ -249,4 +249,8 @@ def test_real_process_drill_kill_a_worker_and_finish(tmp_path):
         time.sleep(0.3)
     assert killed and end == "ALL_DONE"
     assert len(list((queue / "done").glob("*.json"))) == 24 and (chain / "PACKED_T1").exists()
+    for _ in range(50):                                   # the surviving workers exit once the queue is empty
+        if ops.workers_alive() == 0:
+            break
+        time.sleep(0.2)
     assert ops.workers_alive() == 0
