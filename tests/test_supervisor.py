@@ -242,7 +242,7 @@ def test_real_process_drill_kill_a_worker_and_finish(tmp_path):
         if end:
             break
         if not killed and len(list((queue / "running").glob("*.json"))) >= 2:
-            out = subprocess.run(["ps", "-eo", "pid,args"], capture_output=True, text=True).stdout
+            out = subprocess.run(["ps", "-ewwo", "pid,args"], capture_output=True, text=True).stdout
             pid = int([ln for ln in out.splitlines() if str(stub) in ln][0].split()[0])
             os.kill(pid, signal.SIGKILL)
             killed = True

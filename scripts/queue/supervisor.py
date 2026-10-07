@@ -103,7 +103,7 @@ class Ops:
         time.sleep(s)
 
     def workers_alive(self) -> int:
-        out = subprocess.run(["ps", "-eo", "args"], capture_output=True, text=True, check=False).stdout
+        out = subprocess.run(["ps", "-ewwo", "args"], capture_output=True, text=True, check=False).stdout
         n = 0
         for line in out.splitlines():
             parts = line.split()
