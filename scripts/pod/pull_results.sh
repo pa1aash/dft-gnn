@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Runs on the Mac: fetch the pod's outbox, verify every tarball, unpack into results/ and checkpoints/.
 #   bash scripts/pod/pull_results.sh [--host <ip> --port <port> --key <ssh key>]  (or env POD_HOST POD_PORT POD_KEY POD_DEST) [--dest /workspace/dft-gnn]
+# POD_SSH_OPTS adds ssh options (e.g. "-o ConnectTimeout=15 -o ServerAliveInterval=30 -o ServerAliveCountMax=3").
 set -euo pipefail
 HOST="${POD_HOST:-}"; PORT="${POD_PORT:-}"; KEY="${POD_KEY:-$HOME/.ssh/id_ed25519}"; DEST="${POD_DEST:-/workspace/dft-gnn}"; USER_="${POD_USER:-root}"
 while [ $# -gt 0 ]; do
@@ -17,7 +18,7 @@ done
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT"
 mkdir -p outbox
-rsync -az --no-owner --no-group -e "ssh -p $PORT -i $KEY -o StrictHostKeyChecking=accept-new" "$USER_@$HOST:$DEST/outbox/" outbox/
+rsync -az --no-owner --no-group -e "ssh -p $PORT -i $KEY -o StrictHostKeyChecking=accept-new ${POD_SSH_OPTS:-}" "$USER_@$HOST:$DEST/outbox/" outbox/
 for t in outbox/*.tar.gz; do
   [ -e "$t" ] || continue
   [ -e "$t.unpacked" ] && continue
