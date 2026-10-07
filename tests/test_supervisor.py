@@ -212,7 +212,7 @@ def test_real_process_drill_kill_a_worker_and_finish(tmp_path):
     """Real subprocess workers: kill one, the supervisor starts another, every job ends in done/."""
     queue, chain = tmp_path / "jobs", tmp_path / "chain"
     stub = tmp_path / "stub_worker.py"
-    stub.write_text(STUB.format(src=str(ROOT / "src"), queue=str(queue), halt=str(chain / "HALT"), dur=0.4))
+    stub.write_text(STUB.format(src=str(ROOT / "src"), queue=str(queue), halt=str(chain / "HALT"), dur=1.5))
     jobs = [job(i, "T1" if i < 12 else "T2") for i in range(24)]
     a = sup.parse(["--chain", str(chain), "--queue", str(queue), "--workers", "4", "--poll", "0.3",
                    "--orphan-s", "2", "--python", sys.executable, "--marker", str(stub)])
@@ -241,7 +241,7 @@ def test_real_process_drill_kill_a_worker_and_finish(tmp_path):
         end = s.cycle()
         if end:
             break
-        if not killed and ops.workers_alive() == 4 and len(list((queue / "running").glob("*.json"))):
+        if not killed and len(list((queue / "running").glob("*.json"))) >= 2:
             out = subprocess.run(["ps", "-eo", "pid,args"], capture_output=True, text=True).stdout
             pid = int([ln for ln in out.splitlines() if str(stub) in ln][0].split()[0])
             os.kill(pid, signal.SIGKILL)
