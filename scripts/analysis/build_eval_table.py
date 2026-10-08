@@ -115,7 +115,7 @@ def baselines(uni: pd.DataFrame, splits: dict[int, dict], budgets: list[int]) ->
         ref = json.loads((ROOT / "results" / f"{stem}.json").read_text())["payload"]["predictions"]
         assert sha(path) == ref["sha256"], f"{name}: predictions hash mismatch"
         df = pd.read_parquet(path)
-        df = df[df.resample >= 0].rename(columns={"resample": "r", "budget": "B"})
+        df = df[df["resample"] >= 0].rename(columns={"resample": "r", "budget": "B"})
         frames.append(df.assign(model=name)[["model", "r", "B", "site_id", "host_id", "y_true", "y_pred"]])
         info[name] = {"path": str(path.relative_to(ROOT)), "sha256": ref["sha256"]}
     for r, sp in splits.items():   # host-mean oracle: each test site predicted by its host's true mean
