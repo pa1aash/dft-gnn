@@ -19,7 +19,7 @@ from dftgnn.split import budget_train, load_split
 from dftgnn.train import RunSpec, admission, run_id, val_seed
 
 STAGES = ("tune", "sweep", "kiyohara", "loco", "sensitivity", "smoke", "pilot_epochs", "c0_pilot", "c0_ablate",
-          "c0_capcheck", "c0_official", "capsens", "session", "diag_cross", "d_ablation", "dlate", "review")
+          "c0_capcheck", "c0_official", "capsens", "session", "diag_cross", "d_ablation", "dlate", "review", "v2_screen")
 # smoke only: fixed, untuned optimiser settings for a pipeline check (not a hyperparameter choice)
 SMOKE_OPT = {"lr": 1e-3, "weight_decay": 1e-5, "batch_size": 16}
 SMOKE_EPOCHS = 3
@@ -245,6 +245,50 @@ def build_review(code: str, gsha: str, tuned: dict, cfg: Config | None = None,
     for i, j in enumerate(order):
         j["priority"] = i
     return order
+
+
+def build_loco(code: str, gsha: str, tuned: dict, cfg: Config | None = None, table: dict | None = None,
+               arch: dict | None = None, subdir: str = "loco") -> list[dict]:
+    """Leave-chemistry-out (ANALYSIS_PLAN section 11): S and the selected D on every fold of
+    ``splits/loco/`` (GroupKFold over S02 ii-a families), all non-held-out hosts as training hosts, seeds
+    ``robustness.loco.seeds``, the 654-host anchor's tuned values (the folds train on 654-655 hosts).
+    ``arch`` adds backbone options (the v2 model); results go to ``results/<subdir>/``."""
+    cfg = cfg if cfg is not None else load_config()
+    lc = cfg.robustness.loco
+    d = tuned["d_variant"]
+    jobs = []
+    for k in range(lc.k):
+        sp = load_split(f"loco/loco_f{k}")
+        for seed in lc.seeds:
+            for m in lc.models:
+                model = d if m == "D" else m
+                h = tuned_hparams(tuned, model, 654)
+                h["hp"] = {**h["hp"], **(arch or {})}
+                spec = RunSpec(model=model, **h, split=f"loco/loco_f{k}", r=k, budget=len(sp["budget_order"]),
+                               seed=seed, results_subdir=subdir, tags={"loco_fold": k})
+                jobs.append(_job(spec, "loco", code, gsha, table=table))
+    return jobs
+
+
+def build_v2_screen(code: str, gsha: str, tuned: dict, cfg: Config | None = None,
+                    table: dict | None = None) -> list[dict]:
+    """Backbone design screen (docs/deviations.md, 2026-10-08): model S with each variant of
+    ``v2.variants`` at the tuning anchors of resample 0, seeds ``v2.screen_seeds``, the anchor's tuned values
+    plus the variant's options. Validation hosts only: ``eval_test=False``, so the test hosts are never
+    loaded. Results go to ``results/v2_screen/``."""
+    cfg = cfg if cfg is not None else load_config()
+    v2 = cfg.v2
+    jobs = []
+    for name, opts in v2.variants.items():
+        for a in v2.screen_anchors:
+            for seed in v2.screen_seeds:
+                h = tuned_hparams(tuned, "S", a)
+                h["hp"] = {**h["hp"], **opts}
+                spec = RunSpec(model="S", **h, split=f"outer_r{cfg.tuning.anchor_resample}",
+                               r=cfg.tuning.anchor_resample, budget=a, seed=seed, eval_test=False,
+                               results_subdir="v2_screen", tags={"v2_variant": name, "anchor": a})
+                jobs.append(_job(spec, "v2_screen", code, gsha, table=table))
+    return jobs
 
 
 def _is_p1(j: dict) -> bool:

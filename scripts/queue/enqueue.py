@@ -74,6 +74,11 @@ def main() -> None:
         builder = {"diag_cross": ST.build_diag_cross, "d_ablation": ST.build_d_ablation, "dlate": ST.build_dlate,
                    "review": ST.build_review}[a.stage]
         jobs = builder(code, gsha, ST.load_tuned(Path(a.tuned)), table=table)
+    elif a.stage in ("loco", "v2_screen"):
+        builder = {"loco": ST.build_loco, "v2_screen": ST.build_v2_screen}[a.stage]
+        jobs = builder(code, gsha, ST.load_tuned(Path(a.tuned)), table=table)
+        for i, j in enumerate(sorted(jobs, key=lambda j: -j["spec"]["budget"])):   # longest runs first
+            j["priority"] = i
     elif a.stage == "c0_official":
         jobs = ST.build_c0_official(code, gsha, ST.load_tuned(Path(a.tuned)), table=table)
     else:

@@ -281,6 +281,16 @@ class DescriptorAblationCfg(_Strict):
     permutation_seed: int
 
 
+class V2Cfg(_Strict):
+    """Backbone design screen (docs/deviations.md, 2026-10-08). ``variants`` maps a name to the HParams
+    options it sets; the pre-registered backbone is the empty mapping. Selection: the variant with the
+    lowest mean over ``screen_anchors`` of the seed-mean validation MAE (E_f, eV)."""
+    variants: dict[str, dict[str, str | bool]]
+    screen_anchors: list[int]
+    screen_seeds: list[int]
+    selection: Literal["lowest_mean_val_mae_over_anchors"]
+
+
 class DiagnosticsCfg(_Strict):
     """Diagnostic runs, excluded from every pre-registered analysis (docs/deviations.md, 2026-10-07)."""
     hparam_cross: HparamCrossCfg
@@ -412,6 +422,7 @@ class Config(_Strict):
     secondary_metric: SecondaryMetricCfg = Field(default_factory=SecondaryMetricCfg)
     sensitivity: SensitivityCfg
     diagnostics: DiagnosticsCfg
+    v2: V2Cfg
     mlip: MlipCfg
     probe: ProbeCfg
     robustness: RobustnessCfg

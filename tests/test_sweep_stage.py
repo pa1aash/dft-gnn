@@ -154,3 +154,29 @@ def test_review_stage_is_prioritised_and_disjoint_from_the_sweep():
     assert {j["stage"] for j in jobs[:63]} == {"diag_cross", "d_ablation"} and jobs[-1]["stage"] == "dlate"
     sweep = {j["run_id"] for j in ST.build_sweep(CODE, GSHA, _tuned(), cfg)}
     assert not sweep & {j["run_id"] for j in jobs}
+
+
+def test_loco_jobs():
+    cfg = _cfg()
+    jobs = ST.build_loco(CODE, GSHA, _tuned(), cfg)
+    assert len(jobs) == 5 * 3 * 2 and len({j["run_id"] for j in jobs}) == 30
+    for j in jobs:
+        sp = j["spec"]
+        k = sp["r"]
+        assert sp["split"] == f"loco/loco_f{k}" and sp["budget"] == len(load_split(f"loco/loco_f{k}")["budget_order"])
+        assert sp["lr"] == LR[(sp["model"], 654)]
+        tr = resolve_hosts(RunSpec.from_dict(sp), cfg)
+        assert not set(tr["test"]) & (set(tr["train"]) | set(tr["val"]))
+    v2 = ST.build_loco(CODE, GSHA, _tuned(), cfg, arch={"init": "kaiming"}, subdir="loco_v2")
+    assert not {j["run_id"] for j in v2} & {j["run_id"] for j in jobs}
+
+
+def test_v2_screen_never_evaluates_test_hosts():
+    cfg = _cfg()
+    jobs = ST.build_v2_screen(CODE, GSHA, _tuned(), cfg)
+    assert len(jobs) == len(cfg.v2.variants) * 3 * 3 and len({j["run_id"] for j in jobs}) == len(jobs)
+    assert all(j["spec"]["eval_test"] is False and j["spec"]["split"] == "outer_r0" for j in jobs)
+    for j in jobs:
+        sp = j["spec"]
+        assert {k: sp["hp"][k] for k in cfg.v2.variants[sp["tags"]["v2_variant"]]} == cfg.v2.variants[sp["tags"]["v2_variant"]]
+        assert resolve_hosts(RunSpec.from_dict(sp), cfg)["test"] == []

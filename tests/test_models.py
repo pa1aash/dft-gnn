@@ -223,3 +223,46 @@ def test_parameter_counts_default():
     print("parameter counts (default HParams):", counts)
     assert counts["D-state"] > counts["S"] and counts["P1"] > counts["S"]
     assert all(1e5 < c < 1e6 for c in counts.values())
+
+
+def test_v2_defaults_reproduce_the_preregistered_backbone():
+    torch.manual_seed(0)
+    a = build_model("S")
+    torch.manual_seed(0)
+    b = build_model("S", HParams(init="default", local_readout=False))
+    assert a.state_dict().keys() == b.state_dict().keys()
+    assert all(torch.equal(a.state_dict()[k], b.state_dict()[k]) for k in a.state_dict())
+
+
+@pytest.mark.parametrize("kind", KINDS)
+def test_v2_options_forward(graph, kind):
+    torch.manual_seed(0)
+    net = build_model(kind, HParams(init="kaiming", local_readout=True)).eval()
+    b = _batch(graph, _oxygens(graph)[:3])
+    out = net(b)
+    assert out.shape == ((3, N_HOST + N_SITE) if kind == "P1" else (3,)) and torch.isfinite(out).all()
+    assert net.readout_vector(b).shape == (3, net.readout_dim)
+
+
+def test_v2_backbone_sees_inequivalent_o_sites(distorted):
+    """The v2 options fix the measured site-blindness at initialisation by orders of magnitude."""
+    o = _oxygens(distorted)
+    rel = []
+    for seed in range(3):
+        torch.manual_seed(seed)
+        net = build_model("S", HParams(init="kaiming", local_readout=True)).eval()
+        with torch.no_grad():
+            out = net(_batch(distorted, o))
+        rel.append(float(out.std() / out.abs().mean()))
+    assert min(rel) > 1e-4
+
+
+def test_local_readout_uses_only_the_vacancy_edges(graph, distorted):
+    """Batching the vacancy example with other graphs leaves its local-environment vector unchanged."""
+    torch.manual_seed(3)
+    net = build_model("S", HParams(local_readout=True)).eval()
+    o1, o2 = _oxygens(graph), _oxygens(distorted)
+    with torch.no_grad():
+        alone = net.readout_vector(Batch.from_data_list([site_data(distorted, o2[1])]))
+        mixed = net.readout_vector(Batch.from_data_list([site_data(graph, o1[0]), site_data(distorted, o2[1])]))
+    assert torch.allclose(alone[0], mixed[1], atol=1e-5)

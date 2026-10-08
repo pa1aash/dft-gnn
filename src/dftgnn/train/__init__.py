@@ -298,6 +298,12 @@ def train_run(spec: RunSpec, data: Store, cfg: Config | None = None, *, device: 
             break
     if best_state is not None:                # None: the validation metric was never finite
         net.load_state_dict(best_state)
+    val_metrics = None
+    if not is_p1 and len(pos["val"]):         # restored best weights on the validation hosts (design screens)
+        pv = _predict(net, data, pos["val"], y, desc, spec.batch_size, device, spec.ablate)
+        val_metrics = point_metrics(target[pos["val"]].numpy(),
+                                    y_st.inverse(pv.double().view(-1, 1)).view(-1).numpy(),
+                                    data.site_host[pos["val"]])
 
     te = pos["test"]
     p = _predict(net, data, te, y, desc, spec.batch_size, device, spec.ablate) if len(te) else None
@@ -331,7 +337,7 @@ def train_run(spec: RunSpec, data: Store, cfg: Config | None = None, *, device: 
         "metrics": metrics, "predictions": frame,
         "n_hosts": {k: len(v) for k, v in hosts.items()},
         "n_sites": {k: len(v) for k, v in pos.items()},
-        "epochs_run": len(history), "best_epoch": best_epoch, "best_val_metric": best,
+        "epochs_run": len(history), "best_epoch": best_epoch, "best_val_metric": best, "val_metrics": val_metrics,
         "max_epochs": max_epochs, "patience": patience, "history": history, "train_steps": steps,
         "wall_time_s": time.time() - t0, "peak_memory_bytes": peak_memory_bytes(device),
         "device": str(device), "torch_threads": torch.get_num_threads(),

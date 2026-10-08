@@ -8,8 +8,8 @@ metadata:
   name: dftgnn-workers
   labels: {app: dftgnn}
 spec:
-  parallelism: 4
-  completions: 4
+  parallelism: 2
+  completions: 2
   backoffLimit: 4
   ttlSecondsAfterFinished: 86400
   template:
@@ -29,6 +29,9 @@ spec:
                   - key: nvidia.com/cuda.driver.major
                     operator: Gt
                     values: ["579"]
+                  - key: kubernetes.io/hostname       # A10 that raised CUDA illegal-address errors (2026-10-08)
+                    operator: NotIn
+                    values: [hcc-nrp-shor-c6017.unl.edu]
       containers:
         - name: worker
           image: python:3.11-bookworm

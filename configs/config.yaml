@@ -192,6 +192,15 @@ diagnostics:              # logged 2026-10-07 (docs/deviations.md); excluded fro
     ablations: [none, desc_host, desc_site]
     permutation_repeats: 5
     permutation_seed: 0
+v2:                       # backbone design screen, logged 2026-10-08 (docs/deviations.md); validation hosts only
+  variants:
+    pre_registered: {}
+    init: {init: kaiming}
+    local: {local_readout: true}
+    init_local: {init: kaiming, local_readout: true}
+  screen_anchors: [50, 200, 654]
+  screen_seeds: [0, 1, 2]
+  selection: lowest_mean_val_mae_over_anchors
 mlip:
   model: mace-mp-0
   size: medium
