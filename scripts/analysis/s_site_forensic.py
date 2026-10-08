@@ -21,7 +21,7 @@ sites, drawn once with ``numpy.random.default_rng(20261008)`` from the sorted el
     target scaling.
 (f) D-state control: (a) with every O atom carrying the host-mean site descriptors.
 
-    python scripts/analysis/s_site_forensic.py                  # compute, cache to .cache/s10b/
+    python scripts/analysis/s_site_forensic.py [--only 'S|25' ...] [--threads 2]   # compute, cache per checkpoint
     python scripts/analysis/s_site_forensic.py --write --verdict "<verdict>" --reason "<text>"
 """
 from __future__ import annotations
@@ -179,8 +179,10 @@ def node_level(net, ck, host: Host, kind: str) -> dict:
 def init_model(ck) -> torch.nn.Module:
     mc = ck["model_config"]
     seed_everything(int(ck["spec"]["seed"]))
-    return build_model(mc["kind"], HParams(**mc["hp"]), n_host=mc["n_host"], n_site=mc["n_site"],
-                       cutoff=mc["cutoff"]).eval()
+    net = build_model(mc["kind"], HParams(**mc["hp"]), n_host=mc["n_host"], n_site=mc["n_site"],
+                      cutoff=mc["cutoff"]).eval()
+    torch.use_deterministic_algorithms(False)   # set by seed_everything; CPU inference is deterministic anyway
+    return net
 
 
 def med(rows: list[dict], key: str) -> float:
@@ -230,10 +232,12 @@ def synthetic() -> dict:
             "values": out}
 
 
-def compute() -> dict:
-    torch.set_num_threads(max(1, torch.get_num_threads()))
-    SYNTH.parent.mkdir(parents=True, exist_ok=True)
-    SYNTH.write_text(json.dumps(synthetic(), indent=1))
+def compute(only: list[str] | None, threads: int) -> None:
+    """Compute the checkpoints in ``only`` (keys 'S|25' etc.; all if None), one cache file per checkpoint."""
+    torch.set_num_threads(threads)
+    CACHE.parent.mkdir(parents=True, exist_ok=True)
+    if not SYNTH.exists():
+        SYNTH.write_text(json.dumps(synthetic(), indent=1))
     st = Store()
     test = sorted(set(load_split("outer_r0")["test"]))
     elig = [h for h in test if (st.site_host == h).sum() >= 2]
@@ -242,6 +246,8 @@ def compute() -> dict:
     recs = run_records()
     res = {"hosts": hosts_ids, "n_eligible_hosts": len(elig), "checkpoints": {}}
     for (kind, B), p in sorted(recs.items()):
+        if only is not None and f"{kind}|{B}" not in only:
+            continue
         t0 = time.time()
         path = ROOT / p["checkpoint"]["path"]
         net, ck = load_checkpoint(path, torch.device("cpu"))
@@ -265,11 +271,19 @@ def compute() -> dict:
         mine = np.concatenate([np.array(x["pred_labelled"]) for x in r["trained"]])
         ids = [st.sites["site_id"][i] for h in hosts for i in h.pos]
         r["max_abs_diff_vs_stored_gpu_predictions_eV"] = float(np.abs(mine - pr.loc[ids].to_numpy()).max())
-        res["checkpoints"][f"{kind}|{B}"] = r
+        meta = {k: v for k, v in res.items() if k != "checkpoints"}
+        (CACHE.parent / f"ck_{kind}_{B}.pkl").write_bytes(pickle.dumps({**meta, "key": f"{kind}|{B}", "r": r}))
         print(f"{kind} B={B}: {time.time() - t0:.0f}s  trained {summary(r['trained'])['median_sd_labelled']:.2e}  "
               f"init {summary(r['init'])['median_sd_labelled']:.2e}  "
               f"repro {r['max_abs_diff_vs_stored_gpu_predictions_eV']:.1e}", flush=True)
-    return res
+
+
+def merged() -> dict:
+    parts = [pickle.loads(f.read_bytes()) for f in sorted(CACHE.parent.glob("ck_*.pkl"))]
+    assert len(parts) == 12, f"{len(parts)} of 12 checkpoints computed"
+    assert len({tuple(x["hosts"]) for x in parts}) == 1
+    return {"hosts": parts[0]["hosts"], "n_eligible_hosts": parts[0]["n_eligible_hosts"],
+            "checkpoints": {x["key"]: x["r"] for x in parts}}
 
 
 def payload(res: dict, verdict: str, reason: str) -> dict:
@@ -300,19 +314,18 @@ def main() -> None:
     ap.add_argument("--write", action="store_true")
     ap.add_argument("--verdict")
     ap.add_argument("--reason", default="")
+    ap.add_argument("--only", nargs="*", help="checkpoint keys such as 'S|25'; default all")
+    ap.add_argument("--threads", type=int, default=2)
     a = ap.parse_args()
     if not a.write:
-        CACHE.parent.mkdir(parents=True, exist_ok=True)
-        res = compute()
-        CACHE.write_bytes(pickle.dumps(res))
-        print(f"cached {CACHE}")
+        compute(a.only, a.threads)
         return
     if not (a.verdict in VERDICTS or (a.verdict or "").startswith("INCONCLUSIVE: ")):
         raise SystemExit(f"verdict must be one of {VERDICTS} or 'INCONCLUSIVE: <reason>'")
     from dftgnn.config import load_config
     from dftgnn.io.results import write_result
 
-    res = pickle.loads(CACHE.read_bytes())
+    res = merged()
     print(write_result("s_site_resolution_forensic", payload(res, a.verdict, a.reason), config=load_config()))
 
 
