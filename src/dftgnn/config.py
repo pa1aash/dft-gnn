@@ -244,12 +244,47 @@ class EpochCapCfg(_Strict):
     cap_insensitive_if_abs_delta_A_le_eV: float = Field(gt=0)
 
 
+class UnselectedVariantSweepCfg(_Strict):
+    """Logged 2026-10-07 (docs/deviations.md): the unselected D variant trained as in the sweep at
+    ``budgets``, so C1/C2 can be reported with it as a sensitivity check; stage ``dlate``."""
+    variant: Literal["D-state", "D-late"]
+    budgets: list[int]
+    resamples: list[int]
+    seeds: list[int]
+
+
 class SensitivityCfg(_Strict):
     exclude_high_moment: HighMomentCfg
     epoch_cap: EpochCapCfg
     kiyohara_split: ModelListCfg
     cgcnn_check: CgcnnCheckCfg
     unselected_injection_variant: Literal["tuning_runs_only"]
+    unselected_variant_sweep: UnselectedVariantSweepCfg
+
+
+class HparamCrossCfg(_Strict):
+    """Item 1 of docs/diagnostics_sweep.md: S trained at ``budget`` with the tuned values of ``anchor``."""
+    model: str
+    cells: list[tuple[int, int]]          # (budget, anchor)
+    resamples: list[int]
+    seeds: list[int]
+
+
+class DescriptorAblationCfg(_Strict):
+    """Item 3 of docs/diagnostics_sweep.md: D with a descriptor class at its training mean; ``none`` is the
+    full model, retrained so that its checkpoint exists for the permutation importances."""
+    budget: int
+    resamples: list[int]
+    seeds: list[int]
+    ablations: list[Literal["none", "desc_host", "desc_site"]]
+    permutation_repeats: int = Field(gt=0)
+    permutation_seed: int
+
+
+class DiagnosticsCfg(_Strict):
+    """Diagnostic runs, excluded from every pre-registered analysis (docs/deviations.md, 2026-10-07)."""
+    hparam_cross: HparamCrossCfg
+    descriptor_ablation: DescriptorAblationCfg
 
 
 class RelaxCfg(_Strict):
@@ -376,6 +411,7 @@ class Config(_Strict):
     analysis: AnalysisCfg
     secondary_metric: SecondaryMetricCfg = Field(default_factory=SecondaryMetricCfg)
     sensitivity: SensitivityCfg
+    diagnostics: DiagnosticsCfg
     mlip: MlipCfg
     probe: ProbeCfg
     robustness: RobustnessCfg

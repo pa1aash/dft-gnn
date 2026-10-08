@@ -66,6 +66,78 @@ def test_s_permutation_invariant(graph, pooling):
     assert torch.allclose(a, b, atol=1e-5, rtol=1e-5)
 
 
+@pytest.fixture(scope="module")
+def distorted():
+    """Rock-salt MgO with random displacements: every O site is symmetry-inequivalent."""
+    return host_graph(_mgo().perturb(0.15, min_distance=0.05, seed=0), 3.0)
+
+
+def test_site_graphs_of_one_host_differ_only_in_the_flag(distorted):
+    o = _oxygens(distorted)
+    a, b = site_data(distorted, o[0]), site_data(distorted, o[1])
+    for k in ("z", "pos", "edge_index", "edge_dist", "pbc_offset", "state"):
+        assert torch.equal(a[k], b[k]), k
+    assert torch.nonzero(a.vac_flag.flatten()).flatten().tolist() == [o[0]]
+    assert torch.nonzero(b.vac_flag.flatten()).flatten().tolist() == [o[1]]
+    assert a.vacancy_index.tolist() == [o[0]] and b.vacancy_index.tolist() == [o[1]]
+
+
+def test_readout_gathers_the_flagged_node_after_batching(graph, distorted):
+    """Two hosts of different size, one of them twice: the vacancy part of the readout vector is the
+    embedding of the flagged node of each graph, not node 0 or a node of another graph."""
+    torch.manual_seed(8)
+    net = build_model("S").eval()
+    net.blocks = torch.nn.ModuleList()           # readout then sees the node-encoder output directly
+    o1, o2 = _oxygens(graph), _oxygens(distorted)
+    items = [site_data(graph, o1[1]), site_data(distorted, o2[3]), site_data(graph, o1[2])]
+    b = Batch.from_data_list(items)
+    flagged = torch.nonzero(b.vac_flag.flatten()).flatten()
+    assert torch.equal(flagged, b.vacancy_index)
+    assert (b.batch[b.vacancy_index] == torch.arange(3)).all()
+    with torch.no_grad():
+        nf, _, _ = net.embedding(b.z, net.bond_expansion(b.edge_dist), b.state)
+        nf = net.node_encoder(torch.cat([nf, b.vac_flag], -1))
+        vec = net.readout_vector(b)
+    h2 = net.hp.hidden_width // 2
+    assert torch.allclose(vec[:, :h2], nf[flagged])
+
+
+@pytest.mark.xfail(strict=True, reason=(
+    "Known property of the pre-registered backbone (docs/diagnostics_sweep.md, item 1): with matgl's "
+    "default initialisation the distance information reaching a node is attenuated to float noise, so an "
+    "untrained S gives inequivalent O sites of one host the same output (relative spread ~1e-7). Remove "
+    "this marker if the backbone or its initialisation is changed."))
+def test_untrained_s_distinguishes_inequivalent_o_sites(distorted):
+    o = _oxygens(distorted)
+    rel = []
+    for seed in range(3):
+        torch.manual_seed(seed)
+        net = build_model("S").eval()
+        with torch.no_grad():
+            out = net(_batch(distorted, o))
+        rel.append(float(out.std() / out.abs().mean()))
+    assert min(rel) > 1e-4
+
+
+def test_untrained_s_site_blindness_is_geometric(distorted):
+    """The flag itself reaches the readout: the flagged node differs from the unflagged O nodes, but the
+    unflagged O nodes, whose environments differ, are indistinguishable (the measured attenuation)."""
+    torch.manual_seed(9)
+    net = build_model("S").eval()
+    o = _oxygens(distorted)
+    b = _batch(distorted, [o[0]])
+    with torch.no_grad():
+        ea = net.bond_expansion(b.edge_dist)
+        nf, ef, sf = net.embedding(b.z, ea, b.state)
+        nf = net.node_encoder(torch.cat([nf, b.vac_flag], -1))
+        ef, sf = net.edge_encoder(ef), net.state_encoder(sf)
+        for blk in net.blocks:
+            ef, nf, sf = blk(b.edge_index, ef, nf, sf, b.batch, b.batch[b.edge_index[0]], b.num_nodes, 1)
+    others = nf[o[1:]]
+    assert (nf[o[0]] - others[0]).abs().max() > 1e-3          # flag survives
+    assert (others - others[0]).abs().max() < 1e-5            # geometry does not
+
+
 def test_vacancy_flag_matters(graph):
     torch.manual_seed(2)
     net = build_model("S").eval()

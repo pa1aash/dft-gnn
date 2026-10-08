@@ -124,3 +124,47 @@ def test_staged_p_evaluates(data, tmp_path):
     out = execute(_spec("P", p1_run=p1, d_run=d), data, **kw)
     pay = json.loads(out["result"].read_text())["payload"]
     assert pay["components"] == {"P1": p1, "D": d} and pay["checkpoint"] is None
+
+
+def test_ablations_zero_their_class_only():
+    from torch_geometric.data import Batch
+
+    from dftgnn.train import apply_ablation
+
+    b = Batch(vac_flag=torch.ones(4, 1), desc_host=torch.ones(2, 12), desc_site=torch.ones(2, 10))
+    apply_ablation(b, "desc_site")
+    assert b.desc_site.abs().sum() == 0 and b.desc_host.sum() == 24 and b.vac_flag.sum() == 4
+    apply_ablation(b, "desc_host")
+    assert b.desc_host.abs().sum() == 0 and b.vac_flag.sum() == 4
+    with pytest.raises(ValueError):
+        apply_ablation(b, "other")
+
+
+@needs_store
+def test_descriptor_ablation_only_for_d(data):
+    from dftgnn.train import train_run
+
+    with pytest.raises(ValueError, match="D models only"):
+        train_run(_spec("S", ablate="desc_site"), data, device=torch.device("cpu"), log=lambda *_: None)
+
+
+@needs_store
+def test_site_ablation_makes_d_ignore_site_descriptors(data):
+    """Training runs with the site class ablated, and prediction under the ablation does not depend on the
+    site descriptors (it does without it)."""
+    from dftgnn.models import HParams, build_model
+    from dftgnn.train import _predict, train_run
+
+    res = train_run(_spec("D-state", ablate="desc_site", max_epochs=1), data, device=torch.device("cpu"),
+                    log=lambda *_: None)
+    assert res["epochs_run"] == 1
+    torch.manual_seed(0)
+    m = build_model("D-state", HParams(**HP), n_host=data.n_host, n_site=22 - data.n_host).eval()
+    pos = data.positions(load_split("outer_r0")["test"][:3])
+    d1 = data.sites["desc"].float()
+    d2 = d1.clone()
+    d2[:, data.n_host:] = torch.randn_like(d2[:, data.n_host:])
+    a = _predict(m, data, pos, None, d1, 8, torch.device("cpu"), "desc_site")
+    b = _predict(m, data, pos, None, d2, 8, torch.device("cpu"), "desc_site")
+    c = _predict(m, data, pos, None, d2, 8, torch.device("cpu"), None)
+    assert torch.equal(a, b) and not torch.equal(b, c)

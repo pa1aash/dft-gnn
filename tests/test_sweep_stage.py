@@ -110,3 +110,47 @@ def test_jobs_carry_est_peak_gb_and_load_tuned_roundtrip(tmp_path):
     f = tmp_path / "tuned.yaml"
     f.write_text(yaml.safe_dump(raw))
     assert ST.load_tuned(f)["models"]["S"][654]["learning_rate"] == LR[("S", 654)]
+
+
+def test_diag_cross_cells_take_the_anchor_hyperparameters():
+    cfg = _cfg()
+    jobs = ST.build_diag_cross(CODE, GSHA, _tuned(), cfg)
+    hc = cfg.diagnostics.hparam_cross
+    assert len(jobs) == len(hc.cells) * len(hc.resamples) * len(hc.seeds)
+    assert len({j["run_id"] for j in jobs}) == len(jobs)
+    for j in jobs:
+        sp = j["spec"]
+        assert sp["model"] == "S" and sp["results_subdir"] == "diag_cross"
+        assert sp["lr"] == LR[("S", sp["tags"]["anchor"])]
+    assert {(j["spec"]["budget"], j["spec"]["tags"]["anchor"]) for j in jobs} == {tuple(c) for c in hc.cells}
+
+
+def test_d_ablation_jobs():
+    cfg = _cfg()
+    jobs = ST.build_d_ablation(CODE, GSHA, _tuned(), cfg)
+    da = cfg.diagnostics.descriptor_ablation
+    assert len(jobs) == len(da.ablations) * len(da.resamples) * len(da.seeds)
+    assert Counter(j["spec"]["ablate"] for j in jobs) == {None: 9, "desc_host": 9, "desc_site": 9}
+    assert all(j["spec"]["model"] == "D-state" and j["spec"]["budget"] == 654
+               and j["spec"]["lr"] == LR[("D-state", 654)] for j in jobs)
+    assert len({j["run_id"] for j in jobs}) == len(jobs)
+
+
+def test_dlate_jobs_use_the_unselected_variant_at_its_own_anchor():
+    cfg = _cfg()
+    jobs = ST.build_dlate(CODE, GSHA, _tuned(), cfg)
+    assert len(jobs) == 3 * 10 * 3
+    b2a = cfg.tuning.budget_to_anchor
+    assert all(j["spec"]["model"] == "D-late" and j["spec"]["lr"] == LR[("D-late", b2a[j["spec"]["budget"]])]
+               for j in jobs)
+    with pytest.raises(ValueError, match="selected D"):
+        ST.build_dlate(CODE, GSHA, _tuned("D-late"), _cfg("D-late"))
+
+
+def test_review_stage_is_prioritised_and_disjoint_from_the_sweep():
+    cfg = _cfg()
+    jobs = ST.build_review(CODE, GSHA, _tuned(), cfg)
+    assert [j["priority"] for j in jobs] == list(range(len(jobs)))
+    assert {j["stage"] for j in jobs[:63]} == {"diag_cross", "d_ablation"} and jobs[-1]["stage"] == "dlate"
+    sweep = {j["run_id"] for j in ST.build_sweep(CODE, GSHA, _tuned(), cfg)}
+    assert not sweep & {j["run_id"] for j in jobs}

@@ -19,7 +19,7 @@ from dftgnn.split import budget_train, load_split
 from dftgnn.train import RunSpec, admission, run_id, val_seed
 
 STAGES = ("tune", "sweep", "kiyohara", "loco", "sensitivity", "smoke", "pilot_epochs", "c0_pilot", "c0_ablate",
-          "c0_capcheck", "c0_official", "capsens", "session")
+          "c0_capcheck", "c0_official", "capsens", "session", "diag_cross", "d_ablation", "dlate", "review")
 # smoke only: fixed, untuned optimiser settings for a pipeline check (not a hyperparameter choice)
 SMOKE_OPT = {"lr": 1e-3, "weight_decay": 1e-5, "batch_size": 16}
 SMOKE_EPOCHS = 3
@@ -172,6 +172,79 @@ def build_capsens(code: str, gsha: str, tuned: dict, cfg: Config | None = None,
                                results_subdir="capsens", tags={"capsens": f"max_epochs_{ec.max_epochs}"})
                 jobs.append(_job(spec, "capsens", code, gsha, table=table))
     return jobs
+
+
+def build_diag_cross(code: str, gsha: str, tuned: dict, cfg: Config | None = None,
+                     table: dict | None = None) -> list[dict]:
+    """Item 1 diagnostic (docs/diagnostics_sweep.md): S at each (budget, anchor) cell of
+    ``diagnostics.hparam_cross``, so the within-host collapse can be attributed to the budget or to the
+    tuned values. Cells with budget == anchor repeat sweep runs under this code SHA and give checkpoints.
+    Results go to ``results/diag_cross/``; excluded from every pre-registered analysis."""
+    cfg = cfg if cfg is not None else load_config()
+    hc = cfg.diagnostics.hparam_cross
+    jobs = []
+    for b, a in hc.cells:
+        for r in hc.resamples:
+            for seed in hc.seeds:
+                spec = RunSpec(model=hc.model, **tuned_hparams(tuned, hc.model, a), split=f"outer_r{r}", r=r,
+                               budget=b, seed=seed, results_subdir="diag_cross",
+                               tags={"diagnostic": "hparam_cross", "anchor": a})
+                jobs.append(_job(spec, "diag_cross", code, gsha, table=table))
+    return jobs
+
+
+def build_d_ablation(code: str, gsha: str, tuned: dict, cfg: Config | None = None,
+                     table: dict | None = None) -> list[dict]:
+    """Item 3 diagnostic: the selected D at ``diagnostics.descriptor_ablation.budget`` with no ablation
+    (checkpoints for the permutation importances) and with each descriptor class at its training mean.
+    Results go to ``results/d_ablation/``; excluded from every pre-registered analysis."""
+    cfg = cfg if cfg is not None else load_config()
+    da = cfg.diagnostics.descriptor_ablation
+    d = tuned["d_variant"]
+    anchor = cfg.tuning.budget_to_anchor[da.budget]
+    jobs = []
+    for ab in da.ablations:
+        for r in da.resamples:
+            for seed in da.seeds:
+                spec = RunSpec(model=d, **tuned_hparams(tuned, d, anchor), split=f"outer_r{r}", r=r,
+                               budget=da.budget, seed=seed, ablate=None if ab == "none" else ab,
+                               results_subdir="d_ablation", tags={"diagnostic": "descriptor_ablation"})
+                jobs.append(_job(spec, "d_ablation", code, gsha, table=table))
+    return jobs
+
+
+def build_dlate(code: str, gsha: str, tuned: dict, cfg: Config | None = None,
+                table: dict | None = None) -> list[dict]:
+    """Sensitivity to the D-variant tie (docs/deviations.md, 2026-10-07): the unselected variant trained
+    exactly as the sweep trains D (its own tuned values at the budget's anchor), at the budgets, resamples
+    and seeds of ``sensitivity.unselected_variant_sweep``. Results go to ``results/dlate/``."""
+    cfg = cfg if cfg is not None else load_config()
+    us = cfg.sensitivity.unselected_variant_sweep
+    if us.variant == tuned["d_variant"]:
+        raise ValueError(f"{us.variant} is the selected D, not the unselected variant")
+    b2a = cfg.tuning.budget_to_anchor
+    jobs = []
+    for b in us.budgets:
+        for r in us.resamples:
+            for seed in us.seeds:
+                spec = RunSpec(model=us.variant, **tuned_hparams(tuned, us.variant, b2a[b]), split=f"outer_r{r}",
+                               r=r, budget=b, seed=seed, results_subdir="dlate",
+                               tags={"sensitivity": "unselected_variant"})
+                jobs.append(_job(spec, "dlate", code, gsha, table=table))
+    return jobs
+
+
+def build_review(code: str, gsha: str, tuned: dict, cfg: Config | None = None,
+                 table: dict | None = None) -> list[dict]:
+    """Every job requested by the 2026-10-07 review, prioritised: the two diagnostics (largest budget
+    first, so the longest runs start early), then the D-late sensitivity by budget descending."""
+    diag = build_diag_cross(code, gsha, tuned, cfg, table) + build_d_ablation(code, gsha, tuned, cfg, table)
+    order = sorted(diag, key=lambda j: (-j["spec"]["budget"], j["stage"], j["spec"]["r"], j["spec"]["seed"]))
+    order += sorted(build_dlate(code, gsha, tuned, cfg, table),
+                    key=lambda j: (-j["spec"]["budget"], j["spec"]["r"], j["spec"]["seed"]))
+    for i, j in enumerate(order):
+        j["priority"] = i
+    return order
 
 
 def _is_p1(j: dict) -> bool:

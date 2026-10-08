@@ -70,6 +70,10 @@ def main() -> None:
                                         c0_code=C0_CODE_SHA)
         print(f"reusing {len(reused)} official C0 runs as the Kiyohara-split S runs: "
               + ", ".join(sorted(j["run_id"] for j in reused)))
+    elif a.stage in ("diag_cross", "d_ablation", "dlate", "review"):
+        builder = {"diag_cross": ST.build_diag_cross, "d_ablation": ST.build_d_ablation, "dlate": ST.build_dlate,
+                   "review": ST.build_review}[a.stage]
+        jobs = builder(code, gsha, ST.load_tuned(Path(a.tuned)), table=table)
     elif a.stage == "c0_official":
         jobs = ST.build_c0_official(code, gsha, ST.load_tuned(Path(a.tuned)), table=table)
     else:
