@@ -111,8 +111,20 @@ predictions by 0.21–0.47 eV on average per run relative to the sweep's twin ru
 aggregate MAEs stayed close (0.509 on resamples 0–2 here; 0.516 over all ten resamples in the sweep). Only seed-ensemble, multi-resample numbers should be
 reported.
 
-`scripts/diag_checkpoints.py` adds the geometry and flag gradients of trained against untrained networks
-(`results/diag_checkpoints.json`).
+The gradient probe on these checkpoints (`scripts/diag_checkpoints.py`, `results/diag_checkpoints.json`)
+shows how much each run grew the geometric pathway. The geometry gradient is the summed |d output / d
+interatomic distance| over the graph's edges, median over runs, on 64 test sites per run.
+
+| B | Anchor | Geometry gradient, untrained | Geometry gradient, trained | Runs with gradient > 0.1 |
+|---:|---:|---:|---:|---:|
+| 200 | 200 | 3e-7 | 2e-5 | 0 / 9 |
+| 200 | 654 | 2e-7 | 4e-3 | 3 / 9 |
+| 654 | 200 | 3e-7 | 1e-4 | 0 / 9 |
+| 654 | 654 | 2e-7 | 5.3 | 9 / 9 |
+
+Training on the a654 values at 654 hosts grows the network's sensitivity to geometry by seven orders of
+magnitude, in every run. With the a200 values it barely grows, even on 654 hosts. At 200 hosts with the
+a654 values it grows in a third of the runs, and those are the runs with within-host skill.
 
 ### Reporting consequence
 
@@ -227,8 +239,28 @@ seed-ensemble:
   pathway. The weak site descriptors replace the stronger geometric signal that S learns, so D ends up
   below S.
 
-Per-descriptor permutation importances on the unablated checkpoints are in
-`results/diag_checkpoints.json`.
+Permutation importances on the 9 unablated checkpoints (rise in test MAE when a column is permuted;
+host descriptors among test hosts, site descriptors among test sites; 5 permutations; mean over runs):
+
+| Permuted | ΔMAE (eV) |
+|---|---:|
+| all 12 host descriptors | +0.807 |
+| formation energy (oxide stability) | +0.352 |
+| all 10 site descriptors | +0.196 |
+| band gap | +0.183 |
+| site Born effective charge | +0.120 |
+| CBM p-character | +0.064 |
+| Bader volume | +0.051 |
+| O site's own Bader charge | +0.021 |
+| each other descriptor | ≤ +0.05 |
+
+The trained D leans heavily on the host descriptors, above all on oxide stability and band gap, the two
+B0 descriptors: permuting them costs 0.8 eV. Yet a D trained without them loses nothing (0.297 against
+0.300). The two results are consistent: whatever the host descriptors give D, structure provides as well,
+and a network denied the descriptors learns it from structure. **The host-electronic descriptors are
+redundant with structure at 654 hosts; D uses them because they are the easier route, not because they
+add information.** The site descriptors are used, but weakly, and the O site's own Bader charge least of
+all.
 
 ### Wording consequence
 
