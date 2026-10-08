@@ -47,3 +47,40 @@ hyperparameters were chosen with the labels of 97 of its 126 test hosts in the t
 in the objective. Model weights never saw those hosts' labels in the C0 runs themselves (they train only
 on Kiyohara's training hosts). The counts are recorded in `results/c0_official.json`
 (`tuning_overlap_with_kiyohara_test`).
+
+## G1 primary analysis: bootstrap procedure
+
+The advantage of the DFT descriptors at budget B is A = MAE_S − MAE_D, where each MAE is the site-level test MAE
+of the seed-ensemble mean prediction (three seeds) over the 164 test hosts of an outer resample, averaged over the
+10 resamples. Uncertainty comes from a paired hierarchical bootstrap with 2000 replicates
+(`dftgnn.stats.g1.HierDraws`). In each replicate, 10 resamples are drawn with replacement; within each drawn
+resample its test hosts are drawn with replacement, every site of a drawn host is kept, and the metric of each
+model is recomputed on the draw; the replicate value is the mean over the 10 draws. The generator is
+`numpy.random.default_rng(20261008)`, and one set of draws is applied to every model, budget and metric, so all
+differences are paired and budgets share their host draws (test hosts are identical across budgets within a
+resample). Two-sided 95% intervals are the 2.5th and 97.5th percentiles; the one-sided 95% upper bound used for
+N* is the 95th percentile. N* is the smallest tested budget whose upper bound is below δ = 0.05 eV and stays below
+δ at every larger tested budget (`scripts/analysis/g1_analysis.py`; `results/g1_primary.json`). The bootstrap
+resamples test-host composition and outer-split variability; retraining noise enters only through the
+differences between resamples.
+
+## G1 clarifications
+
+Logged in `docs/deviations.md` on 2026-10-08 before any analysis code ran on the sweep predictions; none alters a
+pre-registered decision: (1) the seed ensemble is the arithmetic mean of the three seed predictions per site;
+(2) the bootstrap design, seed and percentile convention above, with draws shared across models, budgets and
+metrics; (3) budgets are paired within resample; (4) N* is evaluated over {25, 50, 100, 200, 400, 654} with a
+strict comparison and reported as ">654" if no budget qualifies; (5) negative A is reported as computed, without
+truncation; (6) the within-host residual MAE uses hosts with at least two sites and the same δ and rule, and
+host-mean MAE is descriptive; (7) the epoch-cap comparison uses the seed ensembles of resamples 0-2 at B = 654
+with the sweep runs as the 200-epoch comparator; (8) the S09 sanity table is reproduced from single-seed
+predictions; (9) baselines are the frozen S04 predictions and the host-mean oracle, descriptive only; (10) the
+seed- and resample-variance tables are sample SDs as defined in the log.
+
+## G1 epoch-cap sensitivity outcome
+
+At B = 654 on resamples 0-2, A(200) = A(600) = −0.013 eV (two-sided 95% interval [−0.044, +0.017]); the
+difference is 0.000 eV, within the pre-specified 0.02 eV, so the primary result is cap-insensitive
+(`results/g1_cap_sensitivity.json`). In all 18 pairs the 600-epoch run reached its best validation MAE at the
+same epoch as the 200-epoch run and produced byte-identical predictions (`results/g1_diagnostics.json`): no run's
+best epoch lay beyond epoch 200. The bootstrap for this comparison draws from only three resamples.
