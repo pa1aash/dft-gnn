@@ -282,15 +282,15 @@ def compute(only: list[str] | None, threads: int) -> None:
               f"repro {r['max_abs_diff_vs_stored_gpu_predictions_eV']:.1e}", flush=True)
 
 
-def merged() -> dict:
-    parts = [pickle.loads(f.read_bytes()) for f in sorted(CACHE.parent.glob("ck_*.pkl"))]
+def merged(prefix: str) -> dict:
+    parts = [pickle.loads(f.read_bytes()) for f in sorted(CACHE.parent.glob(f"{prefix}*.pkl"))]
     assert len(parts) == 12, f"{len(parts)} of 12 checkpoints computed"
     assert len({tuple(x["hosts"]) for x in parts}) == 1
     return {"hosts": parts[0]["hosts"], "n_eligible_hosts": parts[0]["n_eligible_hosts"],
             "checkpoints": {x["key"]: x["r"] for x in parts}}
 
 
-def payload(res: dict, verdict: str, reason: str) -> dict:
+def payload(res: dict, verdict: str, reason: str, labelled_only: bool) -> dict:
     tab = {}
     for key, r in res["checkpoints"].items():
         row = {k: r[k] for k in ("run_id", "hp", "epochs_run", "best_epoch", "max_epochs", "recorded_test_mae",
@@ -307,6 +307,10 @@ def payload(res: dict, verdict: str, reason: str) -> dict:
         tab[key] = row
     synth = json.loads(SYNTH.read_text()) if SYNTH.exists() else None
     return {"verdict": verdict, "verdict_reason": reason, "hosts": res["hosts"],
+            "pass": "labelled_sites_only" if labelled_only else "all_O_atoms",
+            "pass_note": ("flag sweep over the labelled sites of each host only; the all-O-atom sweep "
+                          "(sd_all_O) was not run in this pass (CPU time on battery power) and is None")
+            if labelled_only else "flag sweep over every O atom and over the labelled sites",
             "host_selection": f"{N_HOSTS} of {res['n_eligible_hosts']} resample-0 test hosts with >= 2 labelled "
                               f"sites, numpy default_rng({HOST_SEED}).choice without replacement",
             "resample": 0, "seed": 0, "device": "cpu", "checkpoints": tab, "synthetic_unit_test_probe": synth,
@@ -332,8 +336,8 @@ def main() -> None:
     from dftgnn.config import load_config
     from dftgnn.io.results import write_result
 
-    res = merged()
-    print(write_result("s_site_resolution_forensic", payload(res, a.verdict, a.reason), config=load_config()))
+    res = merged("lab_" if a.labelled_only else "ck_")
+    print(write_result("s_site_resolution_forensic", payload(res, a.verdict, a.reason, a.labelled_only), config=load_config()))
 
 
 if __name__ == "__main__":
