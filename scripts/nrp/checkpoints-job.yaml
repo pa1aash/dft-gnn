@@ -1,0 +1,44 @@
+# One GPU pod that runs scripts/diag_checkpoints.py once the review stage has drained (permutation
+# importances of D, geometry/flag gradients of S). Writes results/diag_checkpoints.json on the volume.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: dftgnn-diag-checkpoints
+  labels: {app: dftgnn}
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels: {app: dftgnn, role: post}
+    spec:
+      restartPolicy: Never
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: nvidia.com/gpu.product
+                    operator: In
+                    values: [NVIDIA-GeForce-RTX-3090, NVIDIA-A10, NVIDIA-L40, NVIDIA-L40S, NVIDIA-RTX-A6000,
+                             NVIDIA-A40, NVIDIA-GeForce-RTX-4090]
+                  - key: nvidia.com/cuda.driver.major
+                    operator: Gt
+                    values: ["579"]
+      containers:
+        - name: post
+          image: python:3.11-bookworm
+          workingDir: /workspace/dft-gnn
+          command: ["bash", "-c"]
+          args:
+            - >-
+              git config --global --add safe.directory '*' &&
+              /workspace/venv/bin/python scripts/diag_checkpoints.py --device cuda
+          resources:
+            requests: {cpu: "4", memory: 24Gi, nvidia.com/gpu: 1}
+            limits: {cpu: "4", memory: 24Gi, nvidia.com/gpu: 1}
+          volumeMounts:
+            - {name: vol, mountPath: /workspace}
+      volumes:
+        - name: vol
+          persistentVolumeClaim: {claimName: dftgnn-vol}
