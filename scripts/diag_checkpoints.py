@@ -105,7 +105,8 @@ def grad_probe(net, data: Store, pos: np.ndarray, device) -> dict:
         b.edge_dist = b.edge_dist.clone().requires_grad_(True)
         b.vac_flag = b.vac_flag.clone().requires_grad_(True)
         net.zero_grad()
-        net(b).sum().backward()
+        with torch.backends.cudnn.flags(enabled=False):   # cuDNN's LSTM (set2set) has no backward in eval mode
+            net(b).sum().backward()
         g_geo.append(float(b.edge_dist.grad.abs().sum()))
         g_flag.append(float(b.vac_flag.grad[b.vacancy_index].abs().sum()))
     return {"geometry_grad": float(np.mean(g_geo)), "flag_grad": float(np.mean(g_flag))}
