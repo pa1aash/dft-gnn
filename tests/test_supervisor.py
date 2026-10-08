@@ -12,9 +12,6 @@ import sys
 import textwrap
 import time
 from pathlib import Path
-from types import SimpleNamespace
-
-import pytest
 
 from dftgnn import jobqueue as Q
 
@@ -119,7 +116,7 @@ def test_orphaned_job_is_requeued_after_stale_heartbeat(tmp_path):
 
 
 def test_failed_job_is_retried_once_then_stays_failed(tmp_path):
-    sv, ops = make(tmp_path, [job(0)])
+    sv, _ops = make(tmp_path, [job(0)])
     sv.start()
     finish(sv, "j000", ok=False)
     sv.retry_failed()
@@ -162,7 +159,7 @@ def test_guard_halts_and_workers_are_not_restarted(tmp_path):
 
 def test_guard_does_not_halt_when_projection_is_inside(tmp_path):
     jobs = [job(i, "T1") for i in range(2)] + [job(2, "T2", budget=200)]
-    sv, ops = make(tmp_path, jobs, guard=50.0)
+    sv, _ops = make(tmp_path, jobs, guard=50.0)
     sv.start()
     finish(sv, "j000", wall=900.0)
     finish(sv, "j001", wall=900.0)
@@ -181,7 +178,7 @@ def test_projection_uses_measured_class_means_and_prior_for_the_rest():
 
 
 def test_verified_existing_results_are_skipped(tmp_path, monkeypatch):
-    sv, ops = make(tmp_path, [job(0), job(1)])
+    sv, _ops = make(tmp_path, [job(0), job(1)])
     ck = tmp_path / "x.pt"
     ck.write_bytes(b"ckpt")
     pred = tmp_path / "x.parquet"
@@ -220,8 +217,9 @@ def test_real_process_drill_kill_a_worker_and_finish(tmp_path):
 
     class Real(sup.Ops):
         def launch_worker(self, i):
-            lf = open(chain / "logs" / f"w{time.time_ns()}.log", "ab")
-            subprocess.Popen([sys.executable, str(stub)], stdout=lf, stderr=subprocess.STDOUT, start_new_session=True)
+            with open(chain / "logs" / f"w{time.time_ns()}.log", "ab") as lf:
+                subprocess.Popen([sys.executable, str(stub)], stdout=lf, stderr=subprocess.STDOUT,
+                                 start_new_session=True)
 
         def enqueue(self):
             for j in jobs:
@@ -242,8 +240,9 @@ def test_real_process_drill_kill_a_worker_and_finish(tmp_path):
         if end:
             break
         if not killed and len(list((queue / "running").glob("*.json"))) >= 2:
-            out = subprocess.run(["ps", "-ewwo", "pid,args"], capture_output=True, text=True).stdout
-            pid = int([ln for ln in out.splitlines() if str(stub) in ln][0].split()[0])
+            out = subprocess.run(["ps", "-ewwo", "pid,args"], capture_output=True, text=True,
+                                 check=False).stdout
+            pid = int(next(ln for ln in out.splitlines() if str(stub) in ln).split()[0])
             os.kill(pid, signal.SIGKILL)
             killed = True
         time.sleep(0.3)

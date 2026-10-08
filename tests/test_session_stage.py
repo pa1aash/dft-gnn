@@ -10,7 +10,6 @@ from dftgnn import jobqueue as Q
 from dftgnn.config import load_config
 from dftgnn.train import RunSpec, resolve_hosts
 from dftgnn.train import stages as ST
-
 from test_sweep_stage import CODE, GSHA, _cfg, _tuned
 
 C0_CODE = "d" * 40
