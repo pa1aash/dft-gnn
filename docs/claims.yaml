@@ -8,6 +8,8 @@ claims:
     result_ref: results/b0_physics_floor.json
   # C0: the Kiyohara-split half is measured (results/c0_official.json, S08: seed-ensemble MAE 0.283 eV, gate passed);
   # the formula-grouped-protocol half is measured in the sweep, so the status stays planned.
+  # S10 (results/g1_primary.json): S at B = 654 on the formula-grouped protocol, seed-ensemble MAE 0.273 eV
+  # [0.252, 0.300] against the published 0.29 eV (and 0.283 eV for the official C0 on Kiyohara's split).
   - id: C0
     statement: "A structure-only MEGNet on pristine host supercells with a marked vacancy site reproduces the published structure-only accuracy for neutral oxygen vacancies (0.29 eV; Kiyohara et al., Phys. Rev. Lett. 135, 246101, 2025), on both our formula-grouped protocol and Kiyohara's released host split."
     tested_by: M3
@@ -20,13 +22,15 @@ claims:
     tested_by: M5
     figure: Fig2, Fig3
     falsifiable_how: "If the upper bound never falls below delta within available data, N* is reported as a lower bound."
-    status: planned
+    status: measured
+    result_ref: results/g1_primary.json
   - id: C2
     statement: "At maximum training budget, the D minus S gap, with 95% CI, bounds the improvement perfect pristine-host electronic information can provide."
     tested_by: M5
     figure: Fig3
     falsifiable_how: "Measurement; reported with CI."
-    status: planned
+    status: measured
+    result_ref: results/g1_primary.json
   - id: C3a
     statement: "A staged model P, which predicts the pristine-host electronic descriptors (host-level and pristine-site Bader) from structure and passes the predictions to the trained oracle D, is compared with end-to-end S and oracle D at matched budgets; the D-minus-P gap is the cost of predicting rather than knowing the descriptors."
     tested_by: M6
