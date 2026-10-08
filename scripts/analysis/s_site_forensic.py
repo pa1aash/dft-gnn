@@ -100,6 +100,9 @@ def predict(net, ck, host: Host, atoms, desc_rows=None, flag_off=False) -> np.nd
     return np.concatenate(out)
 
 
+LABELLED_ONLY = False      # --labelled-only: skip the all-O sweep (fast first pass; sd_all_O = None)
+
+
 def sweep(net, ck, host: Host, kind: str, mode: str = "own") -> dict:
     """(a) for one host. ``mode``: 'own' site descriptors on labelled sites, 'hostmean' everywhere."""
     hm = host.desc.mean(0)
@@ -108,10 +111,10 @@ def sweep(net, ck, host: Host, kind: str, mode: str = "own") -> dict:
         lab = dict(zip(host.vac, host.desc, strict=True))
         rows_all = torch.stack([lab[a] if (mode == "own" and a in lab) else hm for a in host.oxy])
         rows_lab = torch.stack([host.desc[i] if mode == "own" else hm for i in range(len(host.vac))])
-    p_all = predict(net, ck, host, host.oxy, rows_all)
+    p_all = None if LABELLED_ONLY else predict(net, ck, host, host.oxy, rows_all)
     p_lab = predict(net, ck, host, host.vac, rows_lab)
     p_off = predict(net, ck, host, host.vac, rows_lab, flag_off=True)
-    return {"sd_all_O": float(np.std(p_all, ddof=1)), "sd_labelled": float(np.std(p_lab, ddof=1)),
+    return {"sd_all_O": None if p_all is None else float(np.std(p_all, ddof=1)), "sd_labelled": float(np.std(p_lab, ddof=1)),
             "sd_flag_off_labelled": float(np.std(p_off, ddof=1)),
             "mean_abs_on_minus_off": float(np.abs(p_lab - p_off).mean()),
             "target_sd": float(np.std(host.target, ddof=1)), "n_O": len(host.oxy), "n_labelled": len(host.vac),
@@ -185,8 +188,9 @@ def init_model(ck) -> torch.nn.Module:
     return net
 
 
-def med(rows: list[dict], key: str) -> float:
-    return float(np.median([r[key] for r in rows]))
+def med(rows: list[dict], key: str) -> float | None:
+    v = [r[key] for r in rows]
+    return None if any(x is None for x in v) else float(np.median(v))
 
 
 def summary(rows: list[dict]) -> dict:
@@ -272,7 +276,7 @@ def compute(only: list[str] | None, threads: int) -> None:
         ids = [st.sites["site_id"][i] for h in hosts for i in h.pos]
         r["max_abs_diff_vs_stored_gpu_predictions_eV"] = float(np.abs(mine - pr.loc[ids].to_numpy()).max())
         meta = {k: v for k, v in res.items() if k != "checkpoints"}
-        (CACHE.parent / f"ck_{kind}_{B}.pkl").write_bytes(pickle.dumps({**meta, "key": f"{kind}|{B}", "r": r}))
+        (CACHE.parent / f"{'lab_' if LABELLED_ONLY else 'ck_'}{kind}_{B}.pkl").write_bytes(pickle.dumps({**meta, "key": f"{kind}|{B}", "r": r}))
         print(f"{kind} B={B}: {time.time() - t0:.0f}s  trained {summary(r['trained'])['median_sd_labelled']:.2e}  "
               f"init {summary(r['init'])['median_sd_labelled']:.2e}  "
               f"repro {r['max_abs_diff_vs_stored_gpu_predictions_eV']:.1e}", flush=True)
@@ -316,7 +320,10 @@ def main() -> None:
     ap.add_argument("--reason", default="")
     ap.add_argument("--only", nargs="*", help="checkpoint keys such as 'S|25'; default all")
     ap.add_argument("--threads", type=int, default=2)
+    ap.add_argument("--labelled-only", action="store_true")
     a = ap.parse_args()
+    global LABELLED_ONLY
+    LABELLED_ONLY = a.labelled_only
     if not a.write:
         compute(a.only, a.threads)
         return
