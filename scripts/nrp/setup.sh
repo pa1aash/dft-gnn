@@ -9,7 +9,7 @@
 # hash the commit SHA) match the ones computed there.
 set -euo pipefail
 WS=/workspace
-REPO=$WS/dft-gnn
+REPO=${DFTGNN_REPO:-$WS/dft-gnn}     # a second checkout lets a new commit run beside workers of an older one
 PY=$WS/venv/bin/python
 git config --global --add safe.directory '*'
 
@@ -34,7 +34,8 @@ case "${1:-}" in
     ;;
   store)
     mkdir -p "$REPO/data/processed"
-    if [[ -d $WS/graphs_v1 ]]; then rm -rf "$REPO/data/processed/graphs_v1"; mv "$WS/graphs_v1" "$REPO/data/processed/"; fi
+    if [[ -d $WS/graphs_v1 ]]; then rm -rf "$REPO/data/processed/graphs_v1"; mv "$WS/graphs_v1" "$REPO/data/processed/"
+    elif [[ ! -d $REPO/data/processed/graphs_v1 ]]; then cp -r "$WS/dft-gnn/data/processed/graphs_v1" "$REPO/data/processed/"; fi
     cd "$REPO" && "$PY" -c "from dftgnn.graphs import store as S; bad = S.verify_store(); print('store', 'OK' if not bad else bad); raise SystemExit(bool(bad))"
     test -z "$(git -C "$REPO" status --porcelain --untracked-files=no)" && echo "tree clean: OK"
     ;;
