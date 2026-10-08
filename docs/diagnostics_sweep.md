@@ -15,12 +15,12 @@ be fixed first.
 
 | Item | Finding | Status |
 |---|---|---|
-| 1 | Real, not a reporting artefact, and not an indexing bug. At B ≤ 200, S gives (nearly) every site of a host the same prediction. Root cause: the pre-registered backbone cannot see O-site geometry at initialisation; S learns it only at B ≥ 400. | Pipeline verified; mechanism identified; diagnostic runs on NRP; **backbone decision pending** |
+| 1 | Real, not a reporting artefact, and not an indexing bug. At B ≤ 200, S gives (nearly) every site of a host the same prediction. Root cause: the pre-registered backbone cannot see O-site geometry at initialisation; S learns it only at B ≥ 400. | Pipeline verified; mechanism identified; crossing runs show the small-budget tuned values keep S site-blind even at 654 hosts. v2 backbone arm logged and screening (deviations, 2026-10-08) |
 | 2 | At 25 and 50 hosts both GNNs beat the training-mean predictor but are 0.23–0.39 eV worse than B0 and RF-Kumagai. S reaches B0 at 100 and passes RF-Kumagai only at 654. | Reported; figure requirement below |
-| 3 | Descriptors are clean and standardised on training sites only. D does not beat S at 654 (A = −0.012 eV, D ahead in 2 of 10 resamples) and ties on the Kiyohara split. D cannot be called an upper bound. | Ablation and permutation importance running on NRP |
+| 3 | Descriptors are clean and standardised on training sites only. D does not beat S at 654 (A = −0.012 eV, D ahead in 2 of 10 resamples) and ties on the Kiyohara split. D cannot be called an upper bound. Ablation: host descriptors add nothing; without site descriptors D is site-blind; descriptors displace geometry. | Done (permutation importances in `results/diag_checkpoints.json`) |
 | 6 | The epoch cap does not bind. All 18 capsens runs reproduce their 200-epoch twins bit for bit; ΔA = 0. | Done; one caveat |
 | 8 | 97 of 126 Kiyohara test hosts were in a tuning set. On the other 29, S scores 0.285 eV, no better than on the 97. | Done |
-| 4, 5, 7 | Deviation rows: 7 logged (runs now); 4 and 5 proposed below for sign-off. | |
+| 4, 5, 7 | 7 logged and run: D-late gives the same A pattern as D-state. 4 and 5 proposed below for sign-off. | 7 done |
 | 9 | The two planning documents are outside the repository; each now carries a superseded banner. | Done |
 
 ## 1. Within-host skill at B ≤ 200
@@ -91,8 +91,28 @@ is altered.
 
 Budget and tuned values are confounded: anchors 50 and 200 use set2set pooling, anchor 654 uses mean.
 The `diag_cross` stage trains S at (B, anchor) = (200, 200), (200, 654), (654, 200) and (654, 654), on
-resamples 0–2 with 3 seeds. `scripts/diag_checkpoints.py` then compares the gradient with respect to
-geometry against that for the flag, for trained and untrained networks. *Results to be added.*
+resamples 0–2 with 3 seeds (36 runs, `results/diag_cross/`, NRP).
+
+| B | Tuned values of anchor | Pooling | Mean best epoch | Test MAE | Within-host skill | Constant hosts (of ~102) | Corr. within |
+|---:|---:|---|---:|---|---|---:|---:|
+| 200 | 200 | set2set | 34 | 0.509 [0.465, 0.557] | 0.000 [−0.000, 0.000] | 99.0 | 0.03 |
+| 200 | 654 | mean | 60 | 0.537 [0.440, 0.640] | 0.007 [−0.000, 0.017] | 25.7 | 0.23 |
+| 654 | 200 | set2set | 33 | 0.417 [0.363, 0.471] | 0.000 [−0.000, 0.000] | 102.7 | −0.01 |
+| 654 | 654 | mean | 168 | 0.263 [0.239, 0.288] | 0.059 [0.041, 0.079] | 1.0 | 0.78 |
+
+The collapse follows the tuned values, not the budget. With the a200 values, S is site-blind even when
+trained on 654 hosts. Those values reach their best validation MAE after about 33 epochs and stop,
+before the geometric pathway has grown. With the a654 values, S at 200 hosts starts to separate sites
+(26 constant hosts instead of 99) but has almost no skill, so budget matters as well. The a50 and a200
+values were selected on 5 and 20 validation hosts, whose objective is dominated by host placement.
+
+Single runs are noisy. Retraining the (200, 200) and (654, 654) cells on NRP changed individual site
+predictions by 0.21–0.47 eV on average per run relative to the sweep's twin runs on the L40S, while
+aggregate MAEs stayed close (0.509 on resamples 0–2 here; 0.516 over all ten resamples in the sweep). Only seed-ensemble, multi-resample numbers should be
+reported.
+
+`scripts/diag_checkpoints.py` adds the geometry and flag gradients of trained against untrained networks
+(`results/diag_checkpoints.json`).
 
 ### Reporting consequence
 
@@ -188,8 +208,27 @@ S's learned geometry reaches a within-host correlation of 0.72 at 654.
 
 A plausible reading: the descriptors give D an easy route to host placement and a weak within-host
 signal, so D learns less from geometry than S. That would explain why D's within-host MAE is worse.
-The class ablations (host-only and site-only D) and the per-descriptor permutation importances at 654
-test this (`d_ablation`, `scripts/diag_checkpoints.py`). *Results to be added.*
+The class ablations test this (`d_ablation`, 27 runs, NRP). D-state at B = 654, resamples 0–2, 3 seeds,
+seed-ensemble:
+
+| Model | Test MAE | Within-host MAE | Within-host skill | Constant hosts |
+|---|---|---:|---|---:|
+| S (sweep) | 0.283 [0.260, 0.307] | 0.139 | 0.051 [0.035, 0.071] | 0.7 |
+| D, all descriptors (retrained) | 0.300 [0.268, 0.331] | 0.166 | 0.024 [0.009, 0.038] | 0.0 |
+| D, host descriptors at training mean | 0.297 [0.268, 0.329] | 0.160 | 0.031 [0.017, 0.044] | 0.0 |
+| D, site descriptors at training mean | 0.341 [0.310, 0.376] | 0.190 | 0.000 [0.000, 0.000] | 102.7 |
+
+- **The 12 host-electronic descriptors add nothing over structure.** Removing them leaves MAE unchanged
+  (0.297 against 0.300).
+- **D's within-host signal comes from the site descriptors, not from geometry.** Without them, D gives
+  every site of a host the same prediction, even at 654 hosts and with the a654 values that let S learn
+  geometry.
+- **The shortcut costs D accuracy.** With descriptors available, the network does not grow the geometric
+  pathway. The weak site descriptors replace the stronger geometric signal that S learns, so D ends up
+  below S.
+
+Per-descriptor permutation importances on the unablated checkpoints are in
+`results/diag_checkpoints.json`.
 
 ### Wording consequence
 
@@ -267,7 +306,17 @@ values +0.032 at 50, +0.108 at 100), so a qualifying budget followed by a non-qu
 count."
 
 **Item 7 (§12d; logged).** D-late is trained in the sweep protocol at B = 200, 400 and 654 (10 resamples,
-3 seeds), and C1/C2 are reported with D-late in place of D-state as a sensitivity check.
+3 seeds), and C1/C2 are reported with D-late in place of D-state as a sensitivity check. Result (90 runs,
+`results/dlate/`; point values, A = MAE_S − MAE_D):
+
+| B | D-state MAE | D-late MAE | A with D-state (resamples A > 0) | A with D-late (range; resamples A > 0) |
+|---:|---:|---:|---:|---:|
+| 200 | 0.421 | 0.441 | +0.095 (9/10) | +0.075 [−0.010, +0.155] (9/10) |
+| 400 | 0.336 | 0.337 | +0.040 (8/10) | +0.039 [−0.039, +0.116] (8/10) |
+| 654 | 0.284 | 0.291 | −0.012 (2/10) | −0.018 [−0.115, +0.075] (4/10) |
+
+The choice between the two injection variants does not change the picture: D helps at 200 and 400 hosts
+and not at 654.
 
 ## 9. Planning documents
 
