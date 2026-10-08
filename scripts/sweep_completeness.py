@@ -100,7 +100,8 @@ def check_run(p: dict, test_hosts: dict[str, set]) -> list[str]:
         errs.append(f"rows {len(df)} != n_sites.test {p['n_sites']['test']}")
     if df.site_id.duplicated().any():
         errs.append("a test site appears more than once")
-    if not np.isfinite(df.y_pred.to_numpy(dtype=float)).all():
+    cols = [c for c in df.columns if c.startswith("pred_")] if p["spec"]["model"] == "P1" else ["y_pred"]
+    if not cols or not np.isfinite(df[cols].to_numpy(dtype=float)).all():
         errs.append("non-finite predictions")
     hosts = test_hosts[p["spec"]["split"]]
     if set(df.host_id) != hosts:
@@ -140,13 +141,18 @@ def main() -> None:
         cap[key][1] += 1
         cap[key][0] += int(p["epochs_run"] >= p["max_epochs"])
         walls[key].append(p["wall_time_s"])
-    nonfinite = [p["run_id"] for p in runs if not np.isfinite(p["metrics"].get("mae", np.nan))]
+    def metric(p):
+        return p["metrics"]["mean_standardised_mae"] if p["spec"]["model"] == "P1" else p["metrics"]["mae"]
+
+    nonfinite = [p["run_id"] for p in runs if not np.isfinite(metric(p))]
     # sanity table: mean test MAE per (model, budget) over resamples and seeds (sweep runs only)
     tab = defaultdict(list)
     for p in runs:
         if p["_kind"] == "sweep":
-            tab[(p["spec"]["model"], p["spec"]["budget"])].append(p["metrics"].get("mae", float("nan")))
-    sanity = {f"{m}|{b}": {"mean_test_mae": float(np.mean(v)), "n_runs": len(v)} for (m, b), v in sorted(tab.items())}
+            tab[(p["spec"]["model"], p["spec"]["budget"])].append(metric(p))
+    sanity = {f"{m}|{b}": {"mean_test_mae": float(np.mean(v)), "n_runs": len(v),
+                           "unit": "mean standardised descriptor MAE (health only)" if m == "P1" else "eV"}
+              for (m, b), v in sorted(tab.items())}
     flags = []
     for m in ("S", "D-state"):
         prev = None
