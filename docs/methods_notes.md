@@ -30,10 +30,12 @@ Training ran on one NVIDIA L40S. Several training processes shared the card thro
 process started a run only when the summed benchmarked peak memory of the running jobs, times a safety
 factor of 1.25, stayed within 85% of the device memory (`dftgnn.train.admission`,
 `dftgnn.jobqueue`). These settings affect wall time only. They do not change any hyperparameter,
-split, seed or stopping rule. GPU runs are reproducible up to floating-point summation order: the
-scatter-add aggregations of PyTorch Geometric have no deterministic CUDA kernel, so two runs with the
-same seed agree closely but not bitwise. Runs on the CPU with the same seed and thread count are
-bit-identical.
+split, seed or stopping rule. In the 18 epoch-cap pairs (S and D at B = 654, resamples 0-2, seeds
+0-2, 200- and 600-epoch caps), every 600-epoch run reproduced its 200-epoch twin bitwise: the prediction
+files have equal sha256 (`results/g1_diagnostics.json`). This was observed for 18 pairs on one GPU class
+(NVIDIA L40S). It is not a general guarantee: the scatter-add aggregations of PyTorch Geometric have no
+deterministic CUDA kernel, and GPU floating-point summation order is not guaranteed to be bitwise
+reproducible. Runs on the CPU with the same seed and thread count are bit-identical.
 
 ## Limitation: tuning hosts that are Kiyohara test hosts
 
