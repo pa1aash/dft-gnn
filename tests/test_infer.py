@@ -4,7 +4,6 @@ Condition (i) must reproduce the stored S09 test predictions; geomeval plumbing 
 equal to the DFT graphs (so (ii) and (iii) must equal (i)).
 """
 import json
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
