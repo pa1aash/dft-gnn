@@ -19,7 +19,6 @@ from pathlib import Path
 import pandas as pd
 
 from dftgnn import infer
-from dftgnn.graphs.store import sha256_file
 from dftgnn.mlip import geometry
 from dftgnn.mlip.pipeline import load_condition_graphs
 from dftgnn.mlip.relax import OUT_DIR
@@ -41,12 +40,6 @@ def components(index_primary: dict, model: str, r: int, budget: int, seed: int) 
     if model == "P":
         return {"P1": key("P1"), "D": key("D-state")}
     raise ValueError(model)
-
-
-def task_key(model: str, r: int, budget: int, seed: int, comps: dict, code: str, mace_sha: str) -> dict:
-    return {"stage": "geomeval", "model": model, "r": r, "budget": budget, "seed": seed,
-            "components": {k: v["run_id"] for k, v in comps.items()}, "code_sha": code,
-            "tiling_summary_sha256": sha256_file(TILING_SUMMARY), "mace_model_sha256": mace_sha}
 
 
 def run(model: str, r: int, budget: int, seed: int, comps: dict, sites: infer.Sites, *, hosts=None,
