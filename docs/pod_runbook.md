@@ -105,3 +105,41 @@ gitignored `checkpoints/`, and re-verifies every file. On the first run, copy `o
 1. Confirm on the Mac that `pull_results.sh` reported every tarball as verified and that the results
    are committed.
 2. **[YOU]** Terminate the pod on RunPod (stop the volume too if it is not needed for the next stage).
+
+## S12: inference tranche, LOCO, sensitivities and capped reruns
+
+One L40S pod runs every remaining pre-registered stage plus the post-hoc capped reruns. The code was
+implemented and CPU-verified in S11 (handoff S11). Job counts: relax 818, peval 183, embed 240, geomeval
+180 (tranche I); loco 30 (L); moment 60 (M); cgcnn 18 (C); capped 33 (X, POST HOC). Run ids include the code
+SHA and are computed on the pod at enqueue time.
+
+1. Mac (section 0): clean tree, `git push origin main`, `COMMIT=$(git rev-parse HEAD)`, `check_prereg.py` passes.
+   Run `mamba run -n dftgnn python scripts/queue/enqueue.py s12 --dry-run` and note the guard it recommends.
+2. **[YOU]** Create an L40S pod: SSH over exposed TCP enabled, container disk at least 60 GB, your public key
+   saved in the RunPod settings. Paste its SSH line (`ssh root@<ip> -p <port> -i ...`).
+3. **[YOU]** Approve the spend: the central and upper GPU-hours and cost in the S11 handoff.
+4. Bootstrap and data (sections 2-3): `setup.sh install $COMMIT` (the env now includes mace-torch 0.3.16), then
+   `bash scripts/pod/push_data.sh`, `bash scripts/pod/push_s12.sh` (checkpoints, unit cells, tiling map, MACE
+   weights, 818 release supercell CIFs; it ends with `S12 inputs: OK`) and `setup.sh verify` (`OK`).
+5. Pod dry run; the counts must equal those above:
+   `mamba run -n dftgnn-gpu python scripts/queue/enqueue.py s12 --dry-run`
+6. Start MPS and the supervisor (it enqueues `s12` once, keeps 4 workers, packs each tranche, halts at the guard):
+   ```bash
+   bash scripts/pod/mps.sh start
+   mkdir -p /workspace/chain && cp scripts/queue/supervisor.py /workspace/chain/
+   nohup /workspace/miniforge3/envs/dftgnn-gpu/bin/python /workspace/chain/supervisor.py --stage s12 \
+       --tranches I,L,M,C,X --guard <guard from step 1> >> /workspace/chain/supervisor.log 2>&1 &
+   ```
+   geomeval waits for the relax jobs of its test hosts. Relaxations that do not converge are kept and flagged;
+   a relax job that raises is retried once, after which its geomeval tasks stay pending and the supervisor ends
+   with DRAINED_WITH_FAILURES.
+7. Monitor: `scripts/queue/status.py`, `/workspace/chain/supervisor.log`, `PACKED_<tranche>` files. Pull each
+   packed tranche as it appears: `bash scripts/pod/pull_results.sh` on the Mac (verifies and unpacks).
+8. After ALL_DONE: on the pod, `python scripts/infer/extract_embeddings.py --manifest`, then
+   `outbox.py pack-files --name embeddings_manifest results/embeddings_v1_manifest.json`; pull. On the Mac,
+   commit the result JSONs and prediction parquets under `results/` (peval, mlip_v1, embeddings_v1, geomeval,
+   loco, moment, cgcnn, capped_rerun_v1). Large artefacts stay in the gitignored `data/processed/mlip_v1/`,
+   `data/processed/embeddings_v1/` and `checkpoints/`; back them up as for S09.
+9. **[YOU]** Terminate the pod after every pull is verified and committed.
+
+No result of C3a, C3b or C4 is analysed in S12; the analyses run in S13 from the pulled files.
