@@ -35,7 +35,7 @@ def read_matrix(cell_info_text: str) -> list[list[int]]:
     m = re.search(r"Transformation matrix:\s*\[([^\]]*)\]\s*\[([^\]]*)\]\s*\[([^\]]*)\]", cell_info_text)
     if m is None:
         raise ValueError("no transformation matrix in cell_info.txt")
-    return [[int(round(float(x))) for x in row.split(",")] for row in m.groups()]
+    return [[round(float(x)) for x in row.split(",")] for row in m.groups()]
 
 
 def _tile(unit, matrix):
@@ -44,11 +44,12 @@ def _tile(unit, matrix):
     return s
 
 
-def tile_permutation(unit, matrix, supercell, tol: float = MATCH_TOL_A) -> tuple[list[int], list] | None:
-    """``(perm, Q)`` with ``tiled[perm[i]]`` = ``supercell[i]`` and ``S = T @ Q`` (row-vector lattices of the
-    supercell S and the tiled cell T; Q is the rotation between their Cartesian frames, the identity when the
-    release used the unit cell's frame), or None if the tiling does not reproduce the supercell: different
-    cell lengths or angles, or any atom farther than ``tol`` from its partner."""
+def tile_permutation(unit, matrix, supercell, tol: float = MATCH_TOL_A) -> tuple[list[int], list, list] | None:
+    """``(perm, Q, shift)`` with ``tiled[perm[i]] + shift`` = ``supercell[i]`` and ``S = T @ Q`` (row-vector
+    lattices of the supercell S and the tiled cell T). Q is the rotation between their Cartesian frames (the
+    identity when the release used the unit cell's frame); ``shift`` is the fractional origin shift of the
+    symmetrised supercell. None if the tiling does not reproduce the supercell: different cell lengths or angles,
+    or, for every candidate shift, an atom farther than ``tol`` from its partner."""
     tiled = _tile(unit, matrix)
     if len(tiled) != len(supercell):
         return None
@@ -59,22 +60,35 @@ def tile_permutation(unit, matrix, supercell, tol: float = MATCH_TOL_A) -> tuple
     if not np.allclose(q @ q.T, np.eye(3), atol=1e-3):
         return None
     lat = supercell.lattice
-    ft, fs = tiled.frac_coords, supercell.frac_coords
+    fs = supercell.frac_coords
     zt = np.array([site.specie.Z for site in tiled])
     zs = np.array([site.specie.Z for site in supercell])
-    perm = np.full(len(supercell), -1)
-    used = np.zeros(len(tiled), bool)
-    for i in range(len(supercell)):
+    # the symmetrised supercell may sit at a shifted origin: try no shift first, then every shift that puts a
+    # tiled atom of the rarest element on the supercell's first atom of that element
+    rare = min(set(zs.tolist()), key=lambda z: (zs == z).sum())
+    i0 = int(np.nonzero(zs == rare)[0][0])
+    shifts = [np.zeros(3)] + [fs[i0] - tiled.frac_coords[j] for j in np.nonzero(zt == rare)[0]]
+    for shift in shifts:
+        perm = _match(tiled.frac_coords + shift, fs, zt, zs, lat.matrix, tol)
+        if perm is not None:
+            return perm, q.tolist(), (shift - np.round(shift)).tolist()
+    return None
+
+
+def _match(ft, fs, zt, zs, lat, tol):
+    perm = np.full(len(fs), -1)
+    used = np.zeros(len(ft), bool)
+    for i in range(len(fs)):
         cand = np.nonzero((zt == zs[i]) & ~used)[0]
         d = ft[cand] - fs[i]
         d -= np.round(d)
-        dist = np.linalg.norm(d @ lat.matrix, axis=1)
+        dist = np.linalg.norm(d @ lat, axis=1)
         k = int(np.argmin(dist))
         if dist[k] > tol:
             return None
         perm[i] = cand[k]
         used[cand[k]] = True
-    return perm.tolist(), q.tolist()
+    return perm.tolist()
 
 
 def prepare_inputs(universe, release_root: Path) -> dict:
@@ -96,18 +110,20 @@ def prepare_inputs(universe, release_root: Path) -> dict:
         if tp is None:
             excluded[hid] = "tiling does not reproduce the release supercell"
             continue
-        out[hid] = {"formula": row.formula, "unit_cell": unit.as_dict(), "matrix": matrix, "perm": tp[0], "rotation": tp[1]}
+        out[hid] = {"formula": row.formula, "unit_cell": unit.as_dict(), "matrix": matrix, "perm": tp[0], "rotation": tp[1],
+                    "shift": tp[2]}
     return {"hosts": out, "excluded": excluded, "match_tol_A": MATCH_TOL_A}
 
 
-def supercell_from_unit(unit, matrix, perm, rotation=None):
+def supercell_from_unit(unit, matrix, perm, rotation=None, shift=None):
     """Tile ``unit`` with ``matrix``, order the atoms like the release supercell and express the lattice in the
     release supercell's Cartesian frame (``rotation`` from ``tile_permutation``)."""
     from pymatgen.core import Lattice, Structure
 
     t = _tile(unit, matrix)
     lat = t.lattice.matrix if rotation is None else t.lattice.matrix @ np.asarray(rotation)
-    return Structure(Lattice(lat), [t[i].specie for i in perm], t.frac_coords[perm])
+    frac = t.frac_coords[perm] + (np.zeros(3) if shift is None else np.asarray(shift))
+    return Structure(Lattice(lat), [t[i].specie for i in perm], frac)
 
 
 def geometry(dft_sc, mlip_sc) -> dict:
