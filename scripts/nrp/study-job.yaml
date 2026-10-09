@@ -22,8 +22,11 @@ spec:
               - matchExpressions:
                   - key: nvidia.com/gpu.product
                     operator: In
+                    # one study per GPU needs <= 5 GB; CUDA 13 wheels need compute capability >= 7.5
                     values: [NVIDIA-GeForce-RTX-3090, NVIDIA-A10, NVIDIA-L40, NVIDIA-L40S, NVIDIA-RTX-A6000,
-                             NVIDIA-A40, NVIDIA-GeForce-RTX-4090]
+                             NVIDIA-A40, NVIDIA-GeForce-RTX-4090, NVIDIA-GeForce-RTX-2080-Ti, NVIDIA-TITAN-RTX,
+                             Tesla-T4, NVIDIA-L4, NVIDIA-RTX-A4000, NVIDIA-RTX-A5000, NVIDIA-A100-PCIE-40GB,
+                             NVIDIA-A100-80GB-PCIe, NVIDIA-A100-SXM4-80GB]
                   - key: nvidia.com/cuda.driver.major
                     operator: Gt
                     values: ["579"]
