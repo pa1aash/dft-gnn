@@ -214,6 +214,8 @@ class AnalysisCfg(_Strict):
     multiplicity_correction: Literal["none"]
     staging_contrasts: list[str]
     staging_null_ci: float = Field(gt=0, lt=1)
+    equivalence_margin_eV: float | None = None     # C3a/C3b TOST margin (docs/deviations.md, 2026-10-09)
+    equivalence_tost_ci: float | None = None
 
 
 class HighMomentCfg(_Strict):

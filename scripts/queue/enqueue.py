@@ -36,9 +36,11 @@ def main() -> None:
     ap.add_argument("--tuned", default=str(ST.TUNED), help="tuned hyperparameters (sweep, c0_official)")
     ap.add_argument("--dry-run", action="store_true", help="print counts and cost; enqueue nothing")
     ap.add_argument("--queue", default=str(QUEUE))
+    ap.add_argument("--code", help="build the jobs against this commit SHA instead of HEAD (the commit the pod's "
+                                    "workers run; docs/deviations.md 2026-10-09)")
     ap.add_argument("--manifest", help="write the run ids of the built jobs to this JSON file (session, capsens)")
     a = ap.parse_args()
-    code, gsha = code_sha(), manifest_sha()
+    code, gsha = a.code or code_sha(), manifest_sha()
     try:
         table = admission.load_benchmark()
     except (OSError, KeyError):
@@ -74,6 +76,8 @@ def main() -> None:
         builder = {"diag_cross": ST.build_diag_cross, "d_ablation": ST.build_d_ablation, "dlate": ST.build_dlate,
                    "review": ST.build_review}[a.stage]
         jobs = builder(code, gsha, ST.load_tuned(Path(a.tuned)), table=table)
+    elif a.stage == "p_v2":
+        jobs = ST.build_p_v2(code, gsha, ST.load_tuned(ST.TUNED_V2), ST.load_tuned(ST.TUNED), table=table)
     elif a.stage == "v2":
         jobs = ST.build_v2(code, gsha, ST.load_tuned(ST.TUNED_V2), table=table)
     elif a.stage in ("loco", "v2_screen"):

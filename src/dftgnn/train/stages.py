@@ -19,7 +19,7 @@ from dftgnn.split import budget_train, load_split
 from dftgnn.train import RunSpec, admission, run_id, val_seed
 
 STAGES = ("tune", "sweep", "kiyohara", "loco", "sensitivity", "smoke", "pilot_epochs", "c0_pilot", "c0_ablate",
-          "c0_capcheck", "c0_official", "capsens", "session", "diag_cross", "d_ablation", "dlate", "review", "v2_screen", "v2")
+          "c0_capcheck", "c0_official", "capsens", "session", "diag_cross", "d_ablation", "dlate", "review", "v2_screen", "v2", "p_v2")
 # smoke only: fixed, untuned optimiser settings for a pipeline check (not a hyperparameter choice)
 SMOKE_OPT = {"lr": 1e-3, "weight_decay": 1e-5, "batch_size": 16}
 SMOKE_EPOCHS = 3
@@ -326,6 +326,41 @@ def build_v2(code: str, gsha: str, tuned: dict, cfg: Config | None = None, table
     jobs = loco + kiy + sorted(sweep, key=lambda j: (-j["spec"]["budget"], j["spec"]["r"], j["spec"]["seed"]))
     for i, j in enumerate(jobs):
         j["priority"] = i
+    return jobs
+
+
+def build_p_v2(code: str, gsha: str, tuned_v2: dict, tuned_v1: dict, cfg: Config | None = None,
+               table: dict | None = None) -> list[dict]:
+    """P1-v2 and the staged P-v2 (docs/deviations.md, 2026-10-09). P1-v2: P1's pre-registered tuned values
+    (``tuned_v1``, each budget's anchor; anchor 654 on the Kiyohara split) plus the v2 backbone options, over
+    every outer resample, budget and seed and on the Kiyohara split (``results/p1_v2/``). P-v2: each P1-v2 run
+    composed with the D-v2 run of the same split, budget and seed, taken from ``build_v2`` so the run ids match
+    the queued v2 stage (``results/p_v2/``; runs after both)."""
+    cfg = cfg if cfg is not None else load_config()
+    d = tuned_v2["d_variant"]
+    arch = tuned_v2.get("arch") or {}
+    dv2 = {(j["spec"]["split"], j["spec"]["budget"], j["spec"]["seed"]): j
+           for j in build_v2(code, gsha, tuned_v2, cfg, table) if j["spec"]["model"] == d
+           and j["stage"] in ("v2_sweep", "v2_kiyohara")}
+    b2a = cfg.tuning.budget_to_anchor
+    p1_jobs, p_jobs = [], []
+    for (split, b, seed), dj in sorted(dv2.items(), key=lambda kv: (-kv[0][1], kv[0][0], kv[0][2])):
+        anchor = 654 if split == "kiyohara" else b2a[b]
+        h = tuned_hparams(tuned_v1, "P1", anchor)
+        h["hp"] = {**h["hp"], **arch}
+        r = dj["spec"]["r"]
+        p1 = _job(RunSpec(model="P1", **h, split=split, r=r, budget=b, seed=seed, results_subdir="p1_v2",
+                          tags={"v2": tuned_v2.get("version", "")}), "p1_v2", code, gsha, table=table)
+        ds = dj["spec"]
+        p = _job(RunSpec(model="P", hp=ds["hp"], lr=ds["lr"], weight_decay=ds["weight_decay"],
+                         batch_size=ds["batch_size"], split=split, r=r, budget=b, seed=seed, results_subdir="p_v2",
+                         p1_run=p1["run_id"], d_run=dj["run_id"], tags={"v2": tuned_v2.get("version", "")}),
+                 "p_v2", code, gsha, after=[p1["run_id"], dj["run_id"]], table=table)
+        p1_jobs.append(p1)
+        p_jobs.append(p)
+    jobs = p1_jobs + p_jobs
+    for i, j in enumerate(jobs):
+        j["priority"] = 1000 + i                    # behind every job of the v2 stage
     return jobs
 
 

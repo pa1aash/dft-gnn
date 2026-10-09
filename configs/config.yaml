@@ -153,6 +153,8 @@ analysis:                # S05 sections 7-8
   multiplicity_correction: none
   staging_contrasts: [D_minus_P, P_minus_S]
   staging_null_ci: 0.95
+  equivalence_margin_eV: 0.05    # C3a/C3b TOST (docs/deviations.md, 2026-10-09)
+  equivalence_tost_ci: 0.90
 sensitivity:
   exclude_high_moment:   # pre-registered (S03, before any model result): drop |defect moment| > threshold
     threshold_muB: 0.5

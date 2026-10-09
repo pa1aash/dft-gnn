@@ -197,3 +197,21 @@ def test_v2_stage_carries_the_frozen_backbone_everywhere():
     assert not v1 & {j["run_id"] for j in jobs}
     with pytest.raises(ValueError, match="not a v2"):
         ST.build_v2(CODE, GSHA, _tuned(), cfg)
+
+
+def test_p_v2_composes_p1_v2_with_the_queued_d_v2_runs():
+    cfg = _cfg()
+    t2 = _tuned()
+    t2["arch"] = {"init": "kaiming"}
+    v2 = {j["run_id"]: j for j in ST.build_v2(CODE, GSHA, t2, cfg)}
+    jobs = ST.build_p_v2(CODE, GSHA, t2, _tuned(), cfg)
+    p1 = [j for j in jobs if j["stage"] == "p1_v2"]
+    p = [j for j in jobs if j["stage"] == "p_v2"]
+    assert len(p1) == len(p) == 183
+    assert all(j["spec"]["hp"]["init"] == "kaiming" and j["spec"]["model"] == "P1" for j in p1)
+    p1_ids = {j["run_id"] for j in p1}
+    for j in p:
+        p1_run, d_run = j["after"]
+        assert p1_run in p1_ids and d_run in v2 and v2[d_run]["spec"]["model"] == "D-state"
+        assert v2[d_run]["spec"]["budget"] == j["spec"]["budget"] and v2[d_run]["spec"]["seed"] == j["spec"]["seed"]
+    assert min(j["priority"] for j in jobs) > max(j["priority"] for j in v2.values())
