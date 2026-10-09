@@ -180,3 +180,20 @@ def test_v2_screen_never_evaluates_test_hosts():
         sp = j["spec"]
         assert {k: sp["hp"][k] for k in cfg.v2.variants[sp["tags"]["v2_variant"]]} == cfg.v2.variants[sp["tags"]["v2_variant"]]
         assert resolve_hosts(RunSpec.from_dict(sp), cfg)["test"] == []
+
+
+def test_v2_stage_carries_the_frozen_backbone_everywhere():
+    cfg = _cfg()
+    t = _tuned()
+    t["arch"] = {"init": "kaiming"}
+    t["models"] = {m: t["models"][m] for m in ("S", "D-state", "D")}
+    jobs = ST.build_v2(CODE, GSHA, t, cfg)
+    stages = Counter(j["stage"] for j in jobs)
+    assert stages == {"v2_sweep": 10 * 6 * 3 * 2, "v2_kiyohara": 6, "loco_v2": 30}
+    assert all(j["spec"]["hp"]["init"] == "kaiming" for j in jobs)
+    assert len({j["run_id"] for j in jobs}) == len(jobs)
+    assert [j["priority"] for j in jobs] == list(range(len(jobs)))
+    v1 = {j["run_id"] for j in ST.build_sweep(CODE, GSHA, _tuned(), cfg)}
+    assert not v1 & {j["run_id"] for j in jobs}
+    with pytest.raises(ValueError, match="not a v2"):
+        ST.build_v2(CODE, GSHA, _tuned(), cfg)
