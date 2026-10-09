@@ -11,7 +11,9 @@ one-sided 95% upper bound is the 95th percentile of the bootstrap distribution, 
 two-sided 90% interval of the same draws (same seed). N* is the smallest B whose upper bound is below delta and
 stays below delta at every larger budget; if the first qualifying budget is the largest, N* is reported as
 reached only at the maximum budget; if none qualifies, N* > max budget. C2 is A at the largest budget with its
-two-sided 95% interval. Everything is repeated for the within-host residual MAE (secondary). The LOCO advantage
+two-sided 95% interval. Everything is repeated for the within-host residual MAE (secondary), and each model's
+within-host skill (the within-host residual MAE of a host-constant predictor minus the model's, paired on the
+same hosts; 0 means no skill) is reported per budget. The LOCO advantage
 (results/loco for v1, results/loco_v2 for v2) is reported next to N*, with a test-host bootstrap of the pooled
 folds. Only complete cells enter: a (model, resample, budget) needs all its seeds.
 """
@@ -114,6 +116,10 @@ def main() -> None:
         rows_w[b] = a_block(hs["S"], hs[d], "within_host_mae", cfg)
         mae[b] = {m: {k: aggregate_resamples(hs[m], n_boot=cfg.analysis.bootstrap.draws, seed=0)[k]
                       for k in ("mae", "within_host_mae")} for m in hs}
+        const = [D.stats_of(D.host_constant(st["S"][r])) for r in cells[b]]
+        for m in hs:                          # within-host skill: host-constant value minus the model's, paired
+            sk = aggregate_delta(const, hs[m], n_boot=cfg.analysis.bootstrap.draws, seed=0)["within_host_mae"]
+            mae[b][m]["within_host_skill"] = sk
     res = {"arm": a.arm, "delta_eV": delta, "budgets": budgets,
            "incomplete_budgets": [b for b in cfg.budgets.hosts if b not in budgets],
            "A_mae": {str(b): v for b, v in rows.items()}, "A_within_host": {str(b): v for b, v in rows_w.items()},
