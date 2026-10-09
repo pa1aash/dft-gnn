@@ -128,7 +128,7 @@ def fig_advantage(arms: dict, delta: float) -> tuple[Path, str]:
     v1 = arms["v1"]
     ns = v1["N_star"]
     cap = (r"\caption{The advantage of explicit DFT descriptors over structure alone falls below the margin "
-           rf"only at the largest budget. Points are the advantage $A=\mathrm{MAE}_S-\mathrm{MAE}_D$ (positive when the "
+           r"only at the largest budget. Points are the advantage $A=\mathrm{MAE}_S-\mathrm{MAE}_D$ (positive when the "
            r"descriptors help) with two-sided 95\% intervals (paired hierarchical "
            r"bootstrap, 2000 draws); bars mark the one-sided 95\% upper bound used for $N^*$; the dashed line is "
            rf"$\delta$. Pre-registered backbone: $N^*$ {ns['label']} ({ns['N_star']} hosts); at $B=654$, "
