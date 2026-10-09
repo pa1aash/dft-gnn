@@ -41,13 +41,13 @@ import torch
 from dftgnn.config import Config, load_config
 from dftgnn.graphs import collate_sites
 from dftgnn.graphs import store as G
-from dftgnn.models import HParams, StagedP, Standardiser, VacancyNet, build_model
+from dftgnn.models import StagedP, Standardiser, build_model, hparams_for
 from dftgnn.split import budget_train, load_split, val_split
 from dftgnn.stats.metrics import point_metrics
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 CKPT_DIR = REPO_ROOT / "checkpoints"
-TRAINED = ("S", "D-state", "D-late", "P1")
+TRAINED = ("S", "D-state", "D-late", "P1", "cgcnn-S", "cgcnn-D")
 
 
 def val_seed(r: int, budget: int, seed: int) -> int:
@@ -230,7 +230,7 @@ def train_run(spec: RunSpec, data: Store, cfg: Config | None = None, *, device: 
     desc = d_st(desc_raw).float()
     is_p1 = spec.model == "P1"
 
-    hp = HParams(**spec.hp)
+    hp = hparams_for(spec.model, spec.hp)
     net = build_model(spec.model, hp, n_host=data.n_host, n_site=desc_raw.shape[1] - data.n_host,
                       cutoff=data.meta["cutoff_A"]).to(device)
     opt = torch.optim.AdamW(net.parameters(), lr=spec.lr, weight_decay=spec.weight_decay)
@@ -318,10 +318,10 @@ def train_run(spec: RunSpec, data: Store, cfg: Config | None = None, *, device: 
     }
 
 
-def load_checkpoint(path: Path, device: torch.device | None = None) -> tuple[VacancyNet, dict]:
+def load_checkpoint(path: Path, device: torch.device | None = None) -> tuple[torch.nn.Module, dict]:
     ck = torch.load(path, map_location=device or "cpu", weights_only=False)
     mc = ck["model_config"]
-    net = build_model(mc["kind"], HParams(**mc["hp"]), n_host=mc["n_host"], n_site=mc["n_site"],
+    net = build_model(mc["kind"], hparams_for(mc["kind"], mc["hp"]), n_host=mc["n_host"], n_site=mc["n_site"],
                       cutoff=mc["cutoff"])
     net.load_state_dict(ck["state_dict"])
     return net.eval(), ck

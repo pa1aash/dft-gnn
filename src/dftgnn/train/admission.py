@@ -34,6 +34,10 @@ def est_peak_gb(table: dict, hidden: int, batch: int, blocks: int, safety: float
 
 
 def est_peak_for_spec(table: dict, hp: dict, batch_size: int) -> float:
+    """CGCNN specs (no MEGNet cell) use the mid-space MEGNet cell (64, batch, 3) as an upper proxy: the
+    CGCNN of the cross-check has fewer parameters and smaller activations than that cell."""
+    if "atom_fea_len" in hp:
+        return est_peak_gb(table, 64, batch_size, 3)
     return est_peak_gb(table, hp["hidden_width"], batch_size, hp["megnet_blocks"])
 
 

@@ -201,7 +201,21 @@ class StagedP(nn.Module):
         return self.d(batch, desc_host=z[:, : self.n_host], desc_site=z[:, self.n_host:])
 
 
-def build_model(kind: str, hp: HParams | None = None, **kw) -> VacancyNet:
+def hparams_for(kind: str, hp: dict):
+    """The hyperparameter dataclass of ``kind`` built from a spec's ``hp`` dict."""
+    if kind.startswith("cgcnn-"):
+        from dftgnn.models.cgcnn import CGCNNParams
+
+        return CGCNNParams(**hp)
+    return HParams(**hp)
+
+
+def build_model(kind: str, hp=None, **kw) -> nn.Module:
+    """VacancyNet for S / D-state / D-late / P1; the CGCNN cross-check for cgcnn-S / cgcnn-D."""
+    if kind.startswith("cgcnn-"):
+        from dftgnn.models.cgcnn import CGCNN
+
+        return CGCNN(kind, hp, **kw)
     return VacancyNet(kind, hp, **kw)
 
 
