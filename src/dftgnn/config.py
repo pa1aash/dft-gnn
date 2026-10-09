@@ -289,6 +289,7 @@ class V2Cfg(_Strict):
     screen_anchors: list[int]
     screen_seeds: list[int]
     selection: Literal["lowest_mean_val_mae_over_anchors"]
+    selected: str | None = None           # set by the logged rule from the screen (docs/diagnostics_sweep.md)
 
 
 class DiagnosticsCfg(_Strict):

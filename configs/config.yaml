@@ -201,6 +201,7 @@ v2:                       # backbone design screen, logged 2026-10-08 (docs/devi
   screen_anchors: [50, 200, 654]
   screen_seeds: [0, 1, 2]
   selection: lowest_mean_val_mae_over_anchors
+  selected: init            # screen result, 2026-10-08 (mean val MAE 0.382 vs 0.492 pre-registered)
 mlip:
   model: mace-mp-0
   size: medium
