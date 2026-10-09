@@ -86,3 +86,17 @@ difference is 0.000 eV, within the pre-specified 0.02 eV, so the primary result 
 (`results/g1_cap_sensitivity.json`). In all 18 pairs the 600-epoch run reached its best validation MAE at the
 same epoch as the 200-epoch run and produced byte-identical predictions (`results/g1_diagnostics.json`): no run's
 best epoch lay beyond epoch 200. The bootstrap for this comparison draws from only three resamples.
+
+## CGCNN cross-check (sensitivity c)
+
+Architecture defaults fetched headlessly from the original repository, https://github.com/txie-93/cgcnn,
+commit f42ab233c4ee0c416879d6bc2d22a264418413ad (`main.py`, `cgcnn/model.py`, `cgcnn/data.py` via
+raw.githubusercontent.com): `--atom-fea-len 64`, `--n-conv 3`, `--h-fea-len 128`, `--n-h 1`; Gaussian
+distance filter `dmin 0`, `step 0.2`, `var = step`; softplus activations; batch norm in each convolution.
+The repository's optimiser defaults (SGD, lr 0.01, momentum 0.9, weight decay 0, batch 256, 30 epochs) are
+not used: the cross-check fixes AdamW, lr 1e-3, weight decay 1e-5 and batch 32 at every budget, with the
+section 5 protocol otherwise (docs/deviations.md, 2026-10-10). Graphs are the 5.0 A radius graphs of the
+main models (the original uses the 12 nearest neighbours within 8 A). Convolutions are
+`torch_geometric.nn.CGConv` (sum aggregation, batch norm on the aggregated message, residual) each followed
+by a softplus; PyG's layer lacks the original's batch norm on the gated pre-activation. Parameter counts:
+cgcnn-S 83,009, cgcnn-D 85,825 (22 descriptors x 128 extra first-layer weights).
