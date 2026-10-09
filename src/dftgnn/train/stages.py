@@ -19,7 +19,7 @@ from dftgnn.split import budget_train, load_split
 from dftgnn.train import RunSpec, admission, run_id, val_seed
 
 STAGES = ("tune", "sweep", "kiyohara", "loco", "sensitivity", "smoke", "pilot_epochs", "c0_pilot", "c0_ablate",
-          "c0_capcheck", "c0_official", "capsens", "session", "diag_cross", "d_ablation", "dlate", "review", "v2_screen")
+          "c0_capcheck", "c0_official", "capsens", "session", "diag_cross", "d_ablation", "dlate", "review", "v2_screen", "v2")
 # smoke only: fixed, untuned optimiser settings for a pipeline check (not a hyperparameter choice)
 SMOKE_OPT = {"lr": 1e-3, "weight_decay": 1e-5, "batch_size": 16}
 SMOKE_EPOCHS = 3
@@ -117,7 +117,9 @@ def load_tuned(path: Path = TUNED) -> dict:
 def tuned_hparams(tuned: dict, model: str, anchor: int) -> dict:
     """Tuned search-space parameters -> {"hp", "lr", "weight_decay", "batch_size"} for a RunSpec."""
     p = tuned["models"][model][anchor]
-    return {"hp": {k: v for k, v in p.items() if k not in OPT_KEYS}, "lr": float(p["learning_rate"]),
+    hp = {k: v for k, v in p.items() if k not in OPT_KEYS}
+    hp.update(tuned.get("arch") or {})          # v2: fixed backbone options (configs/tuned_v2.yaml)
+    return {"hp": hp, "lr": float(p["learning_rate"]),
             "weight_decay": float(p["weight_decay"]), "batch_size": int(p["batch_size"])}
 
 
@@ -288,6 +290,42 @@ def build_v2_screen(code: str, gsha: str, tuned: dict, cfg: Config | None = None
                                r=cfg.tuning.anchor_resample, budget=a, seed=seed, eval_test=False,
                                results_subdir="v2_screen", tags={"v2_variant": name, "anchor": a})
                 jobs.append(_job(spec, "v2_screen", code, gsha, table=table))
+    return jobs
+
+
+TUNED_V2 = Path(__file__).resolve().parents[3] / "configs" / "tuned_v2.yaml"
+
+
+def build_v2(code: str, gsha: str, tuned: dict, cfg: Config | None = None, table: dict | None = None) -> list[dict]:
+    """The v2 production runs (docs/deviations.md, 2026-10-08), from ``configs/tuned_v2.yaml``: S-v2 and D-v2
+    over every outer resample, budget and seed (``results/v2_sweep/``), on the Kiyohara split
+    (``results/v2_kiyohara/``) and on the LOCO folds (``results/loco_v2/``). Every run carries the frozen
+    backbone options (``tuned["arch"]``). Prioritised longest first: LOCO and Kiyohara, then the sweep by budget
+    descending."""
+    cfg = cfg if cfg is not None else load_config()
+    if not tuned.get("arch"):
+        raise ValueError("not a v2 tuned file (no arch)")
+    d = tuned["d_variant"]
+    b2a = cfg.tuning.budget_to_anchor
+    sweep = []
+    for r in range(cfg.split.n_outer_resamples):
+        for b in cfg.budgets.hosts:
+            for seed in cfg.training.seeds:
+                for m in ("S", d):
+                    spec = RunSpec(model=m, **tuned_hparams(tuned, m, b2a[b]), split=f"outer_r{r}", r=r, budget=b,
+                                   seed=seed, results_subdir="v2_sweep", tags={"v2": tuned.get("version", "")})
+                    sweep.append(_job(spec, "v2_sweep", code, gsha, table=table))
+    n_train = len(load_split("kiyohara")["train"])
+    kiy = [_job(RunSpec(model=m, **tuned_hparams(tuned, m, 654), split="kiyohara", r=-1, budget=n_train, seed=seed,
+                        results_subdir="v2_kiyohara", tags={"v2": tuned.get("version", "")}),
+                "v2_kiyohara", code, gsha, table=table)
+           for seed in cfg.training.seeds for m in ("S", d)]
+    loco = build_loco(code, gsha, tuned, cfg, table, subdir="loco_v2")
+    for j in loco:
+        j["stage"] = "loco_v2"
+    jobs = loco + kiy + sorted(sweep, key=lambda j: (-j["spec"]["budget"], j["spec"]["r"], j["spec"]["seed"]))
+    for i, j in enumerate(jobs):
+        j["priority"] = i
     return jobs
 
 
