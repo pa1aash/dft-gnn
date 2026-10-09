@@ -47,3 +47,7 @@ Prediction for any oxide whose neutral vacancy would be a shallow donor is there
 the models. The candidates most likely affected are the early-transition-metal d0 oxides and other
 small-gap oxides. These counts describe the release; they do not by themselves establish the electronic
 mechanism of any individual entry.
+
+## S10b scope
+
+The S10b site-resolution check moved the vacancy flag across the labelled vacancy sites of the test hosts only. The sweep placing the flag on every oxygen atom of each supercell was not run. The verdict (no implementation error in S) rests on the labelled-site pass and the flag-path unit tests and does not depend on that sweep, but within-host resolution at unlabelled oxygen sites is untested.
