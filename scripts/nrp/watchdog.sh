@@ -6,7 +6,8 @@ set -uo pipefail
 cd "$(dirname "$0")/../.."
 NS=cms-ml; POD=dftgnn-loader; REMOTE=$1; JOB=$2; LAUNCH=$3; QROOT=${4:-}
 STATE=${WATCHDOG_STATE:-/tmp/dftgnn_watchdog}; mkdir -p "$STATE"; touch "$STATE/requeues" "$STATE/nodes"
-k() { kubectl --request-timeout=60s -n "$NS" "$@"; }
+# exec streams ignore --request-timeout, so every call also has a hard wall-clock limit
+k() { perl -e 'alarm shift; exec @ARGV' 120 kubectl --request-timeout=60s -n "$NS" "$@"; }
 log() { echo "$(date +%m-%d\ %H:%M) $*"; }
 ensure_loader() {
   phase=$(k get pod "$POD" -o jsonpath='{.status.phase}' 2>/dev/null)
@@ -23,12 +24,15 @@ while true; do
   ensure_loader
   if [ -n "$QROOT" ]; then QS=$(k exec "$POD" -- bash -c "ls -d $QROOT/q*" 2>/dev/null); else QS="$REMOTE/jobs"; fi
   [ -z "$QS" ] && { log "queues unavailable"; sleep 120; continue; }
-  p=0; r=0; d=0; f=0
+  p=0; r=0; d=0; f=0; ok=1
   for q in $QS; do
     s=$(k exec "$POD" -- bash -c "cd $REMOTE && /workspace/venv/bin/python scripts/queue/status.py --queue $q 2>/dev/null | head -1")
-    p=$((p + $(echo "$s" | sed -n 's/.*pending \([0-9]*\).*/\1/p'))); r=$((r + $(echo "$s" | sed -n 's/.*running \([0-9]*\).*/\1/p')))
-    d=$((d + $(echo "$s" | sed -n 's/.*done \([0-9]*\).*/\1/p'))); f=$((f + $(echo "$s" | sed -n 's/.*failed \([0-9]*\).*/\1/p')))
+    sp=$(echo "$s" | sed -n 's/.*pending \([0-9]*\).*/\1/p'); sr=$(echo "$s" | sed -n 's/.*running \([0-9]*\).*/\1/p')
+    sd=$(echo "$s" | sed -n 's/.*done \([0-9]*\).*/\1/p'); sf=$(echo "$s" | sed -n 's/.*failed \([0-9]*\).*/\1/p')
+    if [ -z "$sp" ] || [ -z "$sr" ] || [ -z "$sd" ] || [ -z "$sf" ]; then ok=0; break; fi
+    p=$((p + sp)); r=$((r + sr)); d=$((d + sd)); f=$((f + sf))
   done
+  [ "$ok" = 0 ] && { log "status incomplete; retrying"; sleep 60; continue; }
   workers=$(k get pods -l job-name="$JOB" --no-headers 2>/dev/null | grep -cE "Running|Pending|ContainerCreating")
   log "pending $p running $r done $d failed $f | worker pods $workers"
   if [ "${f:-0}" != "0" ]; then
