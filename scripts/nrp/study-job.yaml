@@ -8,7 +8,7 @@ metadata:
   name: dftgnn-tune-v2-__MODELK__-a__ANCHOR__
   labels: {app: dftgnn, role: tune}
 spec:
-  backoffLimit: 3
+  backoffLimit: 8
   ttlSecondsAfterFinished: 86400
   template:
     metadata:
@@ -40,9 +40,12 @@ spec:
           command: ["bash", "-c"]
           args:
             - >-
-              git config --global --add safe.directory '*' &&
+              set -o pipefail && git config --global --add safe.directory '*' &&
+              (nvidia-smi --query-gpu=name,driver_version --format=csv,noheader || true) &&
+              echo "pod $HOSTNAME start $(date -u +%FT%TZ)" >> /workspace/tuning_v2/__MODEL___a__ANCHOR__.log &&
               /workspace/venv/bin/python scripts/tune/run_study.py --v2 --model __MODEL__ --anchor __ANCHOR__
-              --device cuda --threads 6 --storage-dir /workspace/tuning_v2/__MODEL___a__ANCHOR__
+              --device cuda --threads 6 --storage-dir /workspace/tuning_v2/__MODEL___a__ANCHOR__ 2>&1
+              | tee -a /workspace/tuning_v2/__MODEL___a__ANCHOR__.log
           resources:
             requests: {cpu: "6", memory: 24Gi, nvidia.com/gpu: 1}
             limits: {cpu: "6", memory: 24Gi, nvidia.com/gpu: 1}
