@@ -48,10 +48,11 @@ from dftgnn.stats.metrics import point_metrics
 REPO_ROOT = Path(__file__).resolve().parents[3]
 CKPT_DIR = REPO_ROOT / "checkpoints"
 TRAINED = ("S", "D-state", "D-late", "P1", "cgcnn-S", "cgcnn-D")
+LOCO_PREFIX = "loco_v1_f"      # split name of LOCO fold k: "loco_v1_f<k>" (splits/loco_v1.json)
 
 
-def val_seed(r: int, budget: int, seed: int) -> int:
-    """Clarified validation seed (docs/deviations.md, 2026-10-06)."""
+def val_seed(r: int | str, budget: int, seed: int) -> int:
+    """Clarified validation seed (docs/deviations.md, 2026-10-06); LOCO passes r = f"loco{fold}" (2026-10-10)."""
     return int.from_bytes(hashlib.sha256(f"val|{r}|{budget}|{seed}".encode()).digest()[:4], "big")
 
 
@@ -86,7 +87,7 @@ def code_sha(root: Path = REPO_ROOT) -> str:
 
 @dataclass
 class RunSpec:
-    """One training run. ``split`` is ``outer_r<r>`` or ``kiyohara``.
+    """One training run. ``split`` is ``outer_r<r>``, ``kiyohara`` or ``loco_v1_f<k>`` (LOCO fold k, r = k).
 
     ``hosts`` (smoke only) overrides the split with explicit train/val/test host lists.
     ``max_epochs`` / ``patience`` are test-only overrides of the config values (TBD-S07).
@@ -111,6 +112,7 @@ class RunSpec:
     p1_run: str | None = None
     d_run: str | None = None
     tags: dict = field(default_factory=dict)
+    exclude_sites: list | None = None     # site ids removed from train, val and test (sensitivity a)
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -138,6 +140,8 @@ def run_id(spec: RunSpec, code: str, graphs_sha: str) -> str:
         key["epoch_override"] = [spec.max_epochs, spec.patience]
     if spec.model == "P":
         key["components"] = [spec.p1_run, spec.d_run]
+    if spec.exclude_sites is not None:
+        key["exclude_sites"] = sorted(spec.exclude_sites)
     blob = json.dumps(key, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(blob.encode()).hexdigest()[:16]
 
@@ -146,6 +150,15 @@ def resolve_hosts(spec: RunSpec, cfg: Config) -> dict[str, list[str]]:
     """Train / val / test host ids of a run."""
     if spec.hosts is not None:
         return {k: sorted(v) for k, v in spec.hosts.items()}
+    if spec.split.startswith(LOCO_PREFIX):
+        fold = int(spec.split.removeprefix(LOCO_PREFIX))
+        f = load_split("loco_v1")["folds"][fold]
+        if spec.budget != f["n_train"] or spec.r != fold:
+            raise ValueError(f"LOCO fold {fold}: budget must be {f['n_train']} and r must be {fold}")
+        v = cfg.training.validation
+        tr, va = val_split(f["train"], frac=v.frac, min_hosts=v.min_hosts,
+                           seed=val_seed(f"loco{fold}", spec.budget, spec.seed))
+        return {"train": tr, "val": va, "test": f["test"] if spec.eval_test else []}
     sp = load_split(spec.split)
     if spec.split == "kiyohara":
         return {"train": sp["train"], "val": sp["val"], "test": sp["test"] if spec.eval_test else []}
@@ -220,6 +233,11 @@ def train_run(spec: RunSpec, data: Store, cfg: Config | None = None, *, device: 
     t0 = time.time()
     hosts = resolve_hosts(spec, cfg)
     pos = {k: data.positions(v) for k, v in hosts.items()}
+    if spec.exclude_sites is not None:        # sensitivity (a): drop the listed sites from every split
+        drop = set(spec.exclude_sites)
+        pos = {k: np.array([p for p in v if data.sites["site_id"][p] not in drop], dtype=np.int64)
+               for k, v in pos.items()}
+        hosts = {k: sorted(set(data.site_host[pos[k]])) for k in pos}
     max_epochs, patience = epoch_limits(spec, cfg)
 
     target = data.sites["target"]
