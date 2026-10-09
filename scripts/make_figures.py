@@ -123,12 +123,13 @@ def fig_advantage(arms: dict, delta: float) -> tuple[Path, str]:
                               mfc="0.15" if st["mfc"] == "full" else "white", label=f"{ARM_NAME[arm]} backbone"))
     handles.append(Line2D([], [], color="0.15", ls="None", marker="_", ms=7, mew=1.2, label="one-sided 95% bound"))
     _budget_axis(ax, [int(b) for b in arms["v1"]["budgets"]])
-    ax.set_ylabel(r"$A = \mathrm{MAE}_S - \mathrm{MAE}_D$ (eV)")
+    ax.set_ylabel(r"Advantage $A$ (eV)")
     ax.legend(handles=handles, loc="upper right")
     v1 = arms["v1"]
     ns = v1["N_star"]
     cap = (r"\caption{The advantage of explicit DFT descriptors over structure alone falls below the margin "
-           rf"only at the largest budget. Points are $A$ with two-sided 95\% intervals (paired hierarchical "
+           rf"only at the largest budget. Points are the advantage $A=\mathrm{MAE}_S-\mathrm{MAE}_D$ (positive when the "
+           r"descriptors help) with two-sided 95\% intervals (paired hierarchical "
            r"bootstrap, 2000 draws); bars mark the one-sided 95\% upper bound used for $N^*$; the dashed line is "
            rf"$\delta$. Pre-registered backbone: $N^*$ {ns['label']} ({ns['N_star']} hosts); at $B=654$, "
            rf"$A={v1['C2']['A']:+.3f}$~eV [{v1['C2']['ci95'][0]:+.3f}, {v1['C2']['ci95'][1]:+.3f}].}}")
