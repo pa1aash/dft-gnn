@@ -4,8 +4,8 @@
     python scripts/queue/outbox.py pack-files --name <name> results/x.json [more repo-relative files]
     python scripts/queue/outbox.py unpack outbox/<name>.tar.gz
 
-The tarball holds, for every done job: its result JSON, its predictions parquet, its checkpoint and
-the done/ job record, at their repo-relative paths, plus OUTBOX_MANIFEST.sha256 listing every member.
+The tarball holds, for every done job: its result JSON, its predictions parquet, its checkpoint, the
+artefacts its payload lists (S12 tasks) and the done/ job record, at their repo-relative paths, plus OUTBOX_MANIFEST.sha256 listing every member.
 ``pack`` also writes ``<name>.tar.gz.sha256`` next to the tarball. ``unpack`` checks the tarball
 hash, extracts into the repo root (results/ and the gitignored checkpoints/) and re-verifies every
 member against the inner manifest.
@@ -43,9 +43,12 @@ def members(queue: Path, stage: str | None, tranche: str | None = None) -> list[
             continue
         res = Path(job["result"])
         pay = json.loads(res.read_text())["payload"]
-        out += [res, ROOT / pay["predictions"]["path"], f]
+        out += [res, f]
+        if pay.get("predictions"):
+            out.append(ROOT / pay["predictions"]["path"])
         if pay.get("checkpoint"):
             out.append(ROOT / pay["checkpoint"]["path"])
+        out += [ROOT / a["path"] for a in pay.get("artifacts", [])]     # S12 task outputs (relax, embed)
     return out
 
 

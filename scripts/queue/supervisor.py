@@ -24,6 +24,12 @@ Operational only (docs/deviations.md, 2026-10-07): it changes when jobs start, n
   the reason; workers finish their current job and exit, and nothing new starts.
 * ALL_DONE is written when every job in the manifest is in done/. The supervisor never stops, kills or
   deletes anything on the pod.
+* S12 (``--stage s12 --tranches I,L,M,C,X``). The non-training task stages (relax, embed, geomeval) are queue
+  jobs like any other: one process each, admitted by ``est_peak_gb`` (an out-of-memory error requeues them as
+  needs_solo), ordered by ``priority`` and gated by ``after`` (geomeval waits for the relax jobs of its test
+  hosts). Their results verify through the artefact hashes in the payload. If nothing is running and every
+  pending job waits on a dependency that is in failed/ after its single retry, DRAINED_WITH_FAILURES is written.
+  The budget guard's priors for these stages come from the S11 CPU smoke timings (``TASK_PRIOR_S``).
 """
 from __future__ import annotations
 
@@ -47,6 +53,10 @@ SEC_PER_EPOCH_UPPER = 2.44
 CONTENTION = 4 / 1.23
 GUARD_GPU_H = 59.4      # docs/cost_table.md sweep + Kiyohara upper bound (55.4) + epoch-cap estimate (4)
 TRANCHES = ("T1", "T2", "T3", "T4")
+TASK_STAGES = ("relax", "embed", "geomeval")
+TASK_SUBDIR = {"relax": "mlip_v1", "embed": "embeddings_v1", "geomeval": "geomeval"}     # dftgnn.tasks.SUBDIR
+# S11 CPU smoke (3 threads), seconds per task; relax is 30 FIRE steps x (0.068 + 0.0111 n_atoms) s
+TASK_PRIOR_S = {"embed": 60.0, "geomeval": 180.0, "peval": 45.0}
 
 
 def log(msg: str) -> None:
@@ -63,15 +73,31 @@ def sha256(path: Path) -> str:
 
 def job_class(job: dict) -> tuple:
     sp = job["spec"]
+    if job.get("stage") in TASK_STAGES:
+        return (job["stage"], sp.get("n_atoms_uc", 0) if job["stage"] == "relax" else sp.get("budget"), 0)
+    if sp["model"] == "P":
+        return ("peval", sp["budget"], 0)
     b = "kiyohara" if sp["split"] == "kiyohara" else sp["budget"]
-    kind = "S" if sp["model"] == "S" else "P1" if sp["model"] == "P1" else "D"
+    kind = sp["model"] if sp["model"] in ("S", "P1", "cgcnn-S", "cgcnn-D") else "D"
     return (kind, b, sp.get("max_epochs") or 200)
 
 
+def _factor(b) -> float:
+    if b in EPOCH_FACTOR:
+        return EPOCH_FACTOR[b]
+    keys = sorted(k for k in EPOCH_FACTOR if isinstance(k, int))
+    return EPOCH_FACTOR[min(keys, key=lambda k: abs(k - b))]     # LOCO folds train on 654-655 hosts
+
+
 def prior_s(cls: tuple) -> float:
-    """Cost-table upper-style prior wall time of one run of a class under four-way contention."""
-    _, b, epochs = cls
-    return SEC_PER_EPOCH_UPPER * EPOCH_FACTOR[b] * epochs * CONTENTION
+    """Prior wall time of one job of a class: cost-table upper-style for training runs under four-way
+    contention, the S11 smoke timings for the inference tasks."""
+    kind, b, epochs = cls
+    if kind == "relax":
+        return 30 * (0.068 + 0.0111 * b)
+    if kind in TASK_PRIOR_S:
+        return TASK_PRIOR_S[kind]
+    return SEC_PER_EPOCH_UPPER * _factor(b) * epochs * CONTENTION
 
 
 def project(done: list[dict], remaining: list[dict], elapsed_h: float, workers: int) -> dict:
@@ -119,8 +145,8 @@ class Ops:
         subprocess.Popen(cmd, cwd=CHECKOUT, stdout=logf, stderr=subprocess.STDOUT, start_new_session=True)
 
     def enqueue(self) -> list[str]:
-        manifest = self.a.chain / "session_jobs.json"
-        subprocess.run([self.a.python, str(CHECKOUT / "scripts/queue/enqueue.py"), "session", "--manifest",
+        manifest = self.a.chain / f"{self.a.stage}_jobs.json"
+        subprocess.run([self.a.python, str(CHECKOUT / "scripts/queue/enqueue.py"), self.a.stage, "--manifest",
                         str(manifest), "--queue", str(self.a.queue)], cwd=CHECKOUT, check=True)
         return json.loads(manifest.read_text())
 
@@ -175,22 +201,26 @@ class Supervisor:
         if n:
             log(f"{n} pending jobs already had verified results and were moved to done")
 
+    @staticmethod
+    def result_file(job: dict) -> Path:
+        sub = TASK_SUBDIR.get(job.get("stage")) or job["spec"].get("results_subdir")
+        return CHECKOUT / "results" / (sub or "") / f"{job['run_id']}.json"
+
     def verified(self, job: dict) -> bool:
-        sub = job["spec"].get("results_subdir")
-        res = CHECKOUT / "results" / (sub or "") / f"{job['run_id']}.json"
+        res = self.result_file(job)
         try:
             pay = json.loads(res.read_text())["payload"]
-            ok = sha256(CHECKOUT / pay["predictions"]["path"]) == pay["predictions"]["sha256"]
-            ck = pay.get("checkpoint")
-            return ok and (ck is None or sha256(CHECKOUT / ck["path"]) == ck["sha256"]) and pay["run_id"] == job["run_id"]
-        except (OSError, KeyError, ValueError, json.JSONDecodeError):
+            arts = [pay[k] for k in ("predictions", "checkpoint") if pay.get(k)] + list(pay.get("artifacts", []))
+            return bool(arts) and pay["run_id"] == job["run_id"] and all(
+                sha256(CHECKOUT / a["path"]) == a["sha256"] for a in arts)
+        except (OSError, KeyError, ValueError, TypeError, json.JSONDecodeError):
             return False
 
     def skip_verified(self) -> int:
         n = 0
         for job in self._jobs("pending"):
             if self.verified(job):
-                res = CHECKOUT / "results" / (job["spec"].get("results_subdir") or "") / f"{job['run_id']}.json"
+                res = self.result_file(job)
                 src = self.queue / "pending" / f"{job['run_id']}.json"
                 rec = {**job, "status": "verified_existing", "result": str(res), "wall_time_s": 0.0,
                        "finished_at": self.ops.now()}
@@ -246,7 +276,7 @@ class Supervisor:
     def tranche_state(self) -> dict:
         pend, run, done, failed = (self._jobs(s) for s in ("pending", "running", "done", "failed"))
         out = {}
-        for t in TRANCHES:
+        for t in self.a.tranches:
             n = lambda js: sum(j.get("tranche") == t for j in js)      # noqa: E731
             out[t] = {"pending": n(pend), "running": n(run), "done": n(done), "failed": n(failed)}
         return out
@@ -269,7 +299,7 @@ class Supervisor:
 
     def handle_tranches(self) -> None:
         ts = self.tranche_state()
-        for t in TRANCHES:
+        for t in self.a.tranches:
             c = ts[t]
             if t in self.state["tranche_checked"] or c["pending"] or c["running"] or not (c["done"] or c["failed"]):
                 continue
@@ -293,7 +323,25 @@ class Supervisor:
         if not c["pending"] and not c["running"] and c["failed"]:
             (self.chain / "DRAINED_WITH_FAILURES").write_text(f"failed {c['failed']}\n")
             return "DRAINED_WITH_FAILURES"
+        if c["pending"] and not c["running"] and self.blocked_by_failures():
+            (self.chain / "DRAINED_WITH_FAILURES").write_text(
+                f"failed {c['failed']}; {c['pending']} pending jobs wait on failed dependencies\n")
+            return "DRAINED_WITH_FAILURES"
         return None
+
+    def blocked_by_failures(self) -> bool:
+        """True if no pending job is ready and every pending job waits on a dependency that failed after its
+        retry (in failed/ and already retried once)."""
+        done = {f.stem for f in (self.queue / "done").glob("*.json")}
+        failed = {f.stem for f in (self.queue / "failed").glob("*.json")} & set(self.state["retried"])
+        pend = self._jobs("pending")
+        if not pend:
+            return False
+        for j in pend:
+            missing = [a for a in j.get("after", []) if a not in done]
+            if not missing or not any(a in failed for a in missing):
+                return False
+        return True
 
     def cycle(self) -> str | None:
         self.requeue_orphans()
@@ -325,7 +373,11 @@ def parse(argv=None):
     ap.add_argument("--orphan-s", type=float, default=180.0)
     ap.add_argument("--guard", type=float, default=GUARD_GPU_H)
     ap.add_argument("--marker", default=str(CHECKOUT / "scripts/queue/worker.py"))
-    return ap.parse_args(argv)
+    ap.add_argument("--stage", default="session", help="enqueue.py stage to build (S09: session, S12: s12)")
+    ap.add_argument("--tranches", default=",".join(TRANCHES), help="tranche labels to pack, in order")
+    a = ap.parse_args(argv)
+    a.tranches = tuple(t for t in a.tranches.split(",") if t)
+    return a
 
 
 def main() -> None:

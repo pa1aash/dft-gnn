@@ -1,5 +1,8 @@
 """Queue worker: N processes, each claiming jobs atomically until the queue is drained.
 
+Training and P-evaluation jobs run through ``dftgnn.train.runner.execute``; the S12 task stages (relax, embed,
+geomeval) through ``dftgnn.tasks.TaskRunner`` in the same process (one task at a time).
+
     python scripts/queue/worker.py --max-concurrent 8 --device cuda
 
 Launch one invocation per GPU (CUDA_VISIBLE_DEVICES selects it). Torch threads are split evenly between the
@@ -21,6 +24,7 @@ def child(queue: str, name: str, device: str, threads: int, vram_gb: float | Non
     import torch
 
     from dftgnn import jobqueue as Q
+    from dftgnn.tasks import TASK_STAGES, TaskRunner
     from dftgnn.train import RunSpec, Store
     from dftgnn.train.runner import execute
 
@@ -29,6 +33,7 @@ def child(queue: str, name: str, device: str, threads: int, vram_gb: float | Non
     if dev.type == "mps":
         raise SystemExit("MPS is not used for training")
     data = Store()
+    tasks = TaskRunner(data, dev)          # relax / embed / geomeval (S12); state built on first use
 
     def free() -> None:
         if dev.type == "cuda":
@@ -38,6 +43,12 @@ def child(queue: str, name: str, device: str, threads: int, vram_gb: float | Non
             torch.cuda.empty_cache()
 
     def run(job: dict) -> dict:
+        if job.get("stage") in TASK_STAGES:
+            try:
+                info = tasks(job)
+            finally:
+                free()
+            return {**info, "device": str(dev), "torch_threads": threads}
         try:
             out = execute(RunSpec.from_dict(job["spec"]), data, device=dev, log=lambda *_: None)
         finally:
