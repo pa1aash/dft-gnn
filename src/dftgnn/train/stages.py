@@ -19,7 +19,8 @@ from dftgnn.split import budget_train, load_split
 from dftgnn.train import RunSpec, admission, run_id, val_seed
 
 STAGES = ("tune", "sweep", "kiyohara", "loco", "sensitivity", "smoke", "pilot_epochs", "c0_pilot", "c0_ablate",
-          "c0_capcheck", "c0_official", "capsens", "session")
+          "c0_capcheck", "c0_official", "capsens", "session",
+          "s12", "relax", "peval", "embed", "geomeval", "moment", "cgcnn", "capped")    # S12: dftgnn.train.s12
 # smoke only: fixed, untuned optimiser settings for a pipeline check (not a hyperparameter choice)
 SMOKE_OPT = {"lr": 1e-3, "weight_decay": 1e-5, "batch_size": 16}
 SMOKE_EPOCHS = 3

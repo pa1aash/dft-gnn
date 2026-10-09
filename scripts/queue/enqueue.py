@@ -5,8 +5,9 @@
     python scripts/queue/enqueue.py sweep [--tuned configs/tuned_v1.yaml] --dry-run
     python scripts/queue/enqueue.py c0_official [--tuned configs/tuned_v1.yaml]
 
-Builders exist for smoke, kiyohara, pilot_epochs, c0_pilot, c0_ablate, c0_capcheck, sweep and c0_official;
-loco and sensitivity come later (tuning runs through scripts/tune/, not the queue). ``sweep`` builds the
+Builders exist for smoke, kiyohara, pilot_epochs, c0_pilot, c0_ablate, c0_capcheck, sweep, c0_official, the S09
+session and the S12 session (``s12``: relax, peval, embed, geomeval, loco, moment, cgcnn, capped; each also
+buildable alone). Tuning runs through scripts/tune/, not the queue. ``sweep`` builds the
 primary sweep (S, D, P1 and P over resamples x budgets x seeds) together with the Kiyohara-split jobs.
 ``--dry-run`` prints job counts, the cost-table GPU-hours and the run-id check, and enqueues nothing.
 """
@@ -22,6 +23,7 @@ from _common import QUEUE, ROOT
 from dftgnn import jobqueue as Q
 from dftgnn.graphs.store import manifest_sha
 from dftgnn.train import admission, code_sha
+from dftgnn.train import s12 as S12
 from dftgnn.train import stages as ST
 
 
@@ -72,6 +74,15 @@ def main() -> None:
               + ", ".join(sorted(j["run_id"] for j in reused)))
     elif a.stage == "c0_official":
         jobs = ST.build_c0_official(code, gsha, ST.load_tuned(Path(a.tuned)), table=table)
+    elif a.stage in ("s12", *S12.STAGE_ORDER):
+        stages = S12.STAGE_ORDER if a.stage == "s12" else (("relax", "geomeval") if a.stage == "geomeval"
+                                                           else (a.stage,))
+        jobs = S12.build_s12(code, gsha, ST.load_tuned(Path(a.tuned)), table=table, stages=stages)
+        if a.stage == "geomeval":
+            jobs = [j for j in jobs if j["stage"] == "geomeval"]
+        if a.dry_run:
+            s12_report(jobs)
+            return
     else:
         raise SystemExit(f"stage {a.stage!r} has no builder yet")
     if a.dry_run:
@@ -114,6 +125,32 @@ def dry_run_report(stage: str, jobs: list[dict]) -> None:
         if s in stages:
             print(f"  cost table {s}: {stages[s]['runs']} runs, central {stages[s]['central_gpu_h']:.1f} GPU-h, "
                   f"upper {stages[s]['upper_gpu_h']:.1f} GPU-h")
+
+
+def s12_report(jobs: list[dict]) -> None:
+    """S12 dry run: counts per stage, a sample of run ids, GPU-hours (central, upper), cost and the guard."""
+    ids = [j["run_id"] for j in jobs]
+    if len(set(ids)) != len(ids):
+        raise SystemExit(f"run ids are not unique: {len(ids) - len(set(ids))} duplicates")
+    known = set(ids)
+    missing = [a for j in jobs for a in j["after"] if a not in known]
+    if missing:
+        raise SystemExit(f"{len(missing)} dependencies point outside the built jobs")
+    est = S12.estimate(jobs)
+    print(f"s12 dry run: {len(jobs)} jobs, run ids unique, dependencies inside the session")
+    print(f"  {'stage':9s} {'tranche':7s} {'jobs':>5s} {'central GPU-h':>14s} {'upper GPU-h':>12s}  sample run id")
+    for s in S12.STAGE_ORDER:
+        js = [j for j in jobs if j["stage"] == s]
+        if not js:
+            continue
+        e = est["stages"][s]
+        print(f"  {s:9s} {js[0]['tranche']:7s} {len(js):5d} {e['central_gpu_h']:14.2f} {e['upper_gpu_h']:12.2f}  "
+              f"{js[0]['run_id']}")
+    print(f"  total central {est['central_gpu_h']:.1f} GPU-h (${est['central_usd']:.0f}), upper "
+          f"{est['upper_gpu_h']:.1f} GPU-h (${est['upper_usd']:.0f}) at ${est['rate_usd_per_h']:.2f}/h; "
+          f"recommended guard (upper + 10%): {est['guard_gpu_h']:.1f} GPU-h")
+    for note in est["notes"]:
+        print(f"  note: {note}")
 
 
 if __name__ == "__main__":
