@@ -3,6 +3,7 @@
     python3 hold_jobs.py hold       move pending p1_v2 / p_v2 jobs to q*/hold/ in queues that still have v2 runs
     python3 hold_jobs.py release    move every held job back to its queue's pending/
     python3 hold_jobs.py v2left     print the number of v2_sweep / v2_kiyohara / loco_v2 jobs still pending
+    python3 hold_jobs.py ready      release the held jobs of every queue that has no v2 job left pending
 
 Why: VRAM admission skips a job that does not fit and admits the next one, so a stream of small P1 jobs (3-5 GB)
 keeps a card from ever having the 17 GB an S-v2 a654 run needs. Holding the small jobs lets the large ones be
@@ -42,6 +43,11 @@ for q in sorted(glob.glob(ROOT + "/q*")):
         for f in glob.glob(hold + "/*.json"):
             os.rename(f, os.path.join(q, "pending", os.path.basename(f)))
             n += 1
+    elif mode == "ready":
+        if not any(stage(f) in V2 for f in pend):
+            for f in glob.glob(hold + "/*.json"):
+                os.rename(f, os.path.join(q, "pending", os.path.basename(f)))
+                n += 1
     elif mode == "v2left":
         n += sum(stage(f) in V2 for f in pend)
 print(n if mode == "v2left" else f"{mode} {n}")
