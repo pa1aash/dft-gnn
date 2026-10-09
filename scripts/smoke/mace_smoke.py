@@ -3,8 +3,8 @@ results/smoke/mace_smoke.json, excluded from every analysis).
 
     nice -n 15 python scripts/smoke/mace_smoke.py [--n 3|5]
 
-Hosts (5): ZnO, Sr2SnO4, the largest unit cell, the smallest-cell Ce host (f element), the smallest-cell Bi or
-Pb host (heavy cation). With --n 3 (memory pressure) only the three smallest-cell of these are relaxed. In
+Hosts (5): ZnO, Sr2SnO4, the largest unit cell, the smallest-cell Ce host (f element), the smallest-cell host with
+Bi or Pb as a cation (data/host_dbins_v1.csv; heavy cation). With --n 3 (memory pressure) only the three smallest-cell of these are relaxed. In
 both cases a timing-only probe runs 5 energy+force+stress evaluations on the largest unit cell, so the
 per-step cost at the largest size is measured without a full relaxation.
 """
@@ -36,7 +36,8 @@ def peak_rss_mb() -> float:
 def pick(t: pd.DataFrame) -> dict:
     t = t.sort_values(["n_uc", "host_id"])
     ce = t[t.formula.str.contains(r"Ce(?![a-z])")].iloc[0]
-    hv = t[t.formula.str.contains(r"(?:Bi|Pb)(?![a-z])")].iloc[0]
+    states = pd.read_csv(ROOT / "data/host_dbins_v1.csv").set_index("host_id").cation_states.fillna("")
+    hv = t[t.host_id.map(states).str.contains(r"(?:^|;)(?:Bi|Pb):\+")].iloc[0]
     big = t.sort_values(["n_uc", "host_id"], ascending=[False, True]).iloc[0]
     return {"ZnO": t[t.formula == "ZnO"].iloc[0], "Sr2SnO4": t[t.formula == "Sr2SnO4"].iloc[0],
             "largest_cell": big, "f_element": ce, "heavy_cation": hv}
