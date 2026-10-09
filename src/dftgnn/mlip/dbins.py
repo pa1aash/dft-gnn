@@ -9,7 +9,8 @@ Oxidation states: pymatgen ``BVAnalyzer`` on the DFT unit cell first, then the f
 with a positive oxidation state.
 
 d count of a cation of element X in state q:
-    groups 3-12 (transition metals, group-3 metals included): group(X) - q
+    groups 3-12 (transition metals, group-3 metals included): min(10, group(X) - q); the d shell holds at
+        most 10 electrons, so a low-valent group-12 cation such as mercurous Hg+ (5d10 6s1) counts d10
     p-block with a filled (n-1)d shell (period >= 4, groups 13-17): 10, whatever q (Ga3+, In3+, Sn2+/4+,
         Pb2+/4+, Bi3+, Sb3+/5+, Tl+/3+, Ge4+, As5+, Te4+/6+, Se4+/6+ ...)
     s-block, early p-block (periods 2-3) and the f-block (lanthanides and actinides): 0
@@ -32,7 +33,7 @@ def d_count(symbol: str, q: float) -> float:
     if g in (1, 2):
         return 0.0
     if 3 <= g <= 12:
-        return float(g - q)
+        return float(min(10.0, g - q))
     if 13 <= g <= 17:
         return 10.0 if el.row >= 4 else 0.0
     raise ValueError(f"{symbol} (group {g}) is not expected as a cation")
