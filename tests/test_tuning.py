@@ -201,3 +201,17 @@ def test_never_finite_validation_does_not_crash(tstore, monkeypatch):
     spec.max_epochs, spec.patience = 2, 2
     res = T.train_run(spec, tstore, cfg, device=torch.device("cpu"), log=lambda *_: None)
     assert not math.isfinite(res["best_val_metric"]) and res["n_sites"]["test"] == 0
+
+
+def test_v2_trials_carry_the_fixed_backbone_options():
+    from dftgnn.config import load_config
+    from dftgnn.tune import trial_spec
+
+    cfg = load_config()
+    params = {"learning_rate": 1e-3, "weight_decay": 1e-5, "hidden_width": 64, "megnet_blocks": 3, "dropout": 0.1,
+              "batch_size": 32, "readout_mlp_width": 64, "pooling": "mean"}
+    arch = cfg.v2.variants[cfg.v2.selected]
+    sp = trial_spec("S", 654, params, cfg, "v2_S_a654", arch)
+    assert {k: sp.hp[k] for k in arch} == arch and sp.eval_test is False
+    assert trial_spec("S", 654, params, cfg).hp == {k: params[k] for k in
+                                                    ("hidden_width", "megnet_blocks", "dropout", "readout_mlp_width", "pooling")}

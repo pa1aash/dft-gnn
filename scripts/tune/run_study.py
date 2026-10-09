@@ -31,6 +31,8 @@ def main() -> None:
     ap.add_argument("--storage-dir", default="/workspace/tuning")
     ap.add_argument("--trials", type=int, default=None, help="COMPLETE trials to reach (default: config)")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--v2", action="store_true",
+                    help="tune the v2 backbone: config v2.selected's options, study names prefixed v2_")
     a = ap.parse_args()
 
     import torch
@@ -60,7 +62,11 @@ def main() -> None:
         raise SystemExit("--device cuda but CUDA is unavailable")
     storage = Path(a.storage_dir + ("_dryrun" if a.dry_run else ""))
     csv_dir = storage / "csv" if a.dry_run else RESULTS_DIR
-    prefix = "dryrun_" if a.dry_run else ""
+    if a.v2 and cfg.v2.selected is None:
+        raise SystemExit("v2.selected is not set")
+    arch = cfg.v2.variants[cfg.v2.selected] if a.v2 else None
+    base = "v2_" if a.v2 else ""
+    prefix = ("dryrun_" if a.dry_run else "") + base
     vram = torch.cuda.get_device_properties(0).total_memory / admission.GIB if dev.type == "cuda" else None
     table = admission.load_benchmark()
     ledger = VramLedger(Path(a.storage_dir) / "admit", vram)      # one ledger for real and dry studies
@@ -73,12 +79,12 @@ def main() -> None:
     study = run_study(a.model, a.anchor, data, cfg=cfg, prefix=prefix, storage_dir=storage, csv_dir=csv_dir,
                       n_trials=a.trials, device=dev, ledger=ledger,
                       est_gb=lambda p: admission.est_peak_for_spec(table, p, int(p["batch_size"])),
-                      pod_commit=commit, log=lambda m: print(m, flush=True))
+                      pod_commit=commit, arch=arch, log=lambda m: print(m, flush=True))
     if a.dry_run:
         print("dry run finished; nothing written to results/", flush=True)
         return
-    name = study_name(a.model, a.anchor)
-    payload = summarise(study, a.model, a.anchor, cfg)
+    name = study_name(a.model, a.anchor, base)
+    payload = summarise(study, a.model, a.anchor, cfg, arch=arch)
     payload["artefacts"] = archive_study(storage / f"{name}.db", csv_dir / f"trials_{name}.csv",
                                          RESULTS_DIR / "optuna")
     path = write_result(f"tuning_{name}", payload, config=cfg, results_dir=RESULTS_DIR)
