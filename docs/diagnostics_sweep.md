@@ -356,3 +356,50 @@ and not at 654.
 Downloads folder. Each now opens with a banner marking it superseded by `docs/ANALYSIS_PLAN.md`
 (818 hosts, 1726 sites, budgets to 654, Bader descriptors in D, seven figures per `docs/claims.yaml`).
 Any other copy (shared drive, earlier drafts) should be marked the same way.
+
+## Generalisation to unseen chemistry (LOCO, ANALYSIS_PLAN §11)
+
+Five folds of `GroupKFold` over the 131 cation-group families (`splits/loco/`). Each fold trains on 654–655
+hosts and tests on the 163–164 hosts of families it has never seen. S and D use the a654 values, 3 seeds,
+and are seed-ensembled. B0 and RF-Kumagai are fitted on the same folds (`results/loco_baselines.json`).
+Pooled over the folds, every host is tested once. Intervals are a test-host bootstrap.
+
+| Model | Random host split, B = 654 | LOCO, pooled | Cost of unseen chemistry |
+|---|---:|---:|---:|
+| S | 0.273 | 0.313 [0.291, 0.336] | +0.040 |
+| D | 0.284 | 0.305 [0.287, 0.324] | +0.021 |
+| RF-Kumagai | 0.346 | 0.414 [0.391, 0.439] | +0.068 |
+| B0 | 0.722 | 0.748 [0.711, 0.785] | +0.026 |
+
+The random-split column averages ten 164-host test sets, while LOCO pools all 818 hosts, so the cost
+column is approximate. Per fold, S scores 0.243–0.384 eV and RF-Kumagai 0.389–0.439 eV.
+
+- **S on new chemistry versus the descriptor model:** S − RF-Kumagai = −0.101 [−0.129, −0.074] eV, a
+  larger margin than on random splits (−0.073). Structure-only S extrapolates to unseen cation chemistry
+  at least as well as the random forest on 70 DFT descriptors.
+- **D still adds nothing:** A_LOCO = MAE_S − MAE_D = +0.008 [−0.015, +0.031] eV. The upper bound is below
+  δ = 0.05, so S is non-inferior to D on unseen chemistry as well.
+- **Within-host skill survives:** S's correlation of predicted and true within-host deviations is 0.68
+  (514 multi-site hosts, one constant).
+
+Scope: every claim here is about reproducing one DFT dataset (PBEsol+U, neutral O vacancies,
+non-magnetic oxides; Kumagai et al. 2021) on hosts and chemistries held out from training. It is not a
+claim about experiment or about other DFT setups; that would need an external dataset.
+
+## v2 design screen (deviations, 2026-10-08)
+
+The screen used validation hosts of resample 0 only; test hosts were never loaded (`eval_test = False`;
+all 36 records show 0 test hosts). It used each anchor's existing tuned values with the variant's options,
+3 seeds. Seed-mean validation MAE in eV, with validation within-host MAE in brackets:
+
+| Variant | a50 | a200 | a654 | Mean (selection) |
+|---|---|---|---|---:|
+| pre_registered | 0.660 (0.171) | 0.551 (0.223) | 0.264 (0.150) | 0.492 |
+| **init** | 0.332 (0.169) | 0.596 (0.224) | 0.216 (0.119) | **0.382** |
+| local | 0.601 (0.173) | 0.600 (0.223) | 0.266 (0.152) | 0.489 |
+| init_local | 0.464 (0.172) | 0.555 (0.218) | 0.238 (0.126) | 0.419 |
+
+By the logged rule, **v2 = `init`** (He-uniform initialisation, zero biases). The local-environment branch
+did not help on its own, despite raising the site sensitivity at initialisation. The a50 differences rest
+on 5 validation hosts and the a200 ones on 20; they are noisy. The next logged step is re-tuning S-v2 and
+D-v2 with the §6 protocol before any test evaluation.

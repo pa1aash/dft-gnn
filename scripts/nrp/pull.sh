@@ -9,7 +9,7 @@ cd "$(dirname "$0")/../.."
 NS=${NRP_NAMESPACE:-cms-ml}
 POD=${NRP_POD:-dftgnn-loader}
 PY=/workspace/venv/bin/python
-REMOTE=/workspace/dft-gnn
+REMOTE=${NRP_REMOTE:-/workspace/dft-gnn}
 if [[ "${1:-}" == "--files" ]]; then
   name=${2:?name}; shift 2
   line=$(kubectl exec -n "$NS" "$POD" -- bash -c "cd $REMOTE && $PY scripts/queue/outbox.py pack-files --name $name $*" | tail -1)
