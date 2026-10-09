@@ -40,9 +40,9 @@ failing host one W that gives a bijection with maximum residual about 1e-7 A:
 | Ba2MgSi2O7 | residual_above_tolerance | [[-1, 0, 0], [0, -1, 0], [0, 0, -1]] | -1 |
 | Sr2MgGe2O7 | no_bijection | [[-1, 0, 0], [0, -1, 0], [0, 0, -1]] | -1 |
 
-det W = -1 (12 hosts, all non-centrosymmetric): the release supercell is the inversion image of the stored
-unit cell. det W = +1 (9 hosts, rhombohedral or trigonal): a two-fold rotation, the obverse/reverse
-relation. Both are isometries, so an MLIP relaxation of either orientation gives the same energy and
+det W = -1 (13 hosts: the melilites, NaBi(MoO4)2, NaLa(MoO4)2): the release supercell is the inversion image
+of the stored unit cell. det W = +1 (8 hosts: MgTiO3, NaNbO3, CaSnO3, NaBiO3, CaSn(BO3)2, Li8SnO6, TiNb3O6,
+Ba2Cd(BO2)6): a two-fold rotation of the supercell lattice. Both are isometries, so an MLIP relaxation of either orientation gives the same energy and
 strain; only the atom correspondence needs the operation. Extending the match to one lattice point
 operation would recover all 21 hosts for C3b. That extension is not applied: the S11 rule allows one
 global translation only, and changing it is the author's decision (to be logged as a clarification before
