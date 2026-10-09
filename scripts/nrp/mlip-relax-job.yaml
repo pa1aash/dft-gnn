@@ -1,5 +1,6 @@
 # MACE-MP-0 relaxation of the mapped host unit cells (scripts/mlip_relax.py), one shard per indexed pod.
-# Runs in /workspace/venv-mlip on the checkout at /workspace/dft-gnn. Resumable per shard.
+# Each pod installs MACE into its local disk (/tmp/venv; CephFS is too slow for a 5 GB install), torch pinned to
+# the lock's version, then runs on the checkout at /workspace/dft-gnn. Resumable per shard.
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -42,12 +43,15 @@ spec:
           args:
             - >-
               set -o pipefail &&
-              /workspace/venv-mlip/bin/python scripts/mlip_relax.py --shard $JOB_COMPLETION_INDEX --n-shards 4
+              python3.11 -m venv /tmp/venv && /tmp/venv/bin/python -m pip install -q --upgrade pip &&
+              /tmp/venv/bin/python -m pip install -q -c /workspace/mlip-constraints.txt torch==2.13.0 mace-torch
+              pymatgen ase numpy &&
+              /tmp/venv/bin/python scripts/mlip_relax.py --shard $JOB_COMPLETION_INDEX --n-shards 4
               --device cuda --model medium --dtype float64 --fmax 0.01 --max-steps 500 2>&1
               | tee -a /workspace/mlip_relax_$JOB_COMPLETION_INDEX.log
           resources:
-            requests: {cpu: "4", memory: 16Gi, nvidia.com/gpu: 1}
-            limits: {cpu: "4", memory: 16Gi, nvidia.com/gpu: 1}
+            requests: {cpu: "4", memory: 16Gi, nvidia.com/gpu: 1, ephemeral-storage: 20Gi}
+            limits: {cpu: "4", memory: 16Gi, nvidia.com/gpu: 1, ephemeral-storage: 20Gi}
           volumeMounts:
             - {name: vol, mountPath: /workspace}
       volumes:
