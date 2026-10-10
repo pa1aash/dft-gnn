@@ -43,6 +43,10 @@ from dftgnn.graphs import collate_sites
 from dftgnn.graphs import store as G
 from dftgnn.models import StagedP, Standardiser, build_model, hparams_for
 from dftgnn.split import budget_train, load_split, val_split
+from dftgnn.split.cv import CV_NAME, CV_PREFIX
+from dftgnn.split.cv import fold as cv_fold
+from dftgnn.split.cv import parse_name as cv_parse_name
+from dftgnn.split.cv import val_r as cv_val_r
 from dftgnn.stats.metrics import point_metrics
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -87,7 +91,8 @@ def code_sha(root: Path = REPO_ROOT) -> str:
 
 @dataclass
 class RunSpec:
-    """One training run. ``split`` is ``outer_r<r>``, ``kiyohara`` or ``loco_v1_f<k>`` (LOCO fold k, r = k).
+    """One training run. ``split`` is ``outer_r<r>`` (r = 10..29: EXTENSION resamples), ``kiyohara``,
+    ``loco_v1_f<k>`` (LOCO fold k, r = k) or ``cv_v1_k<K>_f<f>`` (EXTENSION K-fold CV, r = f).
 
     ``hosts`` (smoke only) overrides the split with explicit train/val/test host lists.
     ``max_epochs`` / ``patience`` are test-only overrides of the config values (TBD-S07).
@@ -158,6 +163,15 @@ def resolve_hosts(spec: RunSpec, cfg: Config) -> dict[str, list[str]]:
         v = cfg.training.validation
         tr, va = val_split(f["train"], frac=v.frac, min_hosts=v.min_hosts,
                            seed=val_seed(f"loco{fold}", spec.budget, spec.seed))
+        return {"train": tr, "val": va, "test": f["test"] if spec.eval_test else []}
+    if spec.split.startswith(CV_PREFIX):
+        k, fold = cv_parse_name(spec.split)
+        f = cv_fold(load_split(CV_NAME), k, fold)
+        if spec.budget != f["n_train"] or spec.r != fold:
+            raise ValueError(f"CV K={k} fold {fold}: budget must be {f['n_train']} and r must be {fold}")
+        v = cfg.training.validation
+        tr, va = val_split(f["train"], frac=v.frac, min_hosts=v.min_hosts,
+                           seed=val_seed(cv_val_r(k, fold), spec.budget, spec.seed))
         return {"train": tr, "val": va, "test": f["test"] if spec.eval_test else []}
     sp = load_split(spec.split)
     if spec.split == "kiyohara":

@@ -2,7 +2,8 @@
 
     python scripts/make_splits_ext.py [--check]
 
-Targets: ``splits/resamples_10_29.json`` (outer resamples r = 10..29, ``dftgnn.split.ext``).
+Targets: ``splits/resamples_10_29.json`` (outer resamples r = 10..29, ``dftgnn.split.ext``) and
+``splits/cv_v1.json`` (grouped K-fold CV, K = 10 and 20, ``dftgnn.split.cv``).
 
 Before anything is written, resamples 0-9 are regenerated in memory and must be byte-identical to the tracked
 ``splits/outer_r<r>.json``, and every existing manifest line must verify. The manifest is append-only: an existing
@@ -24,6 +25,7 @@ if str(ROOT / "src") not in sys.path:
 from dftgnn.config import load_config
 from dftgnn.data import universe as U
 from dftgnn.split import SPLITS_DIR, dumps, make_all
+from dftgnn.split.cv import CV_FILE, make_cv
 from dftgnn.split.ext import EXT_FILE, make_ext
 
 
@@ -93,7 +95,8 @@ def main() -> None:
     check_registered(uni, cfg, d)
     print(f"resamples 0-{cfg.split.n_outer_resamples - 1}: byte-identical to the tracked files")
     ext = make_ext(uni, cfg)
-    files = {EXT_FILE: dumps(ext)}
+    cv = make_cv(uni)
+    files = {EXT_FILE: dumps(ext), CV_FILE: dumps(cv)}
     added = append_only(d, files, a.check)
     bad = verify_manifest(d)
     if bad:
@@ -103,6 +106,9 @@ def main() -> None:
     cov = ext["coverage_registered_plus_extension"]
     print(f"coverage over {cov['n_resamples']} resamples: {cov['in_test_at_least_once']} of {cov['n_hosts']} hosts "
           f"tested at least once, {cov['never_in_test']} never")
+    for k, by in cv["by_k"].items():
+        sizes = sorted({(f["n_test"], f["n_train"]) for f in by["folds"]})
+        print(f"cv K={k}: {len(by['folds'])} folds, (test, train) sizes {sizes}")
     print("appended: " + ("; ".join(added) if added else "nothing"))
     print(f"manifest: every entry verifies; MANIFEST.sha256 sha256 {sha((d / 'MANIFEST.sha256').read_bytes())}")
 
