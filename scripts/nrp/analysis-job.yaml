@@ -1,0 +1,48 @@
+# One GPU pod running an analysis script from the analysis worktree (/workspace/dft-gnn-ana) against the v2
+# artefacts. Instantiate:  sed -e 's|__NAME__|probe|' -e 's|__CMD__|scripts/probe.py --artefacts /workspace/dft-gnn-v2|'
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: dftgnn-ana-__NAME__
+  labels: {app: dftgnn, role: analysis}
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 172800
+  template:
+    metadata:
+      labels: {app: dftgnn, role: analysis}
+    spec:
+      restartPolicy: Never
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: nvidia.com/gpu.product
+                    operator: In
+                    values: [NVIDIA-GeForce-RTX-3090, NVIDIA-A10, NVIDIA-L40, NVIDIA-L40S, NVIDIA-RTX-A6000,
+                             NVIDIA-A40, NVIDIA-GeForce-RTX-4090, NVIDIA-TITAN-RTX, NVIDIA-L4, NVIDIA-RTX-A5000,
+                             NVIDIA-A100-PCIE-40GB, NVIDIA-A100-80GB-PCIe, NVIDIA-A100-SXM4-80GB]
+                  - key: nvidia.com/cuda.driver.major
+                    operator: Gt
+                    values: ["579"]
+                  - key: kubernetes.io/hostname
+                    operator: NotIn
+                    values: [hcc-nrp-shor-c6017.unl.edu]
+      containers:
+        - name: analysis
+          image: python:3.11-bookworm
+          workingDir: /workspace/dft-gnn-ana
+          command: ["bash", "-c"]
+          args:
+            - >-
+              set -o pipefail && git config --global --add safe.directory '*' &&
+              /workspace/venv/bin/python __CMD__ 2>&1 | tee -a /workspace/ana___NAME__.log
+          resources:
+            requests: {cpu: "8", memory: 32Gi, nvidia.com/gpu: 1}
+            limits: {cpu: "8", memory: 32Gi, nvidia.com/gpu: 1}
+          volumeMounts:
+            - {name: vol, mountPath: /workspace}
+      volumes:
+        - name: vol
+          persistentVolumeClaim: {claimName: dftgnn-vol}
