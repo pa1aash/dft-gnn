@@ -32,7 +32,7 @@ while true; do
   p=$(echo "$s" | sed -n 's/.*pending \([0-9]*\).*/\1/p'); r=$(echo "$s" | sed -n 's/.*running \([0-9]*\).*/\1/p')
   d=$(echo "$s" | sed -n 's/.*done \([0-9]*\).*/\1/p'); f=$(echo "$s" | sed -n 's/.*failed \([0-9]*\).*/\1/p')
   if [ -z "$p" ] || [ -z "$r" ] || [ -z "$d" ] || [ -z "$f" ]; then log "status incomplete; retrying"; sleep 60; continue; fi
-  workers=$(k get pods -l job-name="$JOB" --no-headers 2>/dev/null | grep -cE "Running|Pending|ContainerCreating")
+  workers=$(k get pods -l role=worker --no-headers 2>/dev/null | grep -cE "Running|Pending|ContainerCreating")   # every worker pod, any Job
   log "pending $p running $r done $d failed $f | worker pods $workers"
   if [ "$f" != "0" ]; then
     while IFS='|' read -r q rid by kind msg; do
