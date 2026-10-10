@@ -15,7 +15,8 @@ primary sweep (S, D, P1 and P over resamples x budgets x seeds) together with th
 
 ``specs`` enqueues cluster spec files written by ``scripts/queue/make_specs.py`` (docs/nrp_runbook.md): each file must
 match its manifest and the checked-out code its pinned ``code_ref``; ``--shard I/N`` keeps the jobs with
-int(run_id, 16) % N == I; a dependency outside the batch must already be in the queue or have a verified result.
+int(run_id, 16) % N == I; ``--max-est-gb`` / ``--min-est-gb`` split the jobs by memory estimate between card classes; a
+dependency outside the batch must already be in the queue or have a verified result.
 """
 from __future__ import annotations
 
@@ -42,6 +43,8 @@ def main() -> None:
     ap.add_argument("stage", choices=(*ST.STAGES, "specs"))
     ap.add_argument("--specs", nargs="+", help="specs mode: spec files specs/<stage>.jsonl (checked against manifests)")
     ap.add_argument("--shard", help="specs mode: I/N, only the jobs with int(run_id, 16) %% N == I")
+    ap.add_argument("--max-est-gb", type=float, help="specs mode: only jobs with est_peak_gb <= this (card routing)")
+    ap.add_argument("--min-est-gb", type=float, help="specs mode: only jobs with est_peak_gb > this (card routing)")
     ap.add_argument("--hparams", help="JSON of tuned hyperparameters per model (kiyohara)")
     ap.add_argument("--d-variant", choices=["D-state", "D-late"])
     ap.add_argument("--tuned", default=str(ST.TUNED), help="tuned hyperparameters (sweep, c0_official)")
@@ -117,6 +120,10 @@ def enqueue_specs(a) -> None:
         commit = check_code_ref(ref)
         print(f"code_ref {ref} -> {commit[:12]}: matches the checked-out code")
     jobs = NRP.shard(jobs, a.shard)
+    if a.max_est_gb is not None:
+        jobs = [j for j in jobs if (j.get("est_peak_gb") or 0.0) <= a.max_est_gb]
+    if a.min_est_gb is not None:
+        jobs = [j for j in jobs if (j.get("est_peak_gb") or 0.0) > a.min_est_gb]
     root = Q.init(Path(a.queue))
     jobs = NRP.resolve_deps(jobs, root)
     by = Counter(j["stage"] for j in jobs)
