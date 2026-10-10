@@ -17,6 +17,9 @@ claims:
     falsifiable_how: "MAE on Kiyohara's split materially worse than 0.29 eV triggers debugging before any further claim."
     status: planned
     result_ref: results/c0_official.json
+  # Collaborator NRP branch (merged 2026-10-11): results/c1c2_v1.json, same estimand and inputs as
+  # results/g1_primary.json, identical point values (docs/ingest_report.md rows 4-7). POST HOC (v2):
+  # results/c1c2_v2.json, A at 654 +0.015 [-0.008, +0.036], N* 654; LOCO A in both files.
   - id: C1
     statement: "The MAE advantage of explicit DFT electronic descriptors over structure alone (D minus S) falls below delta = 0.05 eV, with the upper 95% bootstrap bound below delta at budget N* and all larger budgets; extends the descriptor-only learning curve of Kumagai et al. (2021) to the structure-versus-descriptor gap."
     tested_by: M5
@@ -24,6 +27,8 @@ claims:
     falsifiable_how: "If the upper bound never falls below delta within available data, N* is reported as a lower bound."
     status: measured
     result_ref: results/g1_primary.json
+  # Collaborator NRP branch: C2 also in results/c1c2_v1.json (identical point value, -0.012) and, POST HOC (v2),
+  # results/c1c2_v2.json (+0.015 [-0.008, +0.036]).
   - id: C2
     statement: "At maximum training budget, the D minus S gap, with 95% CI, bounds the improvement perfect pristine-host electronic information can provide."
     tested_by: M5
@@ -31,24 +36,32 @@ claims:
     falsifiable_how: "Measurement; reported with CI."
     status: measured
     result_ref: results/g1_primary.json
+  # POST HOC (v2), collaborator NRP branch: results/c3a_v2.json (P1-v2 and P-v2, 183 each; TOST rule of
+  # docs/deviations.md 2026-10-09). No v1 staging result exists; status stays planned (docs/ingest_gaps.md).
   - id: C3a
     statement: "A staged model P, which predicts the pristine-host electronic descriptors (host-level and pristine-site Bader) from structure and passes the predictions to the trained oracle D, is compared with end-to-end S and oracle D at matched budgets; the D-minus-P gap is the cost of predicting rather than knowing the descriptors."
     tested_by: M6
     figure: Fig4
     falsifiable_how: "P minus S indistinguishable from zero is reported as a null."
     status: planned
+  # POST HOC (v2), collaborator NRP branch: results/mlip_eval_v2.json (S-v2, D-v2, P-v2 on 802 relaxed hosts,
+  # results/mlip/). No v1 geometry evaluation exists; status stays planned (docs/ingest_gaps.md).
   - id: C3b
     statement: "Under MACE-MP-0 relaxed host geometry, staged and end-to-end models degrade differently; degradation is decomposed into volumetric strain and internal displacement."
     tested_by: M7
     figure: Fig5
     falsifiable_how: "Statistically indistinguishable degradation slopes, or negligible geometry change, are reported as a null."
     status: planned
+  # POST HOC (v2), collaborator NRP branch: results/probe_v2_sweep.json (60 S-v2 checkpoints; fails the
+  # untrained-encoder control). No v1 probe exists; status stays planned (docs/ingest_gaps.md).
   - id: C4
     statement: "Linear-probe recovery of electronic descriptors from the structure-only model's embeddings increases with training budget and exceeds shuffled-label and random-encoder controls."
     tested_by: M8
     figure: Fig6
     falsifiable_how: "Flat trend or failure to beat both controls moves C4 to SI."
     status: planned
+  # Collaborator NRP branch: results/screening_c5.json; mae_S 0.294 eV from the pre-registered S at B = 654
+  # (v1), mae_S_v2 0.420 eV POST HOC (v2). Status stays planned.
   - id: C5
     statement: "Screening demonstration on named oxide crystals."
     tested_by: M10

@@ -153,6 +153,8 @@ analysis:                # S05 sections 7-8
   multiplicity_correction: none
   staging_contrasts: [D_minus_P, P_minus_S]
   staging_null_ci: 0.95
+  equivalence_margin_eV: 0.05    # C3a/C3b TOST (docs/deviations.md, 2026-10-09)
+  equivalence_tost_ci: 0.90
 sensitivity:
   exclude_high_moment:   # pre-registered (S03, before any model result): drop |defect moment| > threshold
     threshold_muB: 0.5
@@ -174,6 +176,34 @@ sensitivity:
     resamples: [0]
     seeds: [0, 1, 2]
   unselected_injection_variant: tuning_runs_only   # SI
+  unselected_variant_sweep:   # logged 2026-10-07 (docs/deviations.md): C1/C2 sensitivity to the D-variant tie
+    variant: D-late
+    budgets: [200, 400, 654]
+    resamples: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    seeds: [0, 1, 2]
+diagnostics:              # logged 2026-10-07 (docs/deviations.md); excluded from every pre-registered analysis
+  hparam_cross:           # item 1: budget vs hyperparameter anchor for the within-host collapse of S
+    model: S
+    cells: [[200, 200], [200, 654], [654, 200], [654, 654]]   # (budget, anchor)
+    resamples: [0, 1, 2]
+    seeds: [0, 1, 2]
+  descriptor_ablation:    # item 3: what D's descriptors contribute at the largest budget
+    budget: 654
+    resamples: [0, 1, 2]
+    seeds: [0, 1, 2]
+    ablations: [none, desc_host, desc_site]
+    permutation_repeats: 5
+    permutation_seed: 0
+v2:                       # backbone design screen, logged 2026-10-08 (docs/deviations.md); validation hosts only
+  variants:
+    pre_registered: {}
+    init: {init: kaiming}
+    local: {local_readout: true}
+    init_local: {init: kaiming, local_readout: true}
+  screen_anchors: [50, 200, 654]
+  screen_seeds: [0, 1, 2]
+  selection: lowest_mean_val_mae_over_anchors
+  selected: init            # screen result, 2026-10-08 (mean val MAE 0.382 vs 0.492 pre-registered)
 mlip:
   model: mace-mp-0
   size: medium

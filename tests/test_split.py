@@ -146,3 +146,24 @@ def test_curve_resamples(splits):
         big, _ = curve_resample(cur, i, 220)
         assert big[:22] == small  # nested
     assert len({tuple(r["test"]) for r in cur["resamples"]}) == CFG.curve.n_resamples
+
+
+def test_loco_splits_are_family_disjoint_and_cover_every_host():
+    import importlib.util
+    import json
+    from pathlib import Path
+
+    d = Path(__file__).resolve().parents[1] / "splits" / "loco"
+    folds = [json.loads((d / f"loco_f{k}.json").read_text()) for k in range(5)]
+    tests = [set(f["test"]) for f in folds]
+    assert sum(len(t) for t in tests) == len(set().union(*tests)) == 818
+    for f in folds:
+        assert not set(f["test"]) & set(f["budget_order"])
+        assert len(f["test"]) + len(f["budget_order"]) == 818
+    fams = [set(f["test_families"]) for f in folds]
+    assert sum(len(x) for x in fams) == len(set().union(*fams)) == folds[0]["n_families_total"] == 131
+    spec = importlib.util.spec_from_file_location("mls", d.parents[1] / "scripts" / "make_loco_splits.py")
+    mls = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mls)
+    if (mls.G.STORE_DIR / "meta.json").is_file():
+        assert all((d / n).read_bytes() == b for n, b in mls.make().items())

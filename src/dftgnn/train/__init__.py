@@ -49,6 +49,26 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 CKPT_DIR = REPO_ROOT / "checkpoints"
 TRAINED = ("S", "D-state", "D-late", "P1", "cgcnn-S", "cgcnn-D")
 LOCO_PREFIX = "loco_v1_f"      # split name of LOCO fold k: "loco_v1_f<k>" (splits/loco_v1.json)
+# Diagnostic ablations, applied identically in training, validation and test. "vacancy_flag" zeroes the
+# flag (C0 diagnosis). "desc_host" / "desc_site" set the host- or site-electronic descriptors of a D model
+# to their training mean (0 after standardisation), which removes that class's information (item 3 of
+# docs/diagnostics_sweep.md).
+ABLATIONS = ("vacancy_flag", "desc_host", "desc_site")
+
+
+def apply_ablation(batch, ablate: str | None):
+    """Apply ``ablate`` in place to a collated batch and return it."""
+    if ablate is None:
+        return batch
+    if ablate == "vacancy_flag":
+        batch.vac_flag.zero_()
+    elif ablate == "desc_host":
+        batch.desc_host.zero_()
+    elif ablate == "desc_site":
+        batch.desc_site.zero_()
+    else:
+        raise ValueError(f"unknown ablation {ablate!r}")
+    return batch
 
 
 def val_seed(r: int | str, budget: int, seed: int) -> int:
@@ -108,7 +128,7 @@ class RunSpec:
     smoke: bool = False
     results_subdir: str | None = None     # results/<subdir>/ instead of results/ (pilots)
     eval_test: bool = True                # False: the test hosts are never loaded or predicted (epoch pilot)
-    ablate: str | None = None             # "vacancy_flag": zero the flag (C0 diagnosis only)
+    ablate: str | None = None             # see ABLATIONS (diagnostics only)
     p1_run: str | None = None
     d_run: str | None = None
     tags: dict = field(default_factory=dict)
@@ -215,9 +235,7 @@ def _predict(net, data: Store, pos, y, desc, batch_size, device, ablate=None) ->
     out = []
     with torch.no_grad():
         for idx in _batches(pos, batch_size, None):
-            b = collate_sites(data.graphs, data.sites, idx, y=y, desc=desc).to(device)
-            if ablate == "vacancy_flag":
-                b.vac_flag.zero_()
+            b = apply_ablation(collate_sites(data.graphs, data.sites, idx, y=y, desc=desc).to(device), ablate)
             out.append(net(b).cpu())
     return torch.cat(out)
 
@@ -228,6 +246,10 @@ def train_run(spec: RunSpec, data: Store, cfg: Config | None = None, *, device: 
     cfg = cfg if cfg is not None else load_config()
     if spec.model not in TRAINED:
         raise ValueError(f"{spec.model} is not trained by train_run")
+    if spec.ablate not in (None, *ABLATIONS):
+        raise ValueError(f"unknown ablation {spec.ablate!r}")
+    if spec.ablate in ("desc_host", "desc_site") and spec.model not in ("D-state", "D-late"):
+        raise ValueError(f"{spec.ablate} ablation applies to D models only")
     device = device or pick_device()
     seed_everything(spec.seed)
     t0 = time.time()
@@ -268,9 +290,7 @@ def train_run(spec: RunSpec, data: Store, cfg: Config | None = None, *, device: 
         net.train()
         tot, n = 0.0, 0
         for idx in _batches(pos["train"], spec.batch_size, gen):
-            b = collate_sites(data.graphs, data.sites, idx, y=y, desc=desc).to(device)
-            if spec.ablate == "vacancy_flag":
-                b.vac_flag.zero_()
+            b = apply_ablation(collate_sites(data.graphs, data.sites, idx, y=y, desc=desc).to(device), spec.ablate)
             out = net(b)
             if is_p1:
                 loss = torch.nn.functional.mse_loss(out, torch.cat([b.desc_host, b.desc_site], -1))
@@ -296,6 +316,12 @@ def train_run(spec: RunSpec, data: Store, cfg: Config | None = None, *, device: 
             break
     if best_state is not None:                # None: the validation metric was never finite
         net.load_state_dict(best_state)
+    val_metrics = None
+    if not is_p1 and len(pos["val"]):         # restored best weights on the validation hosts (design screens)
+        pv = _predict(net, data, pos["val"], y, desc, spec.batch_size, device, spec.ablate)
+        val_metrics = point_metrics(target[pos["val"]].numpy(),
+                                    y_st.inverse(pv.double().view(-1, 1)).view(-1).numpy(),
+                                    data.site_host[pos["val"]])
 
     te = pos["test"]
     p = _predict(net, data, te, y, desc, spec.batch_size, device, spec.ablate) if len(te) else None
@@ -329,7 +355,7 @@ def train_run(spec: RunSpec, data: Store, cfg: Config | None = None, *, device: 
         "metrics": metrics, "predictions": frame,
         "n_hosts": {k: len(v) for k, v in hosts.items()},
         "n_sites": {k: len(v) for k, v in pos.items()},
-        "epochs_run": len(history), "best_epoch": best_epoch, "best_val_metric": best,
+        "epochs_run": len(history), "best_epoch": best_epoch, "best_val_metric": best, "val_metrics": val_metrics,
         "max_epochs": max_epochs, "patience": patience, "history": history, "train_steps": steps,
         "wall_time_s": time.time() - t0, "peak_memory_bytes": peak_memory_bytes(device),
         "device": str(device), "torch_threads": torch.get_num_threads(),
