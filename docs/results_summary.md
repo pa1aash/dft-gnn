@@ -24,7 +24,7 @@ Two arms are reported:
 | C3a, P − S | — (pre-registered staged model not run) | Inconclusive at 25; P worse at 50, 100, 200; equivalent at 400 (+0.024 [−0.003, +0.050]); P worse but within the equivalence margin at 654 (+0.028 [+0.008, +0.052]) | `c3a_v2.json` |
 | C3a, D − P (cost of predicting the descriptors) | — | −0.149, −0.142, −0.077, −0.043 eV at 100, 200, 400, 654 (D better); unstable at 25–50 (see limitations) | same |
 | C3b, MLIP geometry | — | *pending* (`mlip_eval_v2.json`) | |
-| C4, latent probe | — | *pending* (`probe_v2_sweep.json`) | |
+| C4, latent probe | — | **Fails its rule; moves to the SI.** Class-mean test R² rises with budget (Spearman ρ 0.975 [0.963, 0.986]) and beats shuffled labels at every B ≥ 200 (+0.35 to +0.60), but not the untrained encoder (trained − random: −0.032 [−0.062, −0.000] at 200, −0.031 at 400, −0.003 [−0.015, +0.009] at 654) | `probe_v2_sweep.json` |
 
 ### Learning curves (site MAE, eV)
 
@@ -60,6 +60,11 @@ Two arms are reported:
    descriptor advantage under LOCO (+0.041) comes mostly from that weaker S-v2.
 6. **Staging (predict descriptors, then energy) never beats end-to-end learning.** P is worse than S from 50
    to 200 hosts and at most equivalent at 400–654.
+7. **Training does not put extra electronic information into the structural representation.** A linear probe
+   recovers the 22 descriptors from the trained S-v2 readout as well as, not better than, from an untrained
+   network of the same architecture (mean R² 0.555 against 0.557 at 654 hosts). The rise with budget reflects
+   the probe's growing training set. This fits finding 1: the information the descriptors carry is already in
+   the structure.
 
 ## Limitations to state
 
