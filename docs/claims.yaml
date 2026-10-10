@@ -13,14 +13,14 @@ claims:
     tested_by: M3
     figure: Fig2 reference line; SI parity
     falsifiable_how: "MAE on Kiyohara's split materially worse than 0.29 eV triggers debugging before any further claim."
-    status: "measured"
+    status: measured
     result_ref: results/c0_official.json
   - id: C1
     statement: "The MAE advantage of explicit DFT electronic descriptors over structure alone (D minus S) falls below delta = 0.05 eV, with the upper 95% bootstrap bound below delta at budget N* and all larger budgets; extends the descriptor-only learning curve of Kumagai et al. (2021) to the structure-versus-descriptor gap."
     tested_by: M5
     figure: Fig2, Fig3
     falsifiable_how: "If the upper bound never falls below delta within available data, N* is reported as a lower bound."
-    status: "measured"
+    status: measured
     result_ref: results/c1c2_v1.json
 
   - id: C2
@@ -28,7 +28,7 @@ claims:
     tested_by: M5
     figure: Fig3
     falsifiable_how: "Measurement; reported with CI."
-    status: "measured"
+    status: measured
     result_ref: results/c1c2_v1.json
 
   - id: C3a
@@ -36,7 +36,7 @@ claims:
     tested_by: M6
     figure: Fig4
     falsifiable_how: "P minus S indistinguishable from zero is reported as a null."
-    status: "measured (v2 arm)"
+    status: measured   # v2 arm only (docs/deviations.md 2026-10-09)
     result_ref: results/c3a_v2.json
 
   - id: C3b
@@ -44,7 +44,7 @@ claims:
     tested_by: M7
     figure: Fig5
     falsifiable_how: "Statistically indistinguishable degradation slopes, or negligible geometry change, are reported as a null."
-    status: "measured (v2 arm): null, equivalent degradation"
+    status: measured   # v2 arm; null: equivalent, negligible degradation
     result_ref: results/mlip_eval_v2.json
 
   - id: C4
@@ -52,7 +52,7 @@ claims:
     tested_by: M8
     figure: Fig6
     falsifiable_how: "Flat trend or failure to beat both controls moves C4 to SI."
-    status: "moved to SI: fails the random-encoder control"
+    status: moved_to_si   # v2 arm; does not beat the untrained-encoder control
     result_ref: results/probe_v2_sweep.json
 
   - id: C5
@@ -60,5 +60,5 @@ claims:
     tested_by: M10
     figure: Fig7
     falsifiable_how: "Demonstration, not a claim."
-    status: "measured (demonstration)"
+    status: measured   # demonstration, not a claim
     result_ref: results/screening_c5.json
