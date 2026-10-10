@@ -47,6 +47,9 @@ spec:
             limits: {cpu: "8", memory: 32Gi, nvidia.com/gpu: 1, ephemeral-storage: 20Gi}
           volumeMounts:
             - {name: vol, mountPath: /workspace}
+            - {name: shm, mountPath: /dev/shm}       # torch passes tensors between processes through shm
       volumes:
         - name: vol
           persistentVolumeClaim: {claimName: dftgnn-vol}
+        - name: shm
+          emptyDir: {medium: Memory, sizeLimit: 8Gi}
