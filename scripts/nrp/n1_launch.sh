@@ -2,16 +2,19 @@
 # Launch the N1 Jobs on NRP (namespace cms-ml), one GPU each, all at once; each runs scripts/nrp/n1_pod.sh:
 #   A10 on node a (pass1), A10 on a different node b, A10 pass2 pinned to node a (same-node repeat),
 #   and one Job each for RTX 4090, RTX 3090, L4 and RTX A4000.
-# The node-relative Jobs are created once the first A10 pod has been scheduled.
-#   bash scripts/nrp/n1_launch.sh <N1_BASE> <N1_SHA> <committer email>
+# The node-relative Jobs are created once the first A10 pod has been scheduled. Excluded nodes: CUDA illegal-address
+# errors (hcc-nrp-shor-c6017, 2026-10-08) and CUDA "unknown error" on moving the model to the GPU
+# (nautilus-ext-gpu01.fullerton.edu, RTX 3090, 2026-10-10). ONLY="<job> ..." limits the call to those Jobs.
+#   [ONLY="..."] bash scripts/nrp/n1_launch.sh <N1_BASE> <N1_SHA> <committer email>
 set -euo pipefail
 NS=cms-ml
-FAULTY=hcc-nrp-shor-c6017.unl.edu
+FAULTY="hcc-nrp-shor-c6017.unl.edu, nautilus-ext-gpu01.fullerton.edu"
 BASE=$1 SHA=$2 EMAIL=$3
 k() { kubectl --request-timeout=60s -n "$NS" "$@"; }
 
 job() {   # job <name> <product> <hostname-op> <hostnames> <pass-label>
   local name=$1 product=$2 op=$3 hosts=$4 pass=$5
+  if [ -n "${ONLY:-}" ] && [[ " $ONLY " != *" $name "* ]]; then return; fi
   cat <<YAML | k apply -f -
 apiVersion: batch/v1
 kind: Job
@@ -36,7 +39,7 @@ spec:
       containers:
         - name: n1
           image: python:3.11-bookworm
-          command: ["bash", "-c", "mkdir -p /workspace/n1/logs && bash /workspace/n1/n1_pod.sh $pass 2>&1 | tee -a /workspace/n1/logs/$name.log"]
+          command: ["bash", "-c", "set -o pipefail; mkdir -p /workspace/n1/logs && bash /workspace/n1/n1_pod.sh $pass 2>&1 | tee -a /workspace/n1/logs/$name.log"]
           env:
             - {name: N1_BASE, value: $BASE}
             - {name: N1_SHA, value: $SHA}
