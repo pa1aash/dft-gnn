@@ -10,6 +10,12 @@ session and the S12 session (``s12``: relax, peval, embed, geomeval, loco, momen
 buildable alone). Tuning runs through scripts/tune/, not the queue. ``sweep`` builds the
 primary sweep (S, D, P1 and P over resamples x budgets x seeds) together with the Kiyohara-split jobs.
 ``--dry-run`` prints job counts, the cost-table GPU-hours and the run-id check, and enqueues nothing.
+
+    python scripts/queue/enqueue.py specs --specs specs/cv.jsonl [specs/precision.jsonl ...] [--shard I/N]
+
+``specs`` enqueues cluster spec files written by ``scripts/queue/make_specs.py`` (docs/nrp_runbook.md): each file must
+match its manifest and the checked-out code its pinned ``code_ref``; ``--shard I/N`` keeps the jobs with
+int(run_id, 16) % N == I; a dependency outside the batch must already be in the queue or have a verified result.
 """
 from __future__ import annotations
 
@@ -22,7 +28,8 @@ from _common import QUEUE, ROOT
 
 from dftgnn import jobqueue as Q
 from dftgnn.graphs.store import manifest_sha
-from dftgnn.train import admission, code_sha
+from dftgnn.train import admission, check_code_ref, code_sha
+from dftgnn.train import nrp as NRP
 from dftgnn.train import s12 as S12
 from dftgnn.train import stages as ST
 
@@ -32,7 +39,9 @@ C0_CODE_SHA = "1e4d6340a865dbbb0bb93f4bbffbe9f7a7271a4f"     # code SHA of the o
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("stage", choices=ST.STAGES)
+    ap.add_argument("stage", choices=(*ST.STAGES, "specs"))
+    ap.add_argument("--specs", nargs="+", help="specs mode: spec files specs/<stage>.jsonl (checked against manifests)")
+    ap.add_argument("--shard", help="specs mode: I/N, only the jobs with int(run_id, 16) %% N == I")
     ap.add_argument("--hparams", help="JSON of tuned hyperparameters per model (kiyohara)")
     ap.add_argument("--d-variant", choices=["D-state", "D-late"])
     ap.add_argument("--tuned", default=str(ST.TUNED), help="tuned hyperparameters (sweep, c0_official)")
@@ -40,6 +49,9 @@ def main() -> None:
     ap.add_argument("--queue", default=str(QUEUE))
     ap.add_argument("--manifest", help="write the run ids of the built jobs to this JSON file (session, capsens)")
     a = ap.parse_args()
+    if a.stage == "specs":
+        enqueue_specs(a)
+        return
     code, gsha = code_sha(), manifest_sha()
     try:
         table = admission.load_benchmark()
@@ -93,6 +105,29 @@ def main() -> None:
     root = Q.init(Path(a.queue))
     added = sum(Q.enqueue(root, j) for j in jobs)
     print(f"{a.stage}: {len(jobs)} jobs built, {added} added, {len(jobs) - added} already known")
+
+
+def enqueue_specs(a) -> None:
+    """Cluster specs (``scripts/queue/make_specs.py``): verify each file against its manifest and the checked-out
+    code against the pinned ``code_ref``, take the shard, resolve dependencies, enqueue (idempotent by run id)."""
+    if not a.specs:
+        raise SystemExit("specs mode needs --specs specs/<stage>.jsonl [...]")
+    jobs = [j for f in a.specs for j in NRP.load_spec_file(Path(f))]
+    for ref in sorted({j["code_ref"] for j in jobs}):
+        commit = check_code_ref(ref)
+        print(f"code_ref {ref} -> {commit[:12]}: matches the checked-out code")
+    jobs = NRP.shard(jobs, a.shard)
+    root = Q.init(Path(a.queue))
+    jobs = NRP.resolve_deps(jobs, root)
+    by = Counter(j["stage"] for j in jobs)
+    if a.dry_run:
+        print("specs dry run: " + ", ".join(f"{k} {v}" for k, v in by.items()) + (f" (shard {a.shard})" if a.shard else ""))
+        return
+    if a.manifest:
+        Path(a.manifest).write_text(json.dumps([j["run_id"] for j in jobs]))
+    added = sum(Q.enqueue(root, j) for j in jobs)
+    print(f"specs: {len(jobs)} jobs ({', '.join(f'{k} {v}' for k, v in by.items())}), {added} added, "
+          f"{len(jobs) - added} already known" + (f"; shard {a.shard}" if a.shard else ""))
 
 
 def dry_run_report(stage: str, jobs: list[dict]) -> None:

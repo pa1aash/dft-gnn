@@ -30,6 +30,9 @@ Operational only (docs/deviations.md, 2026-10-07): it changes when jobs start, n
   hosts). Their results verify through the artefact hashes in the payload. If nothing is running and every
   pending job waits on a dependency that is in failed/ after its single retry, DRAINED_WITH_FAILURES is written.
   The budget guard's priors for these stages come from the S11 CPU smoke timings (``TASK_PRIOR_S``).
+* NRP cluster (docs/nrp_runbook.md): ``--checkout <clone> --specs specs/<stage>.jsonl ... --tranches N2a,N2b,N3,N4``
+  enqueues spec files instead of building a stage; ``--no-launch`` keeps the orphan requeue, retry, tranche packing
+  and end states but launches no worker, because one worker per GPU runs in its own pod on the shared queue.
 """
 from __future__ import annotations
 
@@ -146,8 +149,11 @@ class Ops:
 
     def enqueue(self) -> list[str]:
         manifest = self.a.chain / f"{self.a.stage}_jobs.json"
-        subprocess.run([self.a.python, str(CHECKOUT / "scripts/queue/enqueue.py"), self.a.stage, "--manifest",
-                        str(manifest), "--queue", str(self.a.queue)], cwd=CHECKOUT, check=True)
+        extra = (["--specs", *self.a.specs] + (["--shard", self.a.shard] if self.a.shard else [])
+                 if self.a.specs else [])
+        subprocess.run([self.a.python, str(CHECKOUT / "scripts/queue/enqueue.py"),
+                        "specs" if self.a.specs else self.a.stage, *extra, "--manifest", str(manifest),
+                        "--queue", str(self.a.queue)], cwd=CHECKOUT, check=True)
         return json.loads(manifest.read_text())
 
     def pack(self, tranche: str) -> str:
@@ -252,7 +258,7 @@ class Supervisor:
             self._save()
 
     def top_up_workers(self) -> int:
-        if (self.chain / "HALT").exists():
+        if (self.chain / "HALT").exists() or getattr(self.a, "no_launch", False):
             return 0
         pend, run = self._jobs("pending"), self._jobs("running")
         alive = self.ops.workers_alive()
@@ -365,23 +371,32 @@ class Supervisor:
 def parse(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--chain", default=str(CHAIN))
-    ap.add_argument("--queue", default=str(CHECKOUT / "jobs"))
+    ap.add_argument("--queue", default=None, help="default <checkout>/jobs")
     ap.add_argument("--python", default=PY)
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--threads", type=int, default=3)
     ap.add_argument("--poll", type=float, default=60.0)
     ap.add_argument("--orphan-s", type=float, default=180.0)
     ap.add_argument("--guard", type=float, default=GUARD_GPU_H)
-    ap.add_argument("--marker", default=str(CHECKOUT / "scripts/queue/worker.py"))
+    ap.add_argument("--marker", default=None, help="default <checkout>/scripts/queue/worker.py")
     ap.add_argument("--stage", default="session", help="enqueue.py stage to build (S09: session, S12: s12)")
     ap.add_argument("--tranches", default=",".join(TRANCHES), help="tranche labels to pack, in order")
+    ap.add_argument("--checkout", default=str(CHECKOUT), help="the git checkout the workers run from")
+    ap.add_argument("--specs", nargs="+", help="cluster spec files (enqueue.py specs mode) instead of --stage")
+    ap.add_argument("--shard", help="with --specs: I/N")
+    ap.add_argument("--no-launch", action="store_true",
+                    help="launch no workers (they run elsewhere on the shared queue); --workers sizes the projection")
     a = ap.parse_args(argv)
     a.tranches = tuple(t for t in a.tranches.split(",") if t)
+    a.queue = a.queue or str(Path(a.checkout) / "jobs")
+    a.marker = a.marker or str(Path(a.checkout) / "scripts/queue/worker.py")
     return a
 
 
 def main() -> None:
+    global CHECKOUT
     a = parse()
+    CHECKOUT = Path(a.checkout)
     a.chain = Path(a.chain)
     a.chain.mkdir(parents=True, exist_ok=True)
     pidf = a.chain / "supervisor.pid"
