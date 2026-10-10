@@ -1,6 +1,6 @@
 # Results summary
 
-For the authors writing the paper. Every number below comes from a committed result record (paths given),
+For the authors writing the paper. All analyses are complete. Every number below comes from a committed result record (paths given),
 computed by the scripts named, with the rules of `docs/ANALYSIS_PLAN.md` and `docs/deviations.md`. Unless noted,
 values are site-level test MAE in eV on ten formula-grouped 20% host hold-outs, from the seed-ensemble mean
 (3 seeds), with 95% hierarchical bootstrap intervals (resamples, then test hosts; 2000 draws). A = MAE_S − MAE_D,
@@ -23,7 +23,7 @@ Two arms are reported:
 | LOCO A (unseen cation families, 654–655 training hosts) | +0.008 [−0.015, +0.031], upper bound 0.027 < δ | +0.041 [+0.016, +0.066], upper bound 0.061 ≥ δ, which the abstract must state in the sentence giving N* (deviation 2026-10-09, rule a) | `c1c2_v1.json`, `c1c2_v2.json` |
 | C3a, P − S | — (pre-registered staged model not run) | Inconclusive at 25; P worse at 50, 100, 200; equivalent at 400 (+0.024 [−0.003, +0.050]); P worse but within the equivalence margin at 654 (+0.028 [+0.008, +0.052]) | `c3a_v2.json` |
 | C3a, D − P (cost of predicting the descriptors) | — | −0.149, −0.142, −0.077, −0.043 eV at 100, 200, 400, 654 (D better); unstable at 25–50 (see limitations) | same |
-| C3b, MLIP geometry | — | *pending* (`mlip_eval_v2.json`) | |
+| C3b, MLIP geometry | — | **Null: staged and end-to-end degrade alike, and negligibly.** On 802 hosts relaxed with MACE-MP-0 (median isotropic strain +1.6%, internal RMSD 0.024 Å, above the 0.01 Å null threshold), dMAE ≤ +0.003 eV for S, D and P at 654 and 200 (95% intervals within ±0.007). dMAE_P − dMAE_S is equivalent under the TOST at both budgets (90% intervals inside ±0.007 eV against δ = 0.05), with one "P worse, within the margin" for the volume-rescaled control at 654 | `mlip_eval_v2.json`, `mlip_inputs.json`, `mlip/` |
 | C4, latent probe | — | **Fails its rule; moves to the SI.** Class-mean test R² rises with budget (Spearman ρ 0.975 [0.963, 0.986]) and beats shuffled labels at every B ≥ 200 (+0.35 to +0.60), but not the untrained encoder (trained − random: −0.032 [−0.062, −0.000] at 200, −0.031 at 400, −0.003 [−0.015, +0.009] at 654) | `probe_v2_sweep.json` |
 
 ### Learning curves (site MAE, eV)
@@ -60,7 +60,13 @@ Two arms are reported:
    descriptor advantage under LOCO (+0.041) comes mostly from that weaker S-v2.
 6. **Staging (predict descriptors, then energy) never beats end-to-end learning.** P is worse than S from 50
    to 200 hosts and at most equivalent at 400–654.
-7. **Training does not put extra electronic information into the structural representation.** A linear probe
+7. **Predictions are robust to MLIP host geometry.** Replacing the DFT host geometry with MACE-MP-0 geometry
+   (lattices about 1.6% larger, atoms displaced by about 0.02 Å) changes MAE by at most 0.003 eV for every
+   model. Per-host error changes do not depend on the geometry components (slopes ≤ 0.009 eV per SD) or on the
+   d-electron class. A plausible reason is that such changes move interatomic distances by a few hundredths of
+   an Å, well inside the 0.5 Å width of the Gaussian distance expansion. A cheap MLIP relaxation is therefore an
+   adequate input geometry for these models. Staging gains no robustness from it.
+8. **Training does not put extra electronic information into the structural representation.** A linear probe
    recovers the 22 descriptors from the trained S-v2 readout as well as, not better than, from an untrained
    network of the same architecture (mean R² 0.555 against 0.557 at 654 hosts). The rise with budget reflects
    the probe's growing training set. This fits finding 1: the information the descriptors carry is already in
