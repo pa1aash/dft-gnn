@@ -6,7 +6,10 @@
 # errors (hcc-nrp-shor-c6017, 2026-10-08) and CUDA "unknown error" on moving the model to the GPU
 # (nautilus-ext-gpu01.fullerton.edu, RTX 3090, 2026-10-10). ONLY="<job> ..." limits the call to those Jobs.
 # REPEAT="<job>:<product>:<node> ..." adds same-node repeats (pass label pass2) pinned to the named nodes.
-#   [ONLY="..."] [REPEAT="..."] bash scripts/nrp/n1_launch.sh <N1_BASE> <N1_SHA> <committer email>
+# CHAIN="<job>:<product> ..." adds Jobs that run pass1 then pass2 in one pod on any node of that class, so the repeat is
+# on the same node and GPU without waiting for a GPU on a named node to come free. CHAIN_EXCLUDE="<node>, ..." keeps
+# them off nodes whose pass1 directory another Job is still writing.
+#   [ONLY="..."] [REPEAT="..."] [CHAIN="..."] bash scripts/nrp/n1_launch.sh <N1_BASE> <N1_SHA> <committer email>
 set -euo pipefail
 NS=cms-ml
 FAULTY="hcc-nrp-shor-c6017.unl.edu, nautilus-ext-gpu01.fullerton.edu"
@@ -15,6 +18,8 @@ k() { kubectl --request-timeout=60s -n "$NS" "$@"; }
 
 job() {   # job <name> <product> <hostname-op> <hostnames> <pass-label>
   local name=$1 product=$2 op=$3 hosts=$4 pass=$5
+  local run="bash /workspace/n1/n1_pod.sh $pass"
+  [ "$pass" = chain ] && run="bash /workspace/n1/n1_pod.sh && bash /workspace/n1/n1_pod.sh pass2"
   if [ -n "${ONLY:-}" ] && [[ " $ONLY " != *" $name "* ]]; then return; fi
   cat <<YAML | k apply -f -
 apiVersion: batch/v1
@@ -40,7 +45,7 @@ spec:
       containers:
         - name: n1
           image: python:3.11-bookworm
-          command: ["bash", "-c", "set -o pipefail; mkdir -p /workspace/n1/logs && bash /workspace/n1/n1_pod.sh $pass 2>&1 | tee -a /workspace/n1/logs/$name.log"]
+          command: ["bash", "-c", "set -o pipefail; mkdir -p /workspace/n1/logs && { $run; } 2>&1 | tee -a /workspace/n1/logs/$name.log"]
           env:
             - {name: N1_BASE, value: $BASE}
             - {name: N1_SHA, value: $SHA}
@@ -64,6 +69,10 @@ job dftgnn-n1-rtx4090 NVIDIA-GeForce-RTX-4090 NotIn "$FAULTY" ""
 job dftgnn-n1-rtx3090 NVIDIA-GeForce-RTX-3090 NotIn "$FAULTY" ""
 job dftgnn-n1-l4 NVIDIA-L4 NotIn "$FAULTY" ""
 job dftgnn-n1-a4000 NVIDIA-RTX-A4000 NotIn "$FAULTY" ""
+for c in ${CHAIN:-}; do
+  IFS=: read -r cn cp <<< "$c"
+  job "$cn" "$cp" NotIn "$FAULTY${CHAIN_EXCLUDE:+, $CHAIN_EXCLUDE}" "chain"
+done
 for r in ${REPEAT:-}; do
   IFS=: read -r rn rp rh <<< "$r"
   job "$rn" "$rp" In "$rh" "pass2"
