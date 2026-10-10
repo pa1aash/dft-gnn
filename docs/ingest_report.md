@@ -30,7 +30,7 @@ All five branches fork from `main` at `9ec3af5` (2026-10-08 00:15 UTC, the epoch
 
 | branch | role | tip | commits ahead of main | first, last commit (UTC) | tracked files / size at tip | directories touched (files) |
 |---|---|---|---:|---|---|---|
-| review-diagnostics | analysis | f658823 | 64 | 2026-10-08 02:39, 2026-10-10 05:29 | 3080 / 106.6 MiB | results (2015: v2_sweep 720, p_v2 366, p1_v2 366, dlate 180, v2_screen 72, diag_cross 72, loco 60, loco_v2 60, d_ablation 54, tuning 18, v2_kiyohara 12, mlip 4, predictions 2, 11 top-level), scripts (35, of which scripts/nrp 18), src/dftgnn (7), tests (8), splits/loco (6), figures/main (3), docs (4), configs (2), .gitattributes |
+| review-diagnostics | analysis | f658823 | 64 | 2026-10-08 02:39, 2026-10-10 05:29 | 3080 / 106.6 MiB | results (1997: v2_sweep 720, p_v2 366, p1_v2 366, dlate 180, v2_screen 72, diag_cross 72, loco 60, loco_v2 60, d_ablation 54, tuning 18, v2_kiyohara 12, mlip 4, predictions 2, 11 top-level), scripts (35, of which scripts/nrp 18), src/dftgnn (7), tests (8), splits/loco (6), figures/main (3), docs (4), configs (2), .gitattributes |
 | ckpt-fix | provenance | e6b7e33 | 3 | 2026-10-08 02:39, 19:37 | 1044 / 41.5 MiB | scripts/diag_checkpoints.py (+ shared base) |
 | tune-v2 | provenance | 738d5ad | 7 | 2026-10-08 02:39, 2026-10-09 00:36 | 1344 / 47.6 MiB | tuning code and config for v2 (+ shared base) |
 | prod-v2 | provenance | 1f3a136 | 9 | 2026-10-08 02:39, 2026-10-09 16:24 | 1349 / 47.6 MiB | v2 freeze, production stage, NRP watchdog (+ shared base) |
