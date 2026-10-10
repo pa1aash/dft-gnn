@@ -1,0 +1,26 @@
+{
+ "backbone": "v1",
+ "code_ref": "nrp-code-v1",
+ "count": 30,
+ "counts_by_model": {
+  "D-state": 15,
+  "S": 15
+ },
+ "generator": "scripts/queue/make_specs.py",
+ "graphs_manifest_sha256": "be5e5cfd5c3a5ad7fed3ee841c8a308292adefdd6b2fca909c377db1ae6d3713",
+ "group": "N2b",
+ "hosts_file": null,
+ "jsonl": "loco.jsonl",
+ "label": "registered",
+ "priority_range": [
+  400000,
+  400029
+ ],
+ "sha256": "78f493d31ca3762282f1b166c865825e5aefa13d8c1ec20304581187e1212445",
+ "splits_manifest_sha256": "62595259d38dce0381172b7e78377b2ca887c48fc3b2ac9d942767f0b3f2acf3",
+ "stage": "loco",
+ "tuned": {
+  "path": "configs/tuned_v1.yaml",
+  "sha256": "9445ac0af1686e807b6eea76214bd097390be150f8c92a21d010982a9564a6b5"
+ }
+}
