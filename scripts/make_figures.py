@@ -59,7 +59,20 @@ def _budget_axis(ax, budgets):
     ax.set_xlabel("Training hosts $B$")
 
 
+def _mark_clipped(ax, xs, ys, ylim, color, note: list, label: str, mfc="full", budgets=None) -> None:
+    """Points outside ``ylim`` get an arrow marker at the axis edge; their values go to ``note`` for the caption.
+    ``budgets`` names the points when ``xs`` are dodged positions."""
+    for x, y, b in zip(xs, ys, budgets if budgets is not None else xs, strict=True):
+        if y > ylim[1] or y < ylim[0]:
+            edge, mk = (ylim[1], "^") if y > ylim[1] else (ylim[0], "v")
+            ax.plot([x], [edge], marker=mk, ms=5, color=color, mfc=color if mfc == "full" else "white",
+                    clip_on=False, zorder=6)
+            note.append(f"{label} at $B={b}$: {y:.2f}~eV")
+
+
 def fig_learning_curves(arms: dict, refs: dict) -> tuple[Path, str]:
+    ylim = (0.2, 1.35)
+    clipped: list[str] = []
     budgets = sorted(int(b) for b in refs)
     fig, axes = plt.subplots(1, 2, figsize=(W, 2.7), sharey=True, layout="constrained")
     for ax, (arm, res) in zip(axes, arms.items(), strict=False):
@@ -78,10 +91,11 @@ def fig_learning_curves(arms: dict, refs: dict) -> tuple[Path, str]:
             hi = [res["mae"][str(b)][key]["mae"]["ci"][1] for b in bb]
             _band(ax, bb, m, lo, hi, COL[model], ls=st["ls"], marker="o" if model == "S" else "^", mfc=st["mfc"],
                   label=model, z=4)
+            _mark_clipped(ax, bb, m, ylim, COL[model], clipped, f"{model} ({ARM_NAME[arm]})", st["mfc"])
         _budget_axis(ax, budgets)
         ax.set_title(f"{ARM_NAME[arm]} backbone")
     axes[0].set_ylabel("Site test MAE (eV)")
-    axes[0].set_ylim(0.2, 1.35)
+    axes[0].set_ylim(*ylim)
     h, lab = axes[0].get_legend_handles_labels()
     fig.legend(h, lab, loc="outside lower center", ncol=5)
     for ax, s in zip(axes, "ab", strict=False):
@@ -96,12 +110,15 @@ def fig_learning_curves(arms: dict, refs: dict) -> tuple[Path, str]:
            r"with the mean target of the training hosts; B0 is the linear fit on oxide stability and band gap; "
            rf"RF-Kumagai is the random forest on 70 DFT descriptors. At $B=654$, S reaches "
            rf"{v1['mae']['654']['S']['mae']['mean']:.3f}~eV and D {v1['mae']['654'][D_KEY]['mae']['mean']:.3f}~eV"
-           + (r"; (b) repeats the networks with the v2 backbone." if "v2" in arms else ".") + "}")
+           + (r"; (b) repeats the networks with the v2 backbone" if "v2" in arms else "")
+           + (". Arrows mark means beyond the axis: " + "; ".join(clipped) if clipped else "") + ".}")
     return save(fig, "fig2_learning_curves"), cap
 
 
 def fig_advantage(arms: dict, delta: float) -> tuple[Path, str]:
-    fig, ax = plt.subplots(figsize=(3.25, 2.4), layout="constrained")
+    ylim = (-0.3, 0.3)
+    clipped: list[str] = []
+    fig, ax = plt.subplots(figsize=(3.25, 2.75), layout="constrained")
     ax.axhline(0, color="0.6", lw=0.6, zorder=1)
     ax.axhline(delta, color="0.3", lw=0.8, ls="--", zorder=1)
     handles = [Line2D([], [], color="0.3", ls="--", lw=0.8, label=rf"margin $\delta={delta:g}$ eV")]
@@ -119,12 +136,17 @@ def fig_advantage(arms: dict, delta: float) -> tuple[Path, str]:
                     fmt="o", ls=st["ls"], color="0.15", mfc="0.15" if st["mfc"] == "full" else "white", lw=0.9,
                     zorder=3)
         ax.plot(x, ub, ls="None", marker="_", ms=7, mew=1.2, color="0.15", zorder=4)
+        _mark_clipped(ax, x, a, ylim, "0.15", clipped, f"$A$ ({ARM_NAME[arm]})", st["mfc"], budgets=bb)
+        for xi, b, li, hi_ in zip(x, bb, lo, hi, strict=True):     # interval ends beyond the axis
+            if li < ylim[0] or hi_ > ylim[1]:
+                clipped.append(f"interval ({ARM_NAME[arm]}) at $B={b}$: [{li:+.2f}, {hi_:+.2f}]~eV")
         handles.append(Line2D([], [], color="0.15", ls=st["ls"], marker="o",
                               mfc="0.15" if st["mfc"] == "full" else "white", label=f"{ARM_NAME[arm]} backbone"))
     handles.append(Line2D([], [], color="0.15", ls="None", marker="_", ms=7, mew=1.2, label="one-sided 95% bound"))
     _budget_axis(ax, [int(b) for b in arms["v1"]["budgets"]])
     ax.set_ylabel(r"Advantage $A$ (eV)")
-    ax.legend(handles=handles, loc="upper right")
+    ax.set_ylim(*ylim)
+    fig.legend(handles=handles, loc="outside lower center", ncol=2)
     v1 = arms["v1"]
     ns = v1["N_star"]
     cap = (r"\caption{The advantage of explicit DFT descriptors over structure alone falls below the margin "
@@ -132,7 +154,10 @@ def fig_advantage(arms: dict, delta: float) -> tuple[Path, str]:
            r"descriptors help) with two-sided 95\% intervals (paired hierarchical "
            r"bootstrap, 2000 draws); bars mark the one-sided 95\% upper bound used for $N^*$; the dashed line is "
            rf"$\delta$. Pre-registered backbone: $N^*$ {ns['label']} ({ns['N_star']} hosts); at $B=654$, "
-           rf"$A={v1['C2']['A']:+.3f}$~eV [{v1['C2']['ci95'][0]:+.3f}, {v1['C2']['ci95'][1]:+.3f}].}}")
+           rf"$A={v1['C2']['A']:+.3f}$~eV [{v1['C2']['ci95'][0]:+.3f}, {v1['C2']['ci95'][1]:+.3f}]"
+           + (rf"; v2 backbone: $N^*$ {arms['v2']['N_star']['label']}, $A={arms['v2']['C2']['A']:+.3f}$~eV "
+              rf"[{arms['v2']['C2']['ci95'][0]:+.3f}, {arms['v2']['C2']['ci95'][1]:+.3f}]" if "v2" in arms else "")
+           + (". Beyond the axis: " + "; ".join(clipped) if clipped else "") + ".}")
     return save(fig, "fig3_advantage"), cap
 
 
