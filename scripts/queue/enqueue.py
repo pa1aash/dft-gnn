@@ -125,7 +125,10 @@ def enqueue_specs(a) -> None:
     if a.min_est_gb is not None:
         jobs = [j for j in jobs if (j.get("est_peak_gb") or 0.0) > a.min_est_gb]
     root = Q.init(Path(a.queue))
-    jobs = NRP.resolve_deps(jobs, root)
+    try:
+        jobs = NRP.resolve_deps(jobs, root)
+    except ValueError as e:
+        raise SystemExit(str(e)) from None
     by = Counter(j["stage"] for j in jobs)
     if a.dry_run:
         print("specs dry run: " + ", ".join(f"{k} {v}" for k, v in by.items()) + (f" (shard {a.shard})" if a.shard else ""))

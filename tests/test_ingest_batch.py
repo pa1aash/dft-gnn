@@ -102,3 +102,53 @@ def test_failures(tmp_path, case):
     r = run(repo)
     assert r.returncode == 1, r.stdout
     assert "INGEST CHECK FAILED" in r.stdout
+
+
+def test_export_then_ingest_with_outbox(tmp_path):
+    """Cluster side: export_stage.sh commits the tracked files to nrp/cv in a separate worktree and packs the
+    outbox; Mac side: ingest_batch.sh --outbox places the gitignored checkpoint and passes every check."""
+    repo = make_repo(tmp_path)
+    git(repo, "checkout", "-q", "main")
+    (repo / "scripts" / "queue").mkdir()
+    for f in ("outbox.py", "_common.py"):
+        shutil.copy(ROOT / "scripts" / "queue" / f, repo / "scripts" / "queue" / f)
+    shutil.copy(ROOT / "scripts" / "nrp" / "export_stage.sh", repo / "scripts" / "nrp" / "export_stage.sh")
+    (repo / ".gitignore").write_text("checkpoints/\njobs/\noutbox/\n")
+    git(repo, "add", "-A")
+    git(repo, "commit", "-qm", "tools")
+    git(repo, "tag", "-f", "-a", "nrp-code-v1", "-m", "pin")
+    git(repo, "branch", "-D", "nrp/cv")
+    # a finished cv run in the live checkout: result, predictions (tracked), checkpoint (gitignored), done record
+    add_result(repo)
+    (repo / "checkpoints").mkdir()
+    ck = b"CHECKPOINT"
+    (repo / "checkpoints" / f"{RID}.pt").write_bytes(ck)
+    res = repo / "results" / "cv" / f"{RID}.json"
+    rec = json.loads(res.read_text())
+    rec["payload"]["checkpoint"] = {"path": f"checkpoints/{RID}.pt", "sha256": hashlib.sha256(ck).hexdigest()}
+    res.write_text(json.dumps(rec))
+    (repo / "jobs" / "done").mkdir(parents=True)
+    (repo / "jobs" / "done" / f"{RID}.json").write_text(json.dumps({"run_id": RID, "stage": "cv", "result": str(res)}))
+    git(repo, "config", "user.name", A[0])
+    git(repo, "config", "user.email", A[1])
+    env = {**os.environ, "GIT_CONFIG_GLOBAL": "/dev/null"}
+    r = subprocess.run(["bash", "scripts/nrp/export_stage.sh", "cv", "--no-push"], cwd=repo, env=env,
+                       capture_output=True, text=True, check=False)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert git(repo, "branch", "--show-current").strip() == "main"          # the live checkout did not move
+    files = git(repo, "ls-tree", "-r", "--name-only", "nrp/cv", "--", "results").split()
+    assert sorted(files) == sorted([f"results/cv/predictions/{RID}.parquet", f"results/cv/{RID}.json"])
+    tar = next((repo / "outbox").glob("outbox_cv_*.tar.gz"))
+    # the Mac: a fresh clone without the checkpoint
+    mac = tmp_path / "mac"
+    subprocess.run(["git", "clone", "-q", "-b", "main", str(repo), str(mac)], check=True, capture_output=True)
+    git(mac, "fetch", "-q", "origin", "nrp/cv:refs/remotes/origin/nrp/cv", "--tags")
+    (mac / ".git" / "hooks" / "_audit.sh").write_text(HOOK)
+    (mac / ".git" / "hooks" / "_audit.sh").chmod(0o755)
+    base = ["bash", "scripts/nrp/ingest_batch.sh", "nrp/cv", "--no-fetch"]
+    r = subprocess.run(base, cwd=mac, capture_output=True, text=True, check=False)
+    assert r.returncode == 1 and "MISSING checkpoints/" in r.stdout              # checkpoint not yet placed
+    r = subprocess.run([*base, "--outbox", str(tar)], cwd=mac, capture_output=True, text=True, check=False)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert (mac / "checkpoints" / f"{RID}.pt").read_bytes() == ck
+    assert not (mac / "results" / "cv").exists()                                  # tracked members left to the branch

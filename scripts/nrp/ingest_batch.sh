@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Runs on the Mac: check a results branch pushed from the cluster before anything is merged (docs/nrp_runbook.md, 6).
-#   bash scripts/nrp/ingest_batch.sh nrp/<stage> [--base main] [--tracked-only] [--no-fetch]
+#   bash scripts/nrp/ingest_batch.sh nrp/<stage> [--outbox outbox_<stage>_<time>.tar.gz] [--base main] [--tracked-only]
+#                                                [--no-fetch]
 # Checks, over the commits of origin/<branch> that are not in <base>:
 #   1. identities: every author and committer is an allowed identity, and no commit message holds a banned string
 #      (the local hook .git/hooks/_audit.sh, which also defines the banned pattern; this tracked file never names it);
@@ -13,15 +14,19 @@
 #      sha256: committed artefacts are hashed from the branch, gitignored ones (checkpoints, relaxed structures,
 #      embeddings) from the local files unpacked from the outbox tarball (--tracked-only skips those);
 #   5. counts: results per stage, by matching run ids against specs/*.jsonl, against the stage totals.
-# It merges nothing and changes no file. Exit status 0 only if every check passes.
+# --outbox: before step 4, check the tarball against its .sha256 and its inner manifest and place only its gitignored
+# members (checkpoints, relaxed structures, embeddings; never a tracked path, never overwriting a different file), so
+# the later merge cannot collide with untracked copies of tracked files.
+# It merges nothing and changes no tracked file. Exit status 0 only if every check passes.
 set -euo pipefail
-BRANCH="${1:?usage: ingest_batch.sh nrp/<stage> [--base main] [--tracked-only] [--no-fetch]}"; shift
-BASE=main; TRACKED_ONLY=0; FETCH=1
+BRANCH="${1:?usage: ingest_batch.sh nrp/<stage> [--outbox <tar.gz>] [--base main] [--tracked-only] [--no-fetch]}"; shift
+BASE=main; TRACKED_ONLY=0; FETCH=1; OUTBOX=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --base) BASE="$2"; shift 2 ;;
     --tracked-only) TRACKED_ONLY=1; shift ;;
     --no-fetch) FETCH=0; shift ;;
+    --outbox) OUTBOX="$2"; shift 2 ;;
     *) echo "unknown arg $1" >&2; exit 2 ;;
   esac
 done
@@ -60,6 +65,42 @@ elif ! git merge-base --is-ancestor "$TAG" "$REF"; then echo "3 code: FAIL ($REF
 else
   CH="$(git diff --name-only "$TAG" "$REF" -- src scripts configs splits specs)"
   if [ -z "$CH" ]; then echo "3 code unchanged since $TAG: OK"; else echo "3 code: FAIL, changed since $TAG:"; echo "$CH" | head -20; FAIL=1; fi
+fi
+
+# outbox: place the gitignored artefacts
+if [ -n "$OUTBOX" ]; then
+  if python3 - "$OUTBOX" <<'PY'
+import hashlib, pathlib, subprocess, sys, tarfile
+tar_path = pathlib.Path(sys.argv[1])
+sha = lambda b: hashlib.sha256(b).hexdigest()
+side = tar_path.with_name(tar_path.name + ".sha256")
+if not side.is_file() or side.read_text().split()[0] != sha(tar_path.read_bytes()):
+    raise SystemExit(f"{tar_path}: missing or mismatching .sha256")
+placed = same = 0
+with tarfile.open(tar_path, "r:gz") as tar:
+    man = dict(reversed(ln.split("  ", 1)) for ln in tar.extractfile("OUTBOX_MANIFEST.sha256").read().decode().splitlines())
+    names = [n for n in man if not n.startswith("/") and ".." not in pathlib.Path(n).parts]
+    if len(names) != len(man):
+        raise SystemExit("unsafe member paths")
+    ignored = set(subprocess.run(["git", "check-ignore", "--stdin"], input="\n".join(names), capture_output=True,
+                                 text=True).stdout.split())
+    for n in sorted(ignored):
+        data = tar.extractfile(n).read()
+        if sha(data) != man[n]:
+            raise SystemExit(f"{n}: member differs from the inner manifest")
+        dst = pathlib.Path(n)
+        if dst.exists():
+            if sha(dst.read_bytes()) != man[n]:
+                raise SystemExit(f"{n}: a different file already exists; refusing to overwrite")
+            same += 1
+            continue
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        dst.write_bytes(data)
+        placed += 1
+print(f"outbox {tar_path.name}: {len(man)} members verified; {placed} gitignored artefacts placed, {same} already present, "
+      f"{len(man) - len(ignored)} tracked members left to the branch")
+PY
+  then echo "outbox: OK"; else echo "outbox: FAIL"; FAIL=1; fi
 fi
 
 # 4-5. artefact hashes and counts per stage
