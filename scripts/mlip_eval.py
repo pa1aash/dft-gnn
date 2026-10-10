@@ -34,9 +34,9 @@ import torch
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from dftgnn import mlip
 from dftgnn.config import load_config
 from dftgnn.graphs import host_graph
+from dftgnn.mlip import nrp as mlip
 from dftgnn.models import StagedP, Standardiser
 from dftgnn.stats.metrics import aggregate_delta, aggregate_resamples, host_stats
 from dftgnn.train import RunSpec, Store, _predict, load_checkpoint, resolve_hosts

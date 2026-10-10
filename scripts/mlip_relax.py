@@ -47,7 +47,7 @@ def main() -> None:
     from mace.calculators import mace_mp
     from pymatgen.core import Structure
 
-    from dftgnn.mlip import relax_unit_cell
+    from dftgnn.mlip.nrp import relax_unit_cell
 
     blob = INPUTS.read_bytes()
     inputs = json.loads(gzip.decompress(blob))["hosts"]

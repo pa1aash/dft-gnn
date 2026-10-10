@@ -16,10 +16,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from dftgnn import mlip
 from dftgnn.config import load_config
 from dftgnn.data.universe import read_universe, release_paths
 from dftgnn.io.results import write_result
+from dftgnn.mlip import nrp as mlip
 
 OUT = ROOT / "data" / "processed" / "mlip_inputs.json.gz"
 
