@@ -162,7 +162,7 @@ def test_loco_splits_are_family_disjoint_and_cover_every_host():
         assert len(f["test"]) + len(f["budget_order"]) == 818
     fams = [set(f["test_families"]) for f in folds]
     assert sum(len(x) for x in fams) == len(set().union(*fams)) == folds[0]["n_families_total"] == 131
-    spec = importlib.util.spec_from_file_location("mls", d.parents[1] / "scripts" / "make_loco_splits.py")
+    spec = importlib.util.spec_from_file_location("mls", d.parents[1] / "scripts" / "make_loco_splits_nrp.py")
     mls = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mls)
     if (mls.G.STORE_DIR / "meta.json").is_file():
