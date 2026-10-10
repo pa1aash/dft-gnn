@@ -6,7 +6,8 @@ Layout under ``results_dir`` (``results/``, or ``results/smoke/`` for smoke runs
 Checkpoints go to ``checkpoints/<run_id>.pt`` (gitignored); path and sha256 are in the payload.
 
 Idempotent: a run whose result file exists and verifies (same run_id, prediction and checkpoint
-hashes match) is skipped.
+hashes match) is skipped. A spec with ``code_ref`` (cluster specs) takes its run id from that pinned reference and
+runs only on the code it names (``dftgnn.train.check_code_ref``); the payload then records both.
 """
 from __future__ import annotations
 
@@ -21,6 +22,7 @@ from dftgnn.train import (
     REPO_ROOT,
     RunSpec,
     Store,
+    check_code_ref,
     code_sha,
     evaluate_p,
     run_id,
@@ -65,7 +67,9 @@ def execute(spec: RunSpec, data: Store, *, cfg: Config | None = None, results_di
     """Run ``spec`` unless already done. Returns {"run_id", "status", "result"}."""
     cfg = cfg if cfg is not None else load_config()
     code = code_sha()
-    rid = run_id(spec, code, data.manifest_sha)
+    if spec.code_ref is not None:
+        check_code_ref(spec.code_ref)
+    rid = run_id(spec, spec.code_ref or code, data.manifest_sha)
     rdir = Path(results_dir) if results_dir is not None else results_dir_for(spec)
     out = rdir / f"{rid}.json"
     if verify_result(out, rid):
@@ -83,7 +87,7 @@ def execute(spec: RunSpec, data: Store, *, cfg: Config | None = None, results_di
     frame.to_parquet(ppath, index=False)
     payload = {
         "run_id": rid, "spec": spec.to_dict(), "smoke": spec.smoke, "code_sha": code,
-        "graphs_manifest_sha256": data.manifest_sha, **res,
+        "graphs_manifest_sha256": data.manifest_sha, **({"code_ref": spec.code_ref} if spec.code_ref else {}), **res,
         "predictions": {"path": _rel(ppath), "sha256": sha256_file(ppath), "rows": len(frame)},
         "checkpoint": None if ckpt is None else {"path": _rel(ckpt), "sha256": sha256_file(ckpt)},
     }

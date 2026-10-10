@@ -89,6 +89,32 @@ def code_sha(root: Path = REPO_ROOT) -> str:
                           text=True).stdout.strip()
 
 
+CODE_REF_PATHS = ("src", "scripts", "configs", "splits", "specs")
+
+
+def check_code_ref(ref: str, root: Path = REPO_ROOT) -> str:
+    """Commit of the pinned code reference ``ref`` (EXTENSION, docs/deviations.md, 2026-10-11).
+
+    A spec with ``code_ref`` has its run id computed with ``ref`` in place of the commit SHA, so it may run only
+    on that code: ``ref`` must resolve to an ancestor of HEAD and nothing under ``CODE_REF_PATHS`` may differ
+    between it and HEAD (commits that add results on top of the tag are allowed). Raises RuntimeError otherwise.
+    """
+    def git(*args: str) -> subprocess.CompletedProcess:
+        return subprocess.run(["git", *args], cwd=root, capture_output=True, text=True, check=False)
+
+    rev = git("rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}")
+    if rev.returncode:
+        raise RuntimeError(f"code reference {ref!r} does not exist in this clone (git fetch --tags)")
+    commit = rev.stdout.strip()
+    if git("merge-base", "--is-ancestor", commit, "HEAD").returncode:
+        raise RuntimeError(f"code reference {ref!r} ({commit[:12]}) is not an ancestor of HEAD")
+    diff = git("diff", "--name-only", commit, "HEAD", "--", *CODE_REF_PATHS)
+    if diff.returncode or diff.stdout.strip():
+        raise RuntimeError(f"code under {', '.join(CODE_REF_PATHS)} differs from {ref!r}: "
+                           f"{diff.stdout.split()[:5] or diff.stderr.strip()}")
+    return commit
+
+
 @dataclass
 class RunSpec:
     """One training run. ``split`` is ``outer_r<r>`` (r = 10..29: EXTENSION resamples), ``kiyohara``,
@@ -97,6 +123,8 @@ class RunSpec:
     ``hosts`` (smoke only) overrides the split with explicit train/val/test host lists.
     ``max_epochs`` / ``patience`` are test-only overrides of the config values (TBD-S07).
     ``p1_run`` / ``d_run`` are set for kind ``P`` (evaluation of the staged model, no training).
+    ``code_ref`` (cluster specs, ``scripts/queue/make_specs.py``) replaces the commit SHA in the run id; it does not
+    enter the key otherwise, so every spec without it keeps its id. The run then requires ``check_code_ref``.
     """
     model: str
     hp: dict
@@ -118,6 +146,7 @@ class RunSpec:
     d_run: str | None = None
     tags: dict = field(default_factory=dict)
     exclude_sites: list | None = None     # site ids removed from train, val and test (sensitivity a)
+    code_ref: str | None = None           # pinned code reference used in the run id instead of the commit SHA
 
     def to_dict(self) -> dict:
         return asdict(self)
