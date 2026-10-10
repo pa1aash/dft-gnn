@@ -47,8 +47,8 @@ spec:
             - name: NODE_NAME
               valueFrom: {fieldRef: {fieldPath: spec.nodeName}}
           resources:
-            requests: {cpu: "2", memory: 16Gi, nvidia.com/gpu: 1, ephemeral-storage: 20Gi}
-            limits: {cpu: "2", memory: 16Gi, nvidia.com/gpu: 1, ephemeral-storage: 20Gi}
+            requests: {cpu: "2", memory: 8Gi, nvidia.com/gpu: 1, ephemeral-storage: 20Gi}
+            limits: {cpu: "2", memory: 8Gi, nvidia.com/gpu: 1, ephemeral-storage: 20Gi}
           volumeMounts:
             - {name: vol, mountPath: /workspace}
             - {name: shm, mountPath: /dev/shm}

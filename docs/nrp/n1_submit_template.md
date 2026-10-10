@@ -37,7 +37,7 @@ repeat uses `In [<node a>]` with pass label `pass2` and runs on another GPU of t
 
 ## Resources
 
-`cpu: 2, memory: 16Gi, nvidia.com/gpu: 1, ephemeral-storage: 20Gi` (requests = limits; one training process uses about one core, and 2 CPUs fit nodes whose GPUs are free but whose CPUs are mostly taken), a 4 GiB in-memory
+`cpu: 2, memory: 8Gi, nvidia.com/gpu: 1, ephemeral-storage: 20Gi` (requests = limits; one training process uses about one core, and 2 CPUs fit nodes whose GPUs are free but whose CPUs are mostly taken; the A4000 run used 1.15 cores and a 2.25 GiB working set), a 4 GiB in-memory
 `/dev/shm`, `backoffLimit: 0`, `ttlSecondsAfterFinished: 172800`, image `python:3.11-bookworm`, `NODE_NAME` from the
 downward API (`spec.nodeName`), recorded in every result next to the pod hostname.
 
