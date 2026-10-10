@@ -5,7 +5,8 @@
 # The node-relative Jobs are created once the first A10 pod has been scheduled. Excluded nodes: CUDA illegal-address
 # errors (hcc-nrp-shor-c6017, 2026-10-08) and CUDA "unknown error" on moving the model to the GPU
 # (nautilus-ext-gpu01.fullerton.edu, RTX 3090, 2026-10-10). ONLY="<job> ..." limits the call to those Jobs.
-#   [ONLY="..."] bash scripts/nrp/n1_launch.sh <N1_BASE> <N1_SHA> <committer email>
+# REPEAT="<job>:<product>:<node> ..." adds same-node repeats (pass label pass2) pinned to the named nodes.
+#   [ONLY="..."] [REPEAT="..."] bash scripts/nrp/n1_launch.sh <N1_BASE> <N1_SHA> <committer email>
 set -euo pipefail
 NS=cms-ml
 FAULTY="hcc-nrp-shor-c6017.unl.edu, nautilus-ext-gpu01.fullerton.edu"
@@ -63,6 +64,10 @@ job dftgnn-n1-rtx4090 NVIDIA-GeForce-RTX-4090 NotIn "$FAULTY" ""
 job dftgnn-n1-rtx3090 NVIDIA-GeForce-RTX-3090 NotIn "$FAULTY" ""
 job dftgnn-n1-l4 NVIDIA-L4 NotIn "$FAULTY" ""
 job dftgnn-n1-a4000 NVIDIA-RTX-A4000 NotIn "$FAULTY" ""
+for r in ${REPEAT:-}; do
+  IFS=: read -r rn rp rh <<< "$r"
+  job "$rn" "$rp" In "$rh" "pass2"
+done
 echo "waiting for the first A10 pod to be scheduled"
 until NODE_A=$(k get pods -l n1job=dftgnn-n1-a10-a -o jsonpath='{.items[0].spec.nodeName}' 2>/dev/null) && [ -n "$NODE_A" ]; do
   sleep 15
