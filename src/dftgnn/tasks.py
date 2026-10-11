@@ -15,6 +15,7 @@ import pandas as pd
 
 from dftgnn import infer
 from dftgnn.graphs.store import sha256_file
+from dftgnn.hardware import hardware_info
 from dftgnn.io.results import write_result
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -61,6 +62,7 @@ class RelaxContext:
     def __init__(self, device: str):
         from dftgnn.mlip import mace_model, release
 
+        self.device = device
         self.cells = release.unit_cells()
         self.tmap = pd.read_parquet(REPO_ROOT / "data/processed/tiling_map_v1.parquet").set_index("host_id")
         self.u = pd.read_parquet(REPO_ROOT / "data/processed/universe_v1.parquet")
@@ -84,7 +86,7 @@ def run_relax(rid: str, spec: dict, ctx: RelaxContext, out_dir: Path | None = No
                    ctx.calc, model_sha256=ctx.msha, out_dir=out_dir)
     arts = [artifact(out_dir / f"{h}.json")] + [artifact(out_dir / a["path"]) for a in rec["files"].values()]
     pay = {"run_id": rid, "spec": spec, **{k: v for k, v in rec.items() if k not in ("files", "skipped")},
-           "artifacts": arts}
+           "artifacts": arts, "hardware": hardware_info(ctx.device)}
     return write_result(rid, pay, results_dir=result_path("relax", rid).parent)
 
 
@@ -106,7 +108,7 @@ def run_embed(rid: str, spec: dict, sites: infer.Sites, prim: dict, device=None)
                                "label": "DESCRIPTIVE variance of the random-init control"
                                if kind in ("init1", "init2") else None})
     side = json.loads((E.OUT_DIR / f"{name}.json").read_text())
-    pay = {"run_id": rid, "spec": spec, **side,
+    pay = {"run_id": rid, "spec": spec, **side, "hardware": hardware_info(device),
            "artifacts": [artifact(E.OUT_DIR / f"{name}.npz"), artifact(E.OUT_DIR / f"{name}.json")]}
     return write_result(rid, pay, results_dir=result_path("embed", rid).parent)
 
@@ -124,7 +126,7 @@ def run_geomeval(rid: str, spec: dict, sites: infer.Sites, prim: dict, key: dict
     (rdir / "predictions").mkdir(parents=True, exist_ok=True)
     pp = rdir / "predictions" / f"{rid}.parquet"
     frame.to_parquet(pp, index=False)
-    pay = {"run_id": rid, "task_id": rid, "spec": spec, "key": key, **info,
+    pay = {"run_id": rid, "task_id": rid, "spec": spec, "key": key, **info, "hardware": hardware_info(device),
            "predictions": {**artifact(pp), "rows": len(frame)}}
     return write_result(rid, pay, results_dir=rdir)
 

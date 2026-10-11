@@ -148,8 +148,20 @@ def dumps(obj: dict) -> bytes:
 
 
 def load_split(name: str, splits_dir: Path | None = None) -> dict:
-    """Load ``splits/<name>.json`` (``outer_r<r>`` or ``kiyohara``). Never regenerates."""
-    return json.loads(((splits_dir or SPLITS_DIR) / f"{name}.json").read_text())
+    """Load ``splits/<name>.json`` (``outer_r<r>`` or ``kiyohara``). Never regenerates.
+
+    The EXTENSION resamples ``outer_r10`` .. ``outer_r29`` have no file of their own; they are read from
+    ``splits/resamples_10_29.json`` (``dftgnn.split.ext``).
+    """
+    d = splits_dir or SPLITS_DIR
+    f = d / f"{name}.json"
+    if not f.is_file() and name.startswith("outer_r") and name.removeprefix("outer_r").isdigit():
+        from dftgnn.split.ext import EXT_FILE, EXT_RESAMPLES
+
+        r = int(name.removeprefix("outer_r"))
+        if r in EXT_RESAMPLES:
+            return json.loads((d / EXT_FILE).read_text())["resamples"][str(r)]
+    return json.loads(f.read_text())
 
 
 def load_meta(splits_dir: Path | None = None) -> dict:

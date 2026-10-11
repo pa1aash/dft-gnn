@@ -5,7 +5,8 @@ geomeval) through ``dftgnn.tasks.TaskRunner`` in the same process (one task at a
 
     python scripts/queue/worker.py --max-concurrent 8 --device cuda
 
-Launch one invocation per GPU (CUDA_VISIBLE_DEVICES selects it). Torch threads are split evenly between the
+Launch one invocation per GPU (CUDA_VISIBLE_DEVICES selects it). A job carrying ``code_ref`` (cluster specs from
+``scripts/queue/make_specs.py``) runs only if that reference matches the checked-out code. Torch threads are split evenly between the
 processes over the CPUs the container may use (cgroup quota, not the host core count).
 """
 from __future__ import annotations
@@ -25,7 +26,7 @@ def child(queue: str, name: str, device: str, threads: int, vram_gb: float | Non
 
     from dftgnn import jobqueue as Q
     from dftgnn.tasks import TASK_STAGES, TaskRunner
-    from dftgnn.train import RunSpec, Store
+    from dftgnn.train import RunSpec, Store, check_code_ref
     from dftgnn.train.runner import execute
 
     torch.set_num_threads(threads)
@@ -43,6 +44,8 @@ def child(queue: str, name: str, device: str, threads: int, vram_gb: float | Non
             torch.cuda.empty_cache()
 
     def run(job: dict) -> dict:
+        if job.get("code_ref"):
+            check_code_ref(job["code_ref"])       # pinned cluster specs run only on the code they name
         if job.get("stage") in TASK_STAGES:
             try:
                 info = tasks(job)

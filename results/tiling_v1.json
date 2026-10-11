@@ -13,6 +13,8 @@
       "c2_ceiling_budget": 654,
       "c2_ceiling_ci": 0.95,
       "display_ci": 0.95,
+      "equivalence_margin_eV": 0.05,
+      "equivalence_tost_ci": 0.9,
       "multiplicity_correction": "none",
       "n_star": {
         "alpha": 0.05,
@@ -67,6 +69,59 @@
       "universe": "universe_v1"
     },
     "deviations_log": "docs/deviations.md",
+    "diagnostics": {
+      "descriptor_ablation": {
+        "ablations": [
+          "none",
+          "desc_host",
+          "desc_site"
+        ],
+        "budget": 654,
+        "permutation_repeats": 5,
+        "permutation_seed": 0,
+        "resamples": [
+          0,
+          1,
+          2
+        ],
+        "seeds": [
+          0,
+          1,
+          2
+        ]
+      },
+      "hparam_cross": {
+        "cells": [
+          [
+            200,
+            200
+          ],
+          [
+            200,
+            654
+          ],
+          [
+            654,
+            200
+          ],
+          [
+            654,
+            654
+          ]
+        ],
+        "model": "S",
+        "resamples": [
+          0,
+          1,
+          2
+        ],
+        "seeds": [
+          0,
+          1,
+          2
+        ]
+      }
+    },
     "gates": {
       "C0_kiyohara_max_mae_eV": 0.35,
       "G1": "learning_curve_rf_b0_s_d_with_error_bands_before_staging_mlip_probe",
@@ -351,7 +406,32 @@
           "P"
         ]
       },
-      "unselected_injection_variant": "tuning_runs_only"
+      "unselected_injection_variant": "tuning_runs_only",
+      "unselected_variant_sweep": {
+        "budgets": [
+          200,
+          400,
+          654
+        ],
+        "resamples": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "seeds": [
+          0,
+          1,
+          2
+        ],
+        "variant": "D-late"
+      }
     },
     "split": {
       "group_key": "formula",
@@ -514,10 +594,37 @@
         }
       },
       "trial_seed": 0
+    },
+    "v2": {
+      "screen_anchors": [
+        50,
+        200,
+        654
+      ],
+      "screen_seeds": [
+        0,
+        1,
+        2
+      ],
+      "selected": "init",
+      "selection": "lowest_mean_val_mae_over_anchors",
+      "variants": {
+        "init": {
+          "init": "kaiming"
+        },
+        "init_local": {
+          "init": "kaiming",
+          "local_readout": true
+        },
+        "local": {
+          "local_readout": true
+        },
+        "pre_registered": {}
+      }
     }
   },
   "git_dirty": false,
-  "git_sha": "420c00dee684cab55ce4802d33d78b46e221062f",
+  "git_sha": "229f5aca5bbc90633a1507b033b2d3367e3753d8",
   "hostname": "Palaashs-MacBook-Air.local",
   "name": "tiling_v1",
   "package_versions": {
@@ -534,33 +641,8 @@
     "torch_geometric": "2.8.0.post1"
   },
   "payload": {
-    "excluded_from_C3b": [
-      "mp-1078295",
-      "mp-1190545",
-      "mp-1190588",
-      "mp-1190949",
-      "mp-1191240",
-      "mp-1210092",
-      "mp-1214739",
-      "mp-1220757",
-      "mp-14398",
-      "mp-17392",
-      "mp-19926",
-      "mp-23054",
-      "mp-29699",
-      "mp-3771",
-      "mp-4190",
-      "mp-4527",
-      "mp-541040",
-      "mp-6564",
-      "mp-6655",
-      "mp-9338",
-      "mp-972387"
-    ],
-    "failure_reasons": {
-      "no_bijection": 13,
-      "residual_above_tolerance": 8
-    },
+    "excluded_from_C3b": [],
+    "failure_reasons": {},
     "frames": {
       "aligned": 520,
       "rotated": 298
@@ -631,19 +713,42 @@
     ],
     "map": {
       "path": "data/processed/tiling_map_v1.parquet",
-      "sha256": "de856d19817510818dfe9b91803e4d804b09b3c8e0e7b61c24da44cfa8a5c892",
+      "sha256": "1632d5f026e68d2758dc195ee9b59e650687dbfaa430ffe34da7fb6da45f5c82",
       "tracked": false
     },
     "max_residual_ok_A": 0.0006805164047145807,
     "n_hosts": 818,
     "n_release_T_disagrees": 62,
+    "point_op_hosts": {
+      "Ba2Cd(BO2)6": "[[-1, 0, 0], [0, 0, -1], [0, -1, 0]]",
+      "Ba2CdGe2O7": "[[-1, 0, 0], [0, -1, 0], [0, 0, -1]]",
+      "Ba2MgGe2O7": "[[-1, 0, 0], [0, -1, 0], [0, 0, -1]]",
+      "Ba2MgSi2O7": "[[-1, 0, 0], [0, -1, 0], [0, 0, -1]]",
+      "Ba2ZnGe2O7": "[[0, -1, 0], [-1, 0, 0], [0, 0, -1]]",
+      "CaSn(BO3)2": "[[0, -1, 0], [-1, 0, 0], [0, 0, -1]]",
+      "CaSnO3": "[[0, 0, -1], [0, -1, 0], [-1, 0, 0]]",
+      "La2Be2GeO7": "[[-1, 0, 0], [0, -1, 0], [0, 0, -1]]",
+      "Li8SnO6": "[[0, 0, -1], [0, -1, 0], [-1, 0, 0]]",
+      "MgTiO3": "[[0, -1, 0], [-1, 0, 0], [0, 0, -1]]",
+      "NaBi(MoO4)2": "[[-1, 0, 0], [0, -1, 0], [0, 0, -1]]",
+      "NaBiO3": "[[0, 0, -1], [0, -1, 0], [-1, 0, 0]]",
+      "NaLa(MoO4)2": "[[-1, 0, 0], [0, -1, 0], [0, 0, -1]]",
+      "NaNbO3": "[[-1, 0, 0], [0, 0, -1], [0, -1, 0]]",
+      "Sr2MgGe2O7": "[[0, 1, 0], [1, 0, 0], [0, 0, -1]]",
+      "Sr2MgSi2O7": "[[-1, 0, 0], [0, -1, 0], [0, 0, -1]]",
+      "Sr2ZnGe2O7": "[[-1, 0, 0], [0, -1, 0], [0, 0, -1]]",
+      "Sr2ZnSi2O7": "[[0, 1, 0], [1, 0, 0], [0, 0, -1]]",
+      "TiNb3O6": "[[0, -1, 0], [-1, 0, 0], [0, 0, -1]]",
+      "Y2Be2GeO7": "[[-1, 0, 0], [0, -1, 0], [0, 0, -1]]",
+      "Y2Be2SiO7": "[[0, -1, 0], [-1, 0, 0], [0, 0, -1]]"
+    },
+    "rule": "translation only, then one lattice point operation (docs/deviations.md 2026-10-11)",
     "status_counts": {
-      "failed": 21,
-      "ok": 797
+      "ok": 818
     },
     "summary": {
       "path": "data/tiling_summary_v1.csv",
-      "sha256": "20412949465ddb5bc13d499d15dd5e649b1ace3c54adaa171084324af20b2d60"
+      "sha256": "f112857ea82fef2442619af70520c11b979db26e0f50aa6338de3f7b3a7ff566"
     },
     "tolerances": {
       "matrix_relative": 0.001,
@@ -662,5 +767,5 @@
     8,
     9
   ],
-  "timestamp_utc": "2026-10-09T18:52:51.711966+00:00"
+  "timestamp_utc": "2026-10-11T08:16:13.245826+00:00"
 }

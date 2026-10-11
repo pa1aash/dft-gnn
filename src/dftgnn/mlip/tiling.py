@@ -20,6 +20,13 @@ Procedure, per host:
    recomputed. The candidate with the smallest maximum residual wins.
 4. A host is ``ok`` if a bijection exists and its maximum residual is <= ``RESID_TOL_A`` (1e-3 A); else it is
    flagged ``excluded_from_C3b`` (it stays in every other analysis).
+5. One lattice point operation (EXTENSION, clarification of 2026-10-11 in docs/deviations.md). Only if steps 2-4
+   fail, exactly one operation R of the unit cell is tried: inversion (-I) or a two-fold rotation (entries in
+   {-1, 0, 1}, det +1, R R = I, R != I), each only if it preserves the unit-cell metric (R G R^T = G, G = L L^T, to
+   ``REL_TOL``). R acts on the unit-cell fractional coordinates (x -> x R mod 1) before tiling, and steps 3-4 apply
+   unchanged. The passing candidate with the smallest residual is kept (ties: inversion, then rotations in
+   lexicographic order) and recorded as ``point_op``; translation-only hosts have ``point_op`` None and an
+   unchanged record otherwise. The MLIP-relaxed cell is transformed by the same R before tiling (``tiled_supercell``).
 
 ``perm[i]`` is the tiled index of release atom i, so ``tiled_frac[perm]`` is in release order.
 """
@@ -121,7 +128,45 @@ def match(frac_tiled: np.ndarray, species_tiled: list, frac_sc: np.ndarray, spec
     return best
 
 
+def point_ops() -> list[np.ndarray]:
+    """Inversion first, then every two-fold rotation with entries in {-1, 0, 1}, in lexicographic order."""
+    rots = []
+    for v in itertools.product((-1, 0, 1), repeat=9):
+        R = np.array(v).reshape(3, 3)
+        if round(np.linalg.det(R)) == 1 and np.array_equal(R @ R, np.eye(3, dtype=int)) \
+                and not np.array_equal(R, np.eye(3, dtype=int)):
+            rots.append(R)
+    return [-np.eye(3, dtype=int), *rots]
+
+
+def preserves_metric(R: np.ndarray, L: np.ndarray) -> bool:
+    G = L @ L.T
+    return bool(np.abs(R @ G @ R.T - G).max() <= REL_TOL * np.abs(G).max())
+
+
+def apply_op(frac: np.ndarray, R) -> np.ndarray:
+    """x -> x R modulo 1 (fractional coordinates of the unit cell)."""
+    out = np.asarray(frac) @ np.asarray(R)
+    return out - np.floor(out + 1e-12)
+
+
 def map_host(uc, sc, cell_info: str | None = None) -> dict:
+    """Tiling record of one host (see module docstring); one point operation is tried if translation fails."""
+    rec = _map_host(uc, sc, cell_info)
+    if rec["status"] == "ok" or rec["M"] is None or str(rec["reason"]).startswith("atom count"):
+        return rec
+    L_uc = np.array(uc.lattice.matrix)
+    best = None
+    for R in point_ops():
+        if not preserves_metric(R, L_uc):
+            continue
+        r = _map_host(uc, sc, cell_info, op=R)
+        if r["status"] == "ok" and (best is None or r["max_residual_A"] < best["max_residual_A"]):
+            best = r
+    return best if best is not None else rec
+
+
+def _map_host(uc, sc, cell_info: str | None = None, op: np.ndarray | None = None) -> dict:
     """Tiling record of one host: status, M, permutation, translation, residual (see module docstring)."""
     L_uc, L_sc = np.array(uc.lattice.matrix), np.array(sc.lattice.matrix)
     T = parse_transformation(cell_info) if cell_info else None
@@ -134,9 +179,12 @@ def map_host(uc, sc, cell_info: str | None = None) -> dict:
     if round(abs(np.linalg.det(M))) * len(uc) != len(sc):
         return {**rec, "status": "failed", "reason": f"atom count {len(uc)} x |det M| != {len(sc)}", "perm": None,
                 "translation": None, "max_residual_A": None}
-    ft = tile(np.array(uc.frac_coords), M)
+    frac = np.array(uc.frac_coords) if op is None else apply_op(uc.frac_coords, op)
+    ft = tile(frac, M)
     sp = tiled_species([s.specie.symbol for s in uc], M)
     perm, t, resid = match(ft, sp, np.array(sc.frac_coords), [s.specie.symbol for s in sc], L_sc)
+    if op is not None:
+        rec["point_op"] = np.asarray(op).astype(int).tolist()
     if perm is None:
         return {**rec, "status": "failed", "reason": "no_bijection", "perm": None, "translation": None,
                 "max_residual_A": None}
@@ -145,12 +193,16 @@ def map_host(uc, sc, cell_info: str | None = None) -> dict:
             "max_residual_A": resid}
 
 
-def tiled_supercell(uc, M, perm: list[int], lattice_sc: np.ndarray | None = None):
-    """pymatgen Structure of ``uc`` tiled by M with atoms in release order; lattice M L_uc unless given."""
+def tiled_supercell(uc, M, perm: list[int], lattice_sc: np.ndarray | None = None, point_op=None):
+    """pymatgen Structure of ``uc`` tiled by M with atoms in release order; lattice M L_uc unless given.
+
+    ``point_op`` (the host's recorded operation R, or None) is applied to the fractional coordinates of ``uc`` first.
+    """
     from pymatgen.core import Lattice, Structure
 
     M = np.array(M)
-    frac = tile(np.array(uc.frac_coords), M)[np.array(perm)]
+    frac0 = np.array(uc.frac_coords) if point_op is None else apply_op(uc.frac_coords, point_op)
+    frac = tile(frac0, M)[np.array(perm)]
     sp = np.array(tiled_species([s.specie.symbol for s in uc], M))[np.array(perm)]
     lat = M @ np.array(uc.lattice.matrix) if lattice_sc is None else lattice_sc
     return Structure(Lattice(lat), sp.tolist(), frac)
