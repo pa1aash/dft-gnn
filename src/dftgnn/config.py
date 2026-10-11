@@ -214,6 +214,8 @@ class AnalysisCfg(_Strict):
     multiplicity_correction: Literal["none"]
     staging_contrasts: list[str]
     staging_null_ci: float = Field(gt=0, lt=1)
+    equivalence_margin_eV: float | None = None     # C3a/C3b TOST margin (docs/deviations.md, 2026-10-09)
+    equivalence_tost_ci: float | None = None
 
 
 class HighMomentCfg(_Strict):
@@ -244,12 +246,58 @@ class EpochCapCfg(_Strict):
     cap_insensitive_if_abs_delta_A_le_eV: float = Field(gt=0)
 
 
+class UnselectedVariantSweepCfg(_Strict):
+    """Logged 2026-10-07 (docs/deviations.md): the unselected D variant trained as in the sweep at
+    ``budgets``, so C1/C2 can be reported with it as a sensitivity check; stage ``dlate``."""
+    variant: Literal["D-state", "D-late"]
+    budgets: list[int]
+    resamples: list[int]
+    seeds: list[int]
+
+
 class SensitivityCfg(_Strict):
     exclude_high_moment: HighMomentCfg
     epoch_cap: EpochCapCfg
     kiyohara_split: ModelListCfg
     cgcnn_check: CgcnnCheckCfg
     unselected_injection_variant: Literal["tuning_runs_only"]
+    unselected_variant_sweep: UnselectedVariantSweepCfg
+
+
+class HparamCrossCfg(_Strict):
+    """Item 1 of docs/diagnostics_sweep.md: S trained at ``budget`` with the tuned values of ``anchor``."""
+    model: str
+    cells: list[tuple[int, int]]          # (budget, anchor)
+    resamples: list[int]
+    seeds: list[int]
+
+
+class DescriptorAblationCfg(_Strict):
+    """Item 3 of docs/diagnostics_sweep.md: D with a descriptor class at its training mean; ``none`` is the
+    full model, retrained so that its checkpoint exists for the permutation importances."""
+    budget: int
+    resamples: list[int]
+    seeds: list[int]
+    ablations: list[Literal["none", "desc_host", "desc_site"]]
+    permutation_repeats: int = Field(gt=0)
+    permutation_seed: int
+
+
+class V2Cfg(_Strict):
+    """Backbone design screen (docs/deviations.md, 2026-10-08). ``variants`` maps a name to the HParams
+    options it sets; the pre-registered backbone is the empty mapping. Selection: the variant with the
+    lowest mean over ``screen_anchors`` of the seed-mean validation MAE (E_f, eV)."""
+    variants: dict[str, dict[str, str | bool]]
+    screen_anchors: list[int]
+    screen_seeds: list[int]
+    selection: Literal["lowest_mean_val_mae_over_anchors"]
+    selected: str | None = None           # set by the logged rule from the screen (docs/diagnostics_sweep.md)
+
+
+class DiagnosticsCfg(_Strict):
+    """Diagnostic runs, excluded from every pre-registered analysis (docs/deviations.md, 2026-10-07)."""
+    hparam_cross: HparamCrossCfg
+    descriptor_ablation: DescriptorAblationCfg
 
 
 class RelaxCfg(_Strict):
@@ -376,6 +424,8 @@ class Config(_Strict):
     analysis: AnalysisCfg
     secondary_metric: SecondaryMetricCfg = Field(default_factory=SecondaryMetricCfg)
     sensitivity: SensitivityCfg
+    diagnostics: DiagnosticsCfg
+    v2: V2Cfg
     mlip: MlipCfg
     probe: ProbeCfg
     robustness: RobustnessCfg

@@ -1,0 +1,28 @@
+# Short-lived CPU pod used to receive the git bundle and the graph store (kubectl cp), run setup.sh,
+# enqueue stages and pack results. Delete it when idle: kubectl delete pod dftgnn-loader.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: dftgnn-loader
+  labels: {app: dftgnn}
+spec:
+  restartPolicy: Never
+  affinity:               # some nodes' kubelets are not reachable for exec/cp from the API server
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - {key: kubernetes.io/hostname, operator: NotIn, values: [gp-engine.usd.edu]}
+  activeDeadlineSeconds: 14400
+  containers:
+    - name: loader
+      image: python:3.11-bookworm
+      command: ["bash", "-c", "sleep 14000"]
+      resources:
+        requests: {cpu: "4", memory: 12Gi, ephemeral-storage: 20Gi}
+        limits: {cpu: "4", memory: 12Gi, ephemeral-storage: 20Gi}
+      volumeMounts:
+        - {name: vol, mountPath: /workspace}
+  volumes:
+    - name: vol
+      persistentVolumeClaim: {claimName: dftgnn-vol}

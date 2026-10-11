@@ -1,0 +1,42 @@
+# Publication style for matplotlib figures in a LaTeX paper (Computer Modern).
+# Draw figures at their printed size (e.g. 6.5 in text width, 3.25 in per column);
+# these font sizes are then the printed sizes. Change font.serif to the venue's font
+# if the paper does not use Computer Modern.
+
+font.family: serif
+font.serif: cmr10
+mathtext.fontset: cm
+axes.formatter.use_mathtext: True
+axes.unicode_minus: False
+
+font.size: 8.5
+axes.labelsize: 8.5
+axes.titlesize: 8
+legend.fontsize: 7.5
+xtick.labelsize: 7.5
+ytick.labelsize: 7.5
+
+axes.linewidth: 0.6
+axes.spines.top: False
+axes.spines.right: False
+axes.grid: False
+axes.prop_cycle: cycler('color', ['0072B2', 'D55E00', '009E73', 'CC79A7', 'E69F00', '56B4E9', '000000'])
+xtick.major.width: 0.6
+ytick.major.width: 0.6
+xtick.minor.width: 0.4
+ytick.minor.width: 0.4
+xtick.major.size: 3
+ytick.major.size: 3
+xtick.direction: out
+ytick.direction: out
+
+lines.linewidth: 1.2
+lines.markersize: 3.8
+errorbar.capsize: 1.5
+legend.frameon: False
+legend.handlelength: 1.6
+
+pdf.fonttype: 42
+svg.fonttype: none
+savefig.bbox: tight
+savefig.pad_inches: 0.02

@@ -1,0 +1,58 @@
+# GPU workers draining the shared queue /workspace/dft-gnn/jobs. Each pod runs scripts/queue/worker.py
+# with several processes on one GPU (VRAM admission from the S07 benchmark) and exits when the queue is
+# empty. Scale with parallelism/completions. Nodes: >= 24 GB cards with a driver that supports the
+# CUDA 13 wheels of env/lock-gpu.txt (driver >= 580).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: dftgnn-workers
+  labels: {app: dftgnn}
+spec:
+  parallelism: 2
+  completions: 2
+  backoffLimit: 4
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels: {app: dftgnn, role: worker}
+    spec:
+      restartPolicy: OnFailure
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: nvidia.com/gpu.product
+                    operator: In
+                    # >= 24 GB (S-v2 a654 runs need up to 17 GiB); CUDA 13 wheels need compute capability >= 7.5
+                    values: [NVIDIA-GeForce-RTX-3090, NVIDIA-A10, NVIDIA-L40, NVIDIA-L40S, NVIDIA-RTX-A6000,
+                             NVIDIA-A40, NVIDIA-GeForce-RTX-4090, NVIDIA-TITAN-RTX,
+                             NVIDIA-L4, NVIDIA-RTX-A5000, NVIDIA-A100-PCIE-40GB,
+                             NVIDIA-A100-80GB-PCIe, NVIDIA-A100-SXM4-80GB]
+                  - key: nvidia.com/cuda.driver.major
+                    operator: Gt
+                    values: ["579"]
+                  - key: kubernetes.io/hostname       # A10 that raised CUDA illegal-address errors (2026-10-08)
+                    operator: NotIn
+                    values: [hcc-nrp-shor-c6017.unl.edu]
+      containers:
+        - name: worker
+          image: python:3.11-bookworm
+          workingDir: /workspace/dft-gnn
+          command: ["bash", "-c"]
+          args:
+            - >-
+              git config --global --add safe.directory '*' &&
+              (nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv,noheader || true) &&
+              /workspace/venv/bin/python scripts/queue/worker.py --max-concurrent 3 --device cuda
+          resources:
+            requests: {cpu: "6", memory: 24Gi, nvidia.com/gpu: 1}
+            limits: {cpu: "6", memory: 24Gi, nvidia.com/gpu: 1}
+          volumeMounts:
+            - {name: vol, mountPath: /workspace}
+            - {name: shm, mountPath: /dev/shm}
+      volumes:
+        - name: vol
+          persistentVolumeClaim: {claimName: dftgnn-vol}
+        - name: shm
+          emptyDir: {medium: Memory, sizeLimit: 4Gi}

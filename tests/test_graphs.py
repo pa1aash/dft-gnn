@@ -136,3 +136,24 @@ def test_collate_repeats_host(built):
     assert b.vacancy_index.tolist() == [int(sites["vacancy_atom_index"][pos[0]]),
                                         n + int(sites["vacancy_atom_index"][pos[1]]),
                                         2 * n + int(sites["vacancy_atom_index"][pos[0]])]
+
+
+def test_sites_of_one_host_share_the_graph_and_differ_only_in_the_flag(built):
+    """Every host with several sites: distinct O vacancy atoms, and collated examples that are identical
+    except for the flag (checked on the first 40 such hosts)."""
+    graphs, sites, _ = built
+    h = sites["host_idx"]
+    multi = torch.nonzero(torch.bincount(h) >= 2).flatten()
+    for p in multi.tolist():
+        v = sites["vacancy_atom_index"][h == p]
+        assert len(set(v.tolist())) == len(v)
+    for p in multi[:40].tolist():
+        pos = torch.nonzero(h == p).flatten().tolist()
+        b = collate_sites(graphs, sites, pos)
+        n = graphs[p]["z"].shape[0]
+        flags = b.vac_flag.view(len(pos), n)
+        assert (flags.sum(1) == 1).all()
+        assert flags.argmax(1).tolist() == sites["vacancy_atom_index"][pos].tolist()
+        for k in ("z", "pos", "edge_dist"):
+            x = b[k].view(len(pos), n, -1) if k != "edge_dist" else b[k].view(len(pos), -1)
+            assert (x == x[0]).all(), k

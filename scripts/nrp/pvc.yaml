@@ -1,0 +1,14 @@
+# Project volume on NRP (Nautilus), namespace cms-ml. Holds the checkout, the venv, the graph store,
+# the job queue, results and checkpoints. CephFS RWX: several GPU pods share one queue (os.rename claims
+# and fcntl locks are atomic on CephFS).
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dftgnn-vol
+  labels: {app: dftgnn}
+spec:
+  accessModes: [ReadWriteMany]
+  storageClassName: rook-cephfs
+  resources:
+    requests:
+      storage: 50Gi

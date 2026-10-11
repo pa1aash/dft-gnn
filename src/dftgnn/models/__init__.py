@@ -53,6 +53,9 @@ class HParams:
     dropout: float = 0.0
     readout_mlp_width: int = 64
     pooling: str = "set2set"
+    # v2 options (docs/deviations.md, 2026-10-08). The defaults reproduce the pre-registered backbone.
+    init: str = "default"          # "default": PyTorch / matgl init; "kaiming": He-uniform weights, zero biases
+    local_readout: bool = False    # add the vacancy node's one-hop environment, computed from raw inputs
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -99,6 +102,8 @@ class VacancyNet(nn.Module):
             raise ValueError(f"unknown kind {kind!r}")
         if hp.pooling not in ("set2set", "mean"):
             raise ValueError(f"unknown pooling {hp.pooling!r}")
+        if hp.init not in ("default", "kaiming"):
+            raise ValueError(f"unknown init {hp.init!r}")
         self.kind, self.hp, self.n_host, self.n_site = kind, hp, n_host, n_site
         self.config = {"kind": kind, "hp": hp.to_dict(), "n_host": n_host, "n_site": n_site,
                        "cutoff": cutoff}
@@ -126,8 +131,20 @@ class VacancyNet(nn.Module):
             if hp.pooling == "set2set" else None
         pooled = 2 * h2 if hp.pooling == "set2set" else h2
         self.readout_dim = h2 + pooled + h2
+        # Local-environment branch: one message per edge leaving the vacancy node, from the raw distance
+        # expansion and the neighbour's element embedding, averaged per graph. It reaches the readout after
+        # two layers, so the site's geometry is not attenuated by the message-passing stack.
+        self.local = MLP([RBF_CENTRES + NODE_EMBED, h, h2], act, activate_last=True) if hp.local_readout else None
+        if self.local is not None:
+            self.readout_dim += h2
         self.dropout = nn.Dropout(hp.dropout) if hp.dropout else None
         self.head = MLP([self.readout_dim + late, w, w // 2, n_out], act, activate_last=False)
+        if hp.init == "kaiming":
+            for mod in self.modules():
+                if isinstance(mod, nn.Linear):
+                    nn.init.kaiming_uniform_(mod.weight, nonlinearity="relu")
+                    if mod.bias is not None:
+                        nn.init.zeros_(mod.bias)
 
     # ------------------------------------------------------------------ helpers
     def _desc(self, batch, desc_host, desc_site):
@@ -159,7 +176,14 @@ class VacancyNet(nn.Module):
             pooled = self.pool(node_feat, node_batch, dim_size=num_graphs)
         else:
             pooled = scatter(node_feat, node_batch, dim=0, dim_size=num_graphs, reduce="mean")
-        return torch.cat([vac, pooled.view(num_graphs, -1), state_feat.view(num_graphs, -1)], dim=-1)
+        parts = [vac, pooled.view(num_graphs, -1), state_feat.view(num_graphs, -1)]
+        if self.local is not None:
+            src, dst = batch.edge_index
+            out_vac = batch.vac_flag[src, 0] > 0                      # edges leaving the vacancy node
+            emb = self.embedding.layer_node_embedding(batch.z)
+            msg = self.local(torch.cat([edge_attr[out_vac], emb[dst[out_vac]]], dim=-1))
+            parts.append(scatter(msg, node_batch[src[out_vac]], dim=0, dim_size=num_graphs, reduce="mean"))
+        return torch.cat(parts, dim=-1)
 
     def forward(self, batch, desc_host=None, desc_site=None) -> torch.Tensor:
         vec = self.readout_vector(batch, desc_host, desc_site)

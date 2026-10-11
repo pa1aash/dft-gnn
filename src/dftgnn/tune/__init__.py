@@ -141,9 +141,14 @@ class TuningStore(Store):
         return super().positions(hosts)
 
 
-def trial_spec(model: str, anchor: int, params: dict, cfg: Config, study: str = "") -> RunSpec:
+def trial_spec(model: str, anchor: int, params: dict, cfg: Config, study: str = "",
+               arch: dict | None = None) -> RunSpec:
+    """``arch`` holds fixed backbone options (the v2 model, docs/deviations.md 2026-10-08), merged into the
+    sampled architecture; it is not searched."""
     t = cfg.tuning
-    return RunSpec(model=model, **split_params(params), split=f"outer_r{t.anchor_resample}",
+    sp = split_params(params)
+    sp["hp"] = {**sp["hp"], **(arch or {})}
+    return RunSpec(model=model, **sp, split=f"outer_r{t.anchor_resample}",
                    r=t.anchor_resample, budget=anchor, seed=t.trial_seed, eval_test=False,
                    tags={"tuning": study or study_name(model, anchor)})
 
@@ -285,7 +290,8 @@ def run_study(model: str, anchor: int, data: Store, *, cfg: Config | None = None
               storage_dir: Path = STORAGE_DIR, csv_dir: Path = RESULTS_DIR, n_trials: int | None = None,
               device: torch.device | None = None, ledger: VramLedger | None = None,
               est_gb: Callable[[dict], float] | None = None, train_fn=train_run, pod_commit: str | None = None,
-              epoch_override: tuple[int, int] | None = None, log=print) -> optuna.Study:
+              epoch_override: tuple[int, int] | None = None, arch: dict | None = None,
+              log=print) -> optuna.Study:
     """Run (or resume) the study of ``model`` at ``anchor`` until it holds ``n_trials`` COMPLETE trials."""
     cfg = cfg if cfg is not None else load_config()
     if model not in MODELS:
@@ -305,7 +311,7 @@ def run_study(model: str, anchor: int, data: Store, *, cfg: Config | None = None
     while n_complete(study) < n_trials:
         trial = study.ask()
         params = suggest(trial, cfg.tuning.search_space)
-        spec = trial_spec(model, anchor, params, cfg, name)
+        spec = trial_spec(model, anchor, params, cfg, name, arch)
         if epoch_override is not None:
             spec.max_epochs, spec.patience = epoch_override
         gb = est_gb(params) if est_gb is not None else 0.0
@@ -359,7 +365,8 @@ def _nullslot():
 
 # ---------------------------------------------------------------- summary
 
-def summarise(study: optuna.Study, model: str, anchor: int, cfg: Config, *, top: int = 5) -> dict:
+def summarise(study: optuna.Study, model: str, anchor: int, cfg: Config, *, top: int = 5,
+              arch: dict | None = None) -> dict:
     """Payload of ``write_result("tuning_<model>_a<anchor>")``."""
     done = sorted(study.get_trials(deepcopy=False, states=(optuna.trial.TrialState.COMPLETE,)),
                   key=lambda t: (t.value, t.number))
@@ -392,7 +399,7 @@ def summarise(study: optuna.Study, model: str, anchor: int, cfg: Config, *, top:
         "max_epochs": cfg.training.max_epochs, "patience": cfg.training.early_stopping.patience,
         "sum_trial_wall_s": sum(walls),
         "pod_commit": ua.get("pod_commit"), "graphs_manifest_sha256": ua.get("graphs_manifest_sha256"),
-        "test_hosts_loaded": False,
+        "test_hosts_loaded": False, "arch": arch or {},
     }
 
 

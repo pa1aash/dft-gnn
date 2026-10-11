@@ -1,0 +1,56 @@
+# One v2 tuning study per GPU Job (docs/deviations.md, 2026-10-08). Instantiate with sed:
+#   sed -e s/__MODEL__/S/ -e s/__MODELK__/s/ -e s/__ANCHOR__/654/ scripts/nrp/study-job.yaml | kubectl apply -n cms-ml -f -
+# Each study has its own storage directory, so the VRAM ledger (which assumes studies sharing one GPU) only
+# sees its own trials. Resumable: a restarted pod reopens the SQLite study and continues to 30 COMPLETE trials.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: dftgnn-tune-v2-__MODELK__-a__ANCHOR__
+  labels: {app: dftgnn, role: tune}
+spec:
+  backoffLimit: 8
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels: {app: dftgnn, role: tune}
+    spec:
+      restartPolicy: OnFailure
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: nvidia.com/gpu.product
+                    operator: In
+                    # one study per GPU needs <= 5 GB; CUDA 13 wheels need compute capability >= 7.5
+                    values: [NVIDIA-GeForce-RTX-3090, NVIDIA-A10, NVIDIA-L40, NVIDIA-L40S, NVIDIA-RTX-A6000,
+                             NVIDIA-A40, NVIDIA-GeForce-RTX-4090, NVIDIA-GeForce-RTX-2080-Ti, NVIDIA-TITAN-RTX,
+                             Tesla-T4, NVIDIA-L4, NVIDIA-RTX-A4000, NVIDIA-RTX-A5000, NVIDIA-A100-PCIE-40GB,
+                             NVIDIA-A100-80GB-PCIe, NVIDIA-A100-SXM4-80GB]
+                  - key: nvidia.com/cuda.driver.major
+                    operator: Gt
+                    values: ["579"]
+                  - key: kubernetes.io/hostname
+                    operator: NotIn
+                    values: [hcc-nrp-shor-c6017.unl.edu]
+      containers:
+        - name: study
+          image: python:3.11-bookworm
+          workingDir: /workspace/dft-gnn-v2
+          command: ["bash", "-c"]
+          args:
+            - >-
+              set -o pipefail && git config --global --add safe.directory '*' &&
+              (nvidia-smi --query-gpu=name,driver_version --format=csv,noheader || true) &&
+              echo "pod $HOSTNAME start $(date -u +%FT%TZ)" >> /workspace/tuning_v2/__MODEL___a__ANCHOR__.log &&
+              /workspace/venv/bin/python scripts/tune/run_study.py --v2 --model __MODEL__ --anchor __ANCHOR__
+              --device cuda --threads 6 --storage-dir /workspace/tuning_v2/__MODEL___a__ANCHOR__ 2>&1
+              | tee -a /workspace/tuning_v2/__MODEL___a__ANCHOR__.log
+          resources:
+            requests: {cpu: "6", memory: 24Gi, nvidia.com/gpu: 1}
+            limits: {cpu: "6", memory: 24Gi, nvidia.com/gpu: 1}
+          volumeMounts:
+            - {name: vol, mountPath: /workspace}
+      volumes:
+        - name: vol
+          persistentVolumeClaim: {claimName: dftgnn-vol}
