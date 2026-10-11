@@ -33,6 +33,8 @@ RUN_RECORD = re.compile(r"^[0-9a-f]{16}$")
 # named records in these subdirectories of results/ are read too; their lists of objects without one
 # unique identifying key are flattened by the joined values of COMPOSITE_KEYS (N1 GPU repeatability)
 EXTRA_RESULT_DIRS = ("nrp",)
+# named analysis records written by write_result beside a figure (path relative to the repository root)
+FIGURE_RECORD_DIRS = ("figures/main/data",)
 COMPOSITE_KEYS = ("class", "model", "B", "node", "pass", "a", "b")
 # protocol constants (not results): file, macro prefix, top-level keys to read (None = all)
 PROTOCOL_SOURCES = (
@@ -194,6 +196,13 @@ def main(argv: list[str] | None = None) -> int:
             leaves = []
             flatten(json.loads(p.read_text())["payload"], [], leaves, composite=True)
             add(camel(p.stem), leaves, f"results/{sub}/{p.name}#/payload/")
+        files += extra
+    for sub in FIGURE_RECORD_DIRS:
+        extra = named_records(ROOT / sub)
+        for p in extra:
+            leaves = []
+            flatten(json.loads(p.read_text())["payload"], [], leaves)
+            add(camel(p.stem), leaves, f"{sub}/{p.name}#/payload/")
         files += extra
     for rel, prefix, keys in PROTOCOL_SOURCES:
         add(prefix, protocol_leaves(ROOT / rel, keys), f"{rel}#/")
