@@ -1,217 +1,194 @@
 # National Research Platform runbook
 
-This runbook covers the remaining GPU work, run on the National Research Platform (NRP) by the second author from
-his own clone. Each card runs one GPU worker, on 24 GB cards or larger, with no job-time limit. The Mac has already
-written every job. Each stage is a spec file `specs/<stage>.jsonl` with a manifest. Run ids are computed with the
-pinned code reference `nrp-code-v1`, so the cluster reproduces them exactly and the results merge on the Mac by id.
-Rules and labels are in `docs/deviations.md` (rows of 2026-10-11).
+This runbook covers the remaining GPU work, run on the National Research Platform (NRP) by Aiden Lee, the second
+author, from his own clone. Each card runs one GPU worker, on a mixed pool of GPU classes, with no job-time limit.
+The Mac has written every job. Each stage is a spec file `specs/<stage>.jsonl` (with `<stage>.manifest.json`). Run
+ids are computed with the pinned code reference `nrp-code-v1`, so the cluster reproduces them exactly and the results
+merge on the Mac by id. Rules and labels are in `docs/deviations.md` (rows of 2026-10-11).
 
-Steps marked **[MAC]** run on Palaash's Mac. Everything else runs on the cluster.
+Steps marked **[MAC]** run on Palaash's Mac. Everything else runs on NRP.
 
 ## 0. What is fixed
 
 | item | value |
 |---|---|
-| code | annotated tag `nrp-code-v1` (merge of `m2-specs` into main). Workers refuse a job if `src/ scripts/ configs/ splits/ specs/` differ from the tag (`dftgnn.train.check_code_ref`) |
-| specs | `specs/<stage>.jsonl` plus `specs/<stage>.manifest.json` (count and sha256). `make_specs.py --check` must reproduce them on the cluster |
-| splits | `splits/MANIFEST.sha256` (append-only); `resamples_10_29.json` and `cv_v1.json` are the EXTENSION splits |
-| graphs | `data/graphs_v1_manifest.sha256` (graphs manifest sha256 `be5e5cfd…6d3713`; it enters every training run id) |
-| identity | every commit you push: `aidenlee <aiden.lee.sd@gmail.com>`. Commit messages and files must not contain the project's banned words (the Mac rejects the branch otherwise) |
+| code | annotated tag `nrp-code-v1` on main. `scripts/queue/worker.py` (through `dftgnn.train.check_code_ref`) refuses a job unless `nrp-code-v1` is an ancestor of HEAD and `src/`, `scripts/`, `configs/`, `splits/` and `specs/` are unchanged since that tag. Commits that only add results on top are allowed |
+| specs | 11 spec files (section 1). `make_specs.py --check` must reproduce each one byte-for-byte on the cluster |
+| identity | every commit you push uses exactly `user.name` = `aidenlee` and `user.email` = `aiden.lee.sd@gmail.com` (`export_stage.sh` refuses any other identity). Commit messages and files must not contain the project's banned words; the Mac rejects the branch otherwise |
+| hardware | mixed pool. Every result records GPU model, UUID, driver, node (`NODE_NAME`) and pod hostname (`dftgnn.hardware`). Node `hcc-nrp-shor-c6017.unl.edu` is excluded (N1 row of 2026-10-11) |
+| inputs | three bundles in the shared file folder, each with a sha256 manifest (section 2) |
+| outputs | result JSONs and prediction parquets come back as git branches `nrp/<stage>`. Checkpoints, relaxed structures and embeddings stay on NRP storage; their hashes go in the tracked manifest `results/nrp/artefacts/<stage>.sha256` |
 
 ## 1. Stages, order and concurrency
 
-| group | stage | jobs | label | depends on | inputs set | results (tracked) | large artefacts (gitignored, outbox) |
-|---|---|---:|---|---|---|---|---|
-| N2a | relax | 818 minus already relaxed | registered | - | infer | `results/mlip_v1/` | `data/processed/mlip_v1/` |
-| N2a | peval | 183 | registered | S09 checkpoints | infer | `results/peval/` + predictions | - |
-| N2a | embed | 240 | registered | S09 checkpoints | infer | `results/embeddings_v1/` | `data/processed/embeddings_v1/` |
-| N2a | geomeval | 180 | registered (B = 200 descriptive extra) | relax of its test hosts | infer | `results/geomeval/` + predictions | - |
-| N2b | loco | 30 | registered | - | train | `results/loco/` + predictions | `checkpoints/` |
-| N2b | moment | 60 | registered | - | train | `results/moment/` + predictions | `checkpoints/` |
-| N2b | cgcnn | 18 | registered | - | train | `results/cgcnn/` + predictions | `checkpoints/` |
-| N2b | capped | 33 | POST HOC | - | train | `results/capped_rerun_v1/` + predictions | `checkpoints/` |
-| N3 | cv | 180 per backbone | EXTENSION | - | train | `results/cv/` + predictions | `checkpoints/` |
-| N4 | precision | 480 | EXTENSION | - | train | `results/precision/` + predictions | `checkpoints/` |
+| group | spec file | stage | jobs | backbone | label | depends on | results (tracked) | kept on NRP |
+|---|---|---|---:|---|---|---|---|---|
+| N2a | `relax.jsonl` | MACE-MP-0 relaxation of every host | 818 | - | registered | - | `results/mlip_v1/` | `data/processed/mlip_v1/` |
+| N2a | `peval.jsonl` | P = P1 then D on the test hosts | 183 | v1 | registered | S09 checkpoints | `results/peval/` | - |
+| N2a | `embed.jsonl` | S readout embeddings | 240 | v1 | registered | S09 checkpoints | `results/embeddings_v1/` | `data/processed/embeddings_v1/` |
+| N2a | `geomeval.jsonl` | S, D, P under DFT, MLIP and rescaled geometry | 180 | v1 | registered (B = 200 descriptive extra) | relax of its test hosts | `results/geomeval/` | - |
+| N2b | `moment.jsonl` | high-moment exclusion | 60 | v1 | registered | - | `results/moment/` | `checkpoints/` |
+| N2b | `cgcnn.jsonl` | CGCNN cross-check | 18 | v1 | registered | - | `results/cgcnn/` | `checkpoints/` |
+| N2b | `capped.jsonl` | 600-epoch twins of capped runs | 33 | v1 | POST HOC | - | `results/capped_rerun_v1/` | `checkpoints/` |
+| N3 | `cv.jsonl` | grouped CV, K = 10 and 20 | 180 | v1 | EXTENSION | - | `results/cv/` | `checkpoints/` |
+| N3 | `cv_v2.jsonl` | grouped CV, K = 10 and 20 | 180 | v2 | EXTENSION, v2 backbone (POST HOC) | - | `results/cv_v2/` | `checkpoints/` |
+| N4 | `precision.jsonl` | 30 resamples x 5 seeds at B = 400, 654 | 480 | v1 | EXTENSION | - | `results/precision/` | `checkpoints/` |
+| N4 | `precision_v2.jsonl` | the same with the v2 backbone | 480 | v2 | EXTENSION, v2 backbone (POST HOC) | - | `results/precision_v2/` | `checkpoints/` |
 
-Priority: every job carries a global `priority`: relax 0…, peval 100000…, …, cv 800000…, precision 900000…. In one
-queue a free worker always takes the ready job with the lowest priority. So N2a runs first, then N2b, N3 and N4.
+Total: 2852 jobs. LOCO is not a stage: your 30 v1 LOCO runs are adopted (deviations row of 2026-10-11).
+
+Priority: every job carries a global `priority`: relax from 0, peval from 100000, and so on to precision from
+800000; a v2 file adds 50000 to its stage base. In one queue a free worker always takes the ready job with the
+lowest priority, so N2a goes first, then N2b, N3 and N4, and the v1 jobs of a stage go before its v2 jobs.
 
 Concurrency:
-- All stages can be queued at once in one shared queue. A worker that finds no ready N2a job (for example, geomeval
-  waiting on relax) backfills from N2b, N3 or N4.
-- relax, peval and embed are independent of one another. A geomeval job becomes ready once the relax jobs of its
-  test hosts are done. Hosts that were already relaxed and ingested earlier are not dependencies, because their
-  geometry is already in `data/processed/mlip_v1/`.
-- loco, moment, cgcnn, capped, cv and precision are independent of everything.
-- The v2 versions of cv and precision (`specs/cv_v2.jsonl`, `specs/precision_v2.jsonl`) exist only after the Mac
-  wires in the v2 backbone. The manifest of each spec file records its `backbone`.
+- All eleven files can be queued at once in one shared queue. A worker that finds no ready N2a job (for example
+  geomeval waiting on relax) backfills from N2b, N3 or N4.
+- relax, peval and embed are independent. A geomeval job is ready once the relax jobs of its test hosts are done.
+- moment, cgcnn, capped, cv, cv_v2, precision and precision_v2 are independent of everything.
 
-Memory: training jobs need at most 7.8 GB (`est_peak_gb`). The peval and geomeval estimates go up to 26.3 GB, but
-they come from the training benchmark, and inference holds no gradients. Run one of these jobs on a 24 GB card as a
-canary (step 4). If it runs out of memory twice, route the heavy jobs to a larger card class with
-`--min-est-gb 20` / `--max-est-gb 20` (step 4).
+Measured in N1, for training at B = 654 on one GPU: peak GPU memory was 4.65 GB on every class. Mean wall time per
+654-host run was 1171-1543 s on A10, 859-1197 s on RTX 3090, 757-934 s on L4 and 1036-1182 s on RTX A4000 (S-D
+range; `results/nrp/n1_recompute.json`). Inference memory (peval, embed, geomeval) was not measured. Their
+estimates, from the training benchmark, reach 26.3 GB; run one peval job with `est_peak_gb` above 20 first
+(section 4).
 
 ## 2. One-time setup
 
-Use one persistent volume that every GPU pod mounts read-write (on NRP, a CephFS-backed PVC), mounted at
-`/workspace`. The checkout, the queue (`jobs/`), the halt file and the outputs all live on it. The file queue claims a
-job by `rename`, which is atomic on that filesystem. Without a shared volume, see section 7 (shards).
+**Shared folder [MAC → NRP].** Palaash builds three bundles and puts them in the shared file folder. Each bundle is
+a `.tar`, its member manifest `.sha256` and a `.tar.sha256`:
+- `nrp_inputs`: graph shards, universe table, DFT unit cells, the tiling map (one-operation rule, 818 of 818
+  hosts) and the 818 release supercell CIFs;
+- `nrp_checkpoints`: the 583 S09 checkpoints, about 964 MB;
+- `nrp_mace`: the MACE-MP-0 medium weights.
+
+**[MAC]** `bash scripts/nrp/make_inputs_bundle.sh all`. It checks every file against its tracked record before
+packing, writes the bundles to `.local/nrp_inputs/`, and uploads nothing.
+
+**Project volume.** Use one CephFS-backed PVC that every pod mounts read-write at `/workspace`. It holds the shared
+checkout, the queue, the halt file and every output. The file queue claims a job by `rename`, which is atomic on
+that filesystem. Clone onto local disk first and then copy: a direct clone onto CephFS broke off in N0.
 
 ```bash
-cd /workspace
-git clone https://github.com/pa1aash/dft-gnn.git && cd dft-gnn
+cd /tmp && git clone https://github.com/pa1aash/dft-gnn.git && cd dft-gnn
 git fetch --tags && git checkout --detach nrp-code-v1
+cp -a /tmp/dft-gnn /workspace/dft-gnn && cd /workspace/dft-gnn
 git config user.name aidenlee && git config user.email aiden.lee.sd@gmail.com
-mamba env create -y -f env/environment-gpu.yml        # env name dftgnn-gpu
-mamba run -n dftgnn-gpu pip install --no-deps -e .
-```
-
-**[MAC]** Build the input bundles and hand them over. They are not in git:
-`bash scripts/nrp/make_inputs_bundle.sh train` builds the graph shards and the universe table (about 130 MB).
-`bash scripts/nrp/make_inputs_bundle.sh infer` adds the 583 S09 checkpoints, the unit cells, the tiling map, the
-MACE-MP-0 medium weights and the 818 release supercells. Each bundle is a tar with a `.tar.sha256` and an inner
-sha256 list. The script checks every file against its tracked manifest before packing.
-
-On the cluster, from the checkout root:
-
-```bash
-shasum -a 256 -c nrp_inputs_infer.tar.sha256           # or sha256sum -c
-tar -xf nrp_inputs_infer.tar && sha256sum -c --quiet nrp_inputs_infer.sha256 && echo INPUTS OK
-mamba run -n dftgnn-gpu python -c "from dftgnn.graphs import store; b = store.verify_store(); print('graphs', 'OK' if not b else b)"
+# download the three bundles into /workspace/bundles, then for each <b> in inputs checkpoints mace:
+bash scripts/nrp/verify_bundle.sh /workspace/bundles/nrp_<b>.tar.sha256 /workspace/bundles
+tar -xf /workspace/bundles/nrp_<b>.tar && bash scripts/nrp/verify_bundle.sh nrp_<b>.sha256
 (cd splits && sha256sum -c --quiet MANIFEST.sha256) && echo "splits OK"
 ```
 
-## 3. Generate (verify) the specs
+`verify_bundle.sh` checks every sha256 in a manifest and nothing else. Each call must print `OK: n of n`.
 
-The spec files are committed at the tag. Regenerating them proves that the clone computes the same run ids. The
-command writes nothing; it compares bytes:
+## 3. Verify the specs on the cluster
+
+From any pod with the environment (section 4, `stage_pod.sh env`):
 
 ```bash
-for s in relax peval embed geomeval loco moment cgcnn capped cv precision; do
-  mamba run -n dftgnn-gpu python scripts/queue/make_specs.py --stage $s --code-ref nrp-code-v1 --backbone v1 --check \
-      $( [ $s = relax ] || [ $s = geomeval ] && [ -f specs/relax_hosts.txt ] && echo --hosts-file specs/relax_hosts.txt )
-done
+cd /workspace/dft-gnn && export PYTHONPATH=$PWD/src
+for s in relax peval embed geomeval moment cgcnn capped cv precision; do
+  /tmp/venv/bin/python scripts/queue/make_specs.py --stage $s --check; done
+for s in cv precision; do /tmp/venv/bin/python scripts/queue/make_specs.py --stage $s --backbone v2 --check; done
 ```
 
-Each line must end in `files match`. If any line differs, stop and report it to Palaash: the run ids would not
-merge. The generator is pure: it uses no GPU and no network.
+Each line must end in `files match`. If any line differs, stop and tell Palaash: the run ids would not merge.
 
-## 4. Enqueue and start the workers (MPS off)
+## 4. Enqueue, workers and supervisor (MPS off)
 
-Enqueue once, from any pod. Enqueueing is idempotent by run id, and the code reference is checked first:
+Every pod runs `scripts/nrp/stage_pod.sh`, which builds the venv from `env/lock-nrp-rtx2080ti.txt` on local disk.
+Give each GPU pod 1 GPU, 2 CPU, 8 GiB memory and a 4 GiB `/dev/shm`, as in N1, plus `NODE_NAME` from the downward
+API (`spec.nodeName`). Use this node affinity:
+`nvidia.com/gpu.product Exists` and `kubernetes.io/hostname NotIn [hcc-nrp-shor-c6017.unl.edu]`. Do not pin a GPU
+class: the pool is mixed by policy. `docs/nrp/n1_submit_template.md` has the YAML pattern.
+
+Enqueue once, from any pod, after `bash scripts/nrp/stage_pod.sh env`. Enqueueing is idempotent by run id, and the
+code reference and each file's manifest are checked first.
 
 ```bash
-cd /workspace/dft-gnn
-Q=/workspace/dft-gnn/jobs
-mamba run -n dftgnn-gpu python scripts/queue/enqueue.py specs --queue $Q \
-    --specs specs/relax.jsonl specs/peval.jsonl specs/embed.jsonl specs/geomeval.jsonl \
-            specs/loco.jsonl specs/moment.jsonl specs/cgcnn.jsonl specs/capped.jsonl \
-            specs/cv.jsonl specs/precision.jsonl
+cd /workspace/dft-gnn && export PYTHONPATH=$PWD/src; PY=/tmp/venv/bin/python
+N2A="specs/relax.jsonl specs/peval.jsonl specs/embed.jsonl specs/geomeval.jsonl"
+N2B="specs/moment.jsonl specs/cgcnn.jsonl specs/capped.jsonl"
+N3="specs/cv.jsonl specs/cv_v2.jsonl"
+N4="specs/precision.jsonl specs/precision_v2.jsonl"
+$PY scripts/queue/enqueue.py specs --queue /workspace/dft-gnn/jobs --specs $N2A $N2B $N3 $N4
 ```
 
-If 24 GB cards run out of memory on peval or geomeval, give the heavy jobs a queue of their own on a larger card
-class. Use two queues, both on the shared volume:
-`--max-est-gb 20 --queue $Q` (24 GB cards) and `--min-est-gb 20 --queue /workspace/dft-gnn/jobs_big` (larger cards).
+Each GPU pod runs one worker on its card: `bash /workspace/dft-gnn/scripts/nrp/stage_pod.sh` (worker mode). Run as
+many GPU pods as the namespace allows.
 
-Each GPU pod runs exactly one worker on its card. Do not start CUDA MPS (`scripts/pod/mps.sh` is for RunPod only):
-
-```bash
-cd /workspace/dft-gnn
-mkdir -p /workspace/chain/logs
-CUDA_VISIBLE_DEVICES=0 nohup mamba run -n dftgnn-gpu python scripts/queue/worker.py --max-concurrent 1 \
-    --device cuda --threads 4 --queue /workspace/dft-gnn/jobs --halt-file /workspace/chain/HALT \
-    >> /workspace/chain/logs/worker_$(hostname).log 2>&1 &
-```
-
-On a pod with several GPUs, start one such line per card with `CUDA_VISIBLE_DEVICES=<i>`. Exactly one pod (a small
-CPU pod is enough) runs the supervisor without launching workers. It requeues orphaned jobs, retries a failed job
-once, packs each finished group (N2a, N2b, N3, N4) into `outbox/` and writes the end state:
+One CPU pod runs the supervisor without launching workers. It requeues orphaned jobs, retries a failed job once,
+packs nothing (`--tranches` only marks group completion) and writes the end state:
 
 ```bash
-cp scripts/queue/supervisor.py /workspace/chain/
-nohup mamba run -n dftgnn-gpu python /workspace/chain/supervisor.py --checkout /workspace/dft-gnn \
-    --chain /workspace/chain --no-launch --workers <number of GPU workers> --guard 1e9 --stage nrp \
-    --specs specs/relax.jsonl specs/peval.jsonl specs/embed.jsonl specs/geomeval.jsonl specs/loco.jsonl \
-            specs/moment.jsonl specs/cgcnn.jsonl specs/capped.jsonl specs/cv.jsonl specs/precision.jsonl \
+mkdir -p /workspace/chain && cp scripts/queue/supervisor.py /workspace/chain/
+nohup $PY /workspace/chain/supervisor.py --checkout /workspace/dft-gnn --chain /workspace/chain --python $PY \
+    --no-launch --workers <number of GPU pods> --guard 1e9 --stage nrp --specs $N2A $N2B $N3 $N4 \
     --tranches N2a,N2b,N3,N4 >> /workspace/chain/supervisor.log 2>&1 &
 ```
 
-`--guard 1e9` turns the RunPod spending guard off: the cluster has no hourly price. Monitor with
-`mamba run -n dftgnn-gpu python scripts/queue/status.py --queue /workspace/dft-gnn/jobs`, `supervisor.log` and the
-`PACKED_<group>` files. End states: `ALL_DONE`, or `DRAINED_WITH_FAILURES` (failed jobs stay in `jobs/failed/` with
-their traceback). To stop cleanly, `touch /workspace/chain/HALT`: workers finish their current job and exit.
+The supervisor packs each finished group into `outbox/` as before. Those tarballs are a local convenience and are
+not sent anywhere. Monitor with `$PY scripts/queue/status.py --queue /workspace/dft-gnn/jobs`, `supervisor.log` and
+`ls jobs/failed`. End states: `ALL_DONE`, or `DRAINED_WITH_FAILURES`. To stop cleanly, `touch /workspace/chain/HALT`.
 
-Canary: before the large wave, check that one peval job with `est_peak_gb` above 20 finishes on a 24 GB card
-(`ls jobs/done | head`, then `jobs/failed/`).
+To run one group at a time instead, enqueue only that group's files (for example `--specs $N3`).
 
-Never edit, delete or `git add` tracked files in the live checkout while workers run. `write_result` refuses a dirty
-tree, and a changed file under the pinned paths stops every later job.
+Canary: before the large wave, check that one peval job with `est_peak_gb` above 20 finishes on a 24 GB card. If
+it runs out of memory twice, use two queues: enqueue with `--max-est-gb 20 --queue /workspace/dft-gnn/jobs` for
+cards under 40 GB and `--min-est-gb 20 --queue /workspace/dft-gnn/jobs_big` for larger cards, and give the large-card
+pods `DFTGNN_QUEUE=/workspace/dft-gnn/jobs_big`.
 
-## 5. Where results go, and how to push them
+Never edit, delete or `git add` tracked files in `/workspace/dft-gnn` while workers run. `write_result` refuses a
+dirty tree, and a change under the pinned paths stops every later job.
 
-Training runs write `results/<subdir>/<run_id>.json`, `results/<subdir>/predictions/<run_id>.parquet` and
-`checkpoints/<run_id>.pt`. Task stages write `results/mlip_v1/`, `results/embeddings_v1/` and `results/geomeval/`,
-plus their large files under `data/processed/`. Every record is written by `write_result` with its git SHA and its
-artefact hashes.
-
-Export a stage whenever you like (for example after its group is packed, or daily for long stages). Re-running the
-export adds the runs finished since the last one:
+## 5. Push results: one branch per stage
 
 ```bash
-bash scripts/nrp/export_stage.sh cv          # or any stage name
+cd /workspace/dft-gnn && bash scripts/nrp/export_stage.sh <stage>     # relax, peval, ..., cv, precision
 ```
 
-The script commits the stage's result JSONs and prediction parquets. It commits in a separate worktree
-(`../dft-gnn-nrp-<stage>`, branch `nrp/<stage>`, started at `nrp-code-v1`) under your identity, and pushes
-`nrp/<stage>`. It never switches the live checkout. It then packs every artefact of the stage, including the
-gitignored checkpoints and structures, into `outbox/outbox_<stage>_<time>.tar.gz` with a `.sha256`. Hand both files
-to Palaash, for example through the shared storage you already use. The tarball is needed for every stage that has
-large artefacts (section 1).
+The script commits the stage's result JSONs and prediction parquets, plus `results/nrp/artefacts/<stage>.sha256`
+with one line per gitignored artefact (sha256, size, path; each hash recomputed and compared with its record). It
+commits in a separate worktree (`../dft-gnn-nrp-<stage>`, branch `nrp/<stage>`, started at `nrp-code-v1`) under
+your identity, and pushes. The live checkout never changes branch. Run it again later to add newer runs; an export
+from another pod continues the pushed branch. The v2 files share their stage name: cv and cv_v2 both export as
+`nrp/cv`, and precision and precision_v2 as `nrp/precision`. Checkpoints and other large artefacts stay on the
+volume; keep it until Palaash says the analyses are done.
 
 ## 6. Preemption and resume
 
-Run ids are deterministic and every runner is idempotent, so a preempted pod is restarted with the same command:
-- A job whose pod died stays in `jobs/running/` until its heartbeat is 10 minutes old. The supervisor, or the next
-  worker, then returns it to pending, and it reruns from the start. Training runs are short; no partial state is
-  kept.
-- A finished run is never redone. Its result verifies by hash (`verify_result`, `tasks.verified`) and is skipped.
-  Re-enqueueing the same spec files adds nothing ("already known").
+Run ids are deterministic and every runner is idempotent, so a preempted pod is restarted with the same command.
+- A job whose pod died returns to pending after its heartbeat is 10 minutes old, and reruns from the start.
+- A finished run whose result verifies by hash is never redone. Re-enqueueing adds nothing ("already known").
 - A failed job is retried once by the supervisor. A second failure stays in `jobs/failed/` with its traceback, and
   its dependants wait. Report these failures; do not edit code on the cluster.
-- If the volume itself is lost, re-clone at `nrp-code-v1` and re-enqueue. Runs already exported are on `nrp/<stage>`
-  and in the outbox tarballs, and can be placed back before re-enqueueing.
 
 ## 7. Without a shared volume: shards
 
-Give each pod its own clone and queue, and split the jobs by run id. With N pods, pod i enqueues:
+Give each pod its own checkout and queue, and split the jobs by run id with `enqueue.py specs --shard i/N`. The
+shards are disjoint and their union is the full stage. Each pod exports with
+`export_stage.sh <stage> --no-push` and pushes to its own branch:
+`git -C ../dft-gnn-nrp-<stage> push origin nrp/<stage>:nrp/<stage>-s<i>`. geomeval needs every relax output on the
+same storage, so run it where the relax outputs are.
 
-```bash
-mamba run -n dftgnn-gpu python scripts/queue/enqueue.py specs --shard i/N --queue jobs --specs specs/<stage>.jsonl ...
-```
-
-The shards are disjoint and their union is the full stage. Each pod exports its own runs with `bash scripts/nrp/export_stage.sh <stage> --no-push` and pushes them to a branch
-of its own, `git -C ../dft-gnn-nrp-<stage> push origin nrp/<stage>:nrp/<stage>-s<i>`. The Mac ingests each shard
-branch separately. geomeval needs every relax result present, so run it after the relax
-shards have been merged and their outbox tarballs placed. Enqueue refuses a geomeval job whose relax dependency is
-neither queued nor already verified.
-
-## 8. What the Mac does when a branch arrives **[MAC]**
+## 8. On the Mac when a branch arrives **[MAC]**
 
 ```bash
 cd ~/Desktop/dft-gnn && git switch main && git pull --ff-only
-bash scripts/nrp/ingest_batch.sh nrp/<stage> --outbox ~/Downloads/outbox_<stage>_<time>.tar.gz
+bash scripts/nrp/ingest_batch.sh nrp/<stage>
 ```
 
 The ingest check fetches the branch. It checks the author set and the banned pattern (commit messages, added lines,
-paths), and that the branch contains `nrp-code-v1` and changes nothing under the pinned paths. It places the
-tarball's gitignored artefacts only after verifying them. It then checks that every results JSON names its run id,
-that the id is listed in `specs/` and that every recorded artefact hash matches. Finally it prints the counts per
-stage against the spec totals. It merges nothing. If it passes:
+paths), and that the branch contains `nrp-code-v1` and changes nothing under the pinned paths. It then checks that
+every results JSON names its run id, that the id is listed in `specs/`, that every committed artefact matches its
+recorded sha256, and that every NRP-kept artefact is listed with the same sha256 in `results/nrp/artefacts/`.
+Finally it prints the counts per stage against the spec totals. It merges nothing. If it passes:
 
 ```bash
 git merge --no-ff origin/nrp/<stage> -m "merge(nrp): <stage> results from the cluster"
-make audit-history && gtimeout 120 git push origin main
+make audit-history && perl -e 'alarm 120; exec @ARGV' -- git push origin main
 ```
 
-Back up the gitignored artefacts as for S09. Analyses run from the merged files on the Mac, under the rules logged in
-`docs/deviations.md`. The EXTENSION analysis rules are logged before any of their results is read.
+The analyses run on the Mac from the merged files, under the rules logged in `docs/deviations.md`. The cv and
+precision rules were logged on 2026-10-11, before any result.
