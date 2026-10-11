@@ -36,6 +36,9 @@ EXTRA_RESULT_DIRS = ("nrp",)
 # named analysis records written by write_result beside a figure (path relative to the repository root)
 FIGURE_RECORD_DIRS = ("figures/main/data",)
 COMPOSITE_KEYS = ("class", "model", "B", "node", "pass", "a", "b")
+# named records with a list of objects identified by several fields together (M9 within-host breakdown):
+# record stem -> {payload list key: identifying fields}; each item is flattened under the joined field values
+MULTIKEY_LISTS = {"within_host_breakdown": {"groups": ("variable", "group")}}
 # protocol constants (not results): file, macro prefix, top-level keys to read (None = all)
 PROTOCOL_SOURCES = (
     ("configs/config.yaml", "Cfg", None),
@@ -204,6 +207,14 @@ def main(argv: list[str] | None = None) -> int:
             flatten(json.loads(p.read_text())["payload"], [], leaves)
             add(camel(p.stem), leaves, f"{sub}/{p.name}#/payload/")
         files += extra
+    for p in files:
+        payload = json.loads(p.read_text())["payload"]
+        for key, ids in MULTIKEY_LISTS.get(p.stem, {}).items():
+            keyed = {"_".join(str(v[k]) for k in ids): {k: w for k, w in v.items() if k not in ids}
+                     for v in payload[key]}
+            leaves = []
+            flatten({key: keyed}, [], leaves)
+            add(camel(p.stem), leaves, f"results/{p.name}#/payload/")
     for rel, prefix, keys in PROTOCOL_SOURCES:
         add(prefix, protocol_leaves(ROOT / rel, keys), f"{rel}#/")
 
