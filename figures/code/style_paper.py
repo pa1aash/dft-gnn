@@ -164,7 +164,7 @@ def save(fig, stem, png: bool = False) -> Path:
     stem = Path(stem)
     stem.parent.mkdir(parents=True, exist_ok=True)
     pdf = stem.with_suffix(".pdf")
-    fig.savefig(pdf)
+    fig.savefig(pdf, metadata={"CreationDate": None})  # byte-stable output
     if png:
         fig.savefig(stem.with_suffix(".png"), dpi=300)
     plt.close(fig)
