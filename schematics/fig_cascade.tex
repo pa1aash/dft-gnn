@@ -1,0 +1,25 @@
+% Figure S1: the filter cascade, step names only (counts in Table 1). Caption: fig_cascade.caption.md
+\documentclass[tikz,border=1pt]{standalone}
+\input{common}
+
+\begin{document}
+\begin{tikzpicture}[node distance=5.5mm]
+  \tikzset{
+    cstep/.style={box, minimum width=1.75cm, minimum height=9mm, draw=cRef, fill=black!4},
+    ends/.style={cstep, inner xsep=3.5pt, line width=0.8pt, draw=black!75, fill=white},
+    sink/.style={box, minimum width=1.75cm, minimum height=6mm, draw=cB0, dashed,
+                 dash pattern=on 2pt off 1.2pt, text=black!70},
+  }
+  \node[ends] (rel) {release\\neutral entries};
+  \node[cstep, right=of rel] (ml) {ML subset};
+  \node[cstep, right=of ml] (d1) {D1};
+  \node[cstep, right=of d1] (d2) {D2};
+  \node[cstep, right=of d2] (d3) {D3};
+  \node[ends, right=of d3] (fin) {final\\universe v1};
+  \foreach \a/\b in {rel/ml, ml/d1, d1/d2, d2/d3, d3/fin} \draw[flow] (\a) -- (\b);
+  \foreach \n in {ml, d1, d2, d3} {
+    \node[sink, below=6mm of \n] (x\n) {excluded};
+    \draw[flow, draw=cB0] (\n) -- (x\n);
+  }
+\end{tikzpicture}
+\end{document}

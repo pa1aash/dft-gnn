@@ -1,0 +1,40 @@
+% Shared preamble for the TikZ schematics (fig_*.tex). Load with \input{common} after
+% \documentclass[tikz,border=1pt]{standalone}.
+% Palette = src/dftgnn/viz/style.py COLORS (Okabe-Ito hues), extended with P and the v2 style.
+\usepackage[T1]{fontenc}
+\usepackage[scale=1.0]{tgheros}            % Helvetica-metric sans, Type 1, embeddable
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage[eulergreek]{sansmath}
+\sansmath
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,fit,backgrounds,calc,shapes.geometric,decorations.pathreplacing}
+
+% ---- palette (hex as in style.py) ----
+\definecolor{cB0}{HTML}{7F7F7F}            % grey   B0 physics floor
+\definecolor{cRF}{HTML}{E69F00}            % orange RF-Kumagai
+\definecolor{cS}{HTML}{0072B2}             % blue   S
+\definecolor{cD}{HTML}{009E73}             % green  D
+\definecolor{cP}{HTML}{CC79A7}             % reddish purple P (P1 and the staged P)
+\definecolor{cRef}{HTML}{4D4D4D}           % reference grey (arrows, neutral outlines)
+\definecolor{cO}{HTML}{D55E00}             % vermillion: the flagged vacancy O site
+\colorlet{cNeutral}{black!45}
+
+% ---- page geometry (docs/venue.md: MDPI \textwidth 138.6 mm) ----
+\newlength{\figwidth}\setlength{\figwidth}{138.6mm}
+
+% ---- styles ----
+\tikzset{
+  every picture/.style={line width=0.6pt, font=\fontsize{8}{9.6}\selectfont},
+  >={Stealth[length=2.2mm,width=1.6mm]},
+  flow/.style={->, draw=cRef, line width=0.6pt},
+  inject/.style={->, draw=cD, line width=0.9pt},
+  box/.style={draw=cNeutral, rounded corners=1.2pt, minimum height=6mm, inner xsep=2.2pt,
+              inner ysep=1.6pt, align=center, fill=white},
+  model/.style={box, draw=#1, fill=#1!14, line width=0.8pt},
+  modelname/.style={font=\fontsize{9}{10}\selectfont\bfseries, text=#1},
+  quantity/.style={box, draw=cNeutral, fill=black!4},
+  v2/.style={draw=#1, dashed, dash pattern=on 2pt off 1.2pt, line width=0.8pt, rounded corners=1.2pt},
+  panel/.style={font=\fontsize{9}{10}\selectfont\bfseries, anchor=north west, inner sep=0pt},
+  atom/.style={circle, inner sep=0pt, minimum size=#1},
+}
+\newcommand{\Ef}{$E_\mathrm{f}$}
