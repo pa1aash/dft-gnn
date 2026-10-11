@@ -299,7 +299,7 @@ def load_v1(root: Path) -> tuple[pd.DataFrame, dict]:
     seeds = ["y_pred_seed0", "y_pred_seed1", "y_pred_seed2"]
     if not np.allclose(e[seeds].mean(axis=1), e.y_pred, rtol=0, atol=1e-12):
         raise ValueError("eval_table y_pred is not the mean of the seed columns")
-    long = e.melt(id_vars=["model", "r", "site_id", "host_id", "y_true"], value_vars=seeds,
+    long = e.drop(columns="y_pred").melt(id_vars=["model", "r", "site_id", "host_id", "y_true"], value_vars=seeds,
                   var_name="seed", value_name="y_pred")
     long["seed"] = long.seed.str[-1].astype(int)
     return long, {"path": str(path.relative_to(root)), "sha256": sha256(path), "rows_used": len(e)}
