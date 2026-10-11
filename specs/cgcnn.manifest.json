@@ -1,5 +1,8 @@
 {
  "backbone": "v1",
+ "backbones_with_this_stage": {
+  "v1": "cgcnn.jsonl"
+ },
  "code_ref": "nrp-code-v1",
  "count": 18,
  "counts_by_model": {
@@ -13,10 +16,10 @@
  "jsonl": "cgcnn.jsonl",
  "label": "registered",
  "priority_range": [
-  600000,
-  600017
+  500000,
+  500017
  ],
- "sha256": "345b78332ade6dba421691cf799e800c822c17199d1553e1d9402105b261e769",
+ "sha256": "8108ccaa57e8ec33e3a93706caf361b1759e38209faebe6a20889600e31fcfd1",
  "splits_manifest_sha256": "62595259d38dce0381172b7e78377b2ca887c48fc3b2ac9d942767f0b3f2acf3",
  "stage": "cgcnn",
  "tuned": {

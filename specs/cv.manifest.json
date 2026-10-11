@@ -1,5 +1,9 @@
 {
  "backbone": "v1",
+ "backbones_with_this_stage": {
+  "v1": "cv.jsonl",
+  "v2": "cv_v2.jsonl"
+ },
  "code_ref": "nrp-code-v1",
  "count": 180,
  "counts_by_model": {
@@ -13,10 +17,10 @@
  "jsonl": "cv.jsonl",
  "label": "EXTENSION",
  "priority_range": [
-  800000,
-  800179
+  700000,
+  700179
  ],
- "sha256": "602b6dcb89b530649bfc21a6662d75e02ccf053ee4753d80835c47db38c84fdd",
+ "sha256": "93e87088753626fa7e06d4db9d71edfe0aeb6a892ffa292dd56b97f66bfea8b8",
  "splits_manifest_sha256": "62595259d38dce0381172b7e78377b2ca887c48fc3b2ac9d942767f0b3f2acf3",
  "stage": "cv",
  "tuned": {

@@ -1,5 +1,9 @@
 {
  "backbone": "v1",
+ "backbones_with_this_stage": {
+  "v1": "precision.jsonl",
+  "v2": "precision_v2.jsonl"
+ },
  "code_ref": "nrp-code-v1",
  "count": 480,
  "counts_by_model": {
@@ -13,10 +17,10 @@
  "jsonl": "precision.jsonl",
  "label": "EXTENSION",
  "priority_range": [
-  900000,
-  900479
+  800000,
+  800479
  ],
- "sha256": "6dec35c235c15fa0b0403fb222077303ee076b8146447aa8a6cfaa2ff954c324",
+ "sha256": "0aa4fbff17a9e154d6203b50e38e2533ae252da1975cb1adfdfa3dc127079fb8",
  "splits_manifest_sha256": "62595259d38dce0381172b7e78377b2ca887c48fc3b2ac9d942767f0b3f2acf3",
  "stage": "precision",
  "tuned": {
