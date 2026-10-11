@@ -1,0 +1,14 @@
+# LaTeX build products (the PDF can carry text from the excluded local/ inputs)
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+main.pdf
+# generated from results/*.json by tools/make_numbers.py
+generated/
+# symlink to the untracked MDPI template, made by tools/fetch_template.sh
+Definitions

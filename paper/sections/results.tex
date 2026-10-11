@@ -1,0 +1,59 @@
+% Purpose: the measured learning curves, the descriptor advantage and its ceiling, then staging, geometry, probe and screening, each tied to a claims-table row.
+\section{Results}
+\label{sec:results}
+
+\subsection{Learning curves and the value of electronic descriptors}
+\label{sec:learning_curves}
+
+The one-sided upper bound of the advantage first falls below the margin at \numGOnePrimaryNStarNStar{} training hosts (Figures~\ref{fig:learning_curves} and \ref{fig:advantage}). At that budget the structure-only error is \numGOnePrimaryPerBudgetSixHundredFiftyFourMAESMean{}~eV and the advantage is \numGOnePrimaryCTwoCeilingA{}~eV (two-sided interval \numGOnePrimaryCTwoCeilingCiLo{} to \numGOnePrimaryCTwoCeilingCiHi{}~eV). On the host split released by Kiyohara et al.\ \citep{Kiyohara2025machinelearning}, the structure-only network reaches \numCZeroOfficialSEnsembleMaePoint{}~eV. [Stub: claims C0, C1 and C2.]
+
+\begin{figure}[H]
+\figph{fig2_learning_curves}
+\caption{Learning curves of the neutral oxygen-vacancy formation energy: site-level test mean absolute error against the number of training hosts for B0, RF-Kumagai, S and D. [Caption stub: bands, published reference values, seeds, resamples and the source record.]\label{fig:learning_curves}}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\figph[0.6\linewidth]{fig3_advantage}
+\caption{Advantage of the electronic descriptors, the error of S minus the error of D, against the number of training hosts. [Caption stub: margin, one-sided bound, N* and the source record.]\label{fig:advantage}}
+\end{figure}
+
+\subsection{Predicting the descriptors from structure}
+\label{sec:staging}
+
+[Stub: claim C3a, staged model P against S and D at matched budgets; Figure~\ref{fig:staging}.]
+
+\begin{figure}[H]
+\figph{fig4_staging}
+\caption{Staged model P against the structure-only network S and the descriptor network D at matched training budgets. [Caption stub.]\label{fig:staging}}
+\end{figure}
+
+\subsection{Relaxed host geometry}
+\label{sec:geometry}
+
+[Stub: claim C3b, degradation under MACE-MP-0 relaxed geometry split into volumetric strain and internal displacement; Figure~\ref{fig:geometry}.]
+
+\begin{figure}[H]
+\figph{fig5_geometry}
+\caption{Change in error when the pristine host geometry is replaced by the MACE-MP-0 relaxed geometry, decomposed into volumetric strain and internal displacement. [Caption stub.]\label{fig:geometry}}
+\end{figure}
+
+\subsection{Electronic information in the structure-only embeddings}
+\label{sec:probe}
+
+[Stub: claim C4, linear-probe recovery of the descriptors against shuffled-label and random-encoder controls; Figure~\ref{fig:probe}.]
+
+\begin{figure}[H]
+\figph{fig6_probe}
+\caption{Linear-probe recovery of the pristine-host electronic descriptors from the embeddings of the structure-only network against the number of training hosts, with shuffled-label and random-encoder controls. [Caption stub.]\label{fig:probe}}
+\end{figure}
+
+\subsection{Screening demonstration}
+\label{sec:screening}
+
+[Stub: claim C5, predicted formation energies for named oxides inside the domain of applicability; Figure~\ref{fig:screening}.]
+
+\begin{figure}[H]
+\figph{fig7_screening}
+\caption{Predicted against reference neutral oxygen-vacancy formation energies for the named screening oxides. [Caption stub.]\label{fig:screening}}
+\end{figure}
