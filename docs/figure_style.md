@@ -84,7 +84,7 @@ one font family; width 138.6 or 184.6 mm (+/- 0.5 mm; or `--width-mm`); and no t
 inside an axes (axes found from the clip rectangles matplotlib writes for data artists; a PDF without any
 axes fails this check, because the rule needs at least one). Exit status 0 only if all checks pass.
 
-Status of every PDF in `figures/main/` and `figures/si/` on 2026-10-11 (M3b):
+Status of every PDF in `figures/main/` and `figures/si/` on 2026-10-11 (M3c):
 
 | Figure | vector | fonts | one_family | width (mm) | no_text_in_axes | Result |
 |---|---|---|---|---|---|---|
@@ -93,7 +93,7 @@ Status of every PDF in `figures/main/` and `figures/si/` on 2026-10-11 (M3b):
 | `main/fig_g1_learning_curves.pdf` | ok | ok | ok (Arial) | 138.6 | ok | PASS |
 | `main/fig_within_host.pdf` | ok | ok | ok (Arial) | 138.6 | ok | PASS |
 | `main/fig1_overview.pdf` | FAIL (1 raster: the ZnO render, by design) | ok | ok (TeX Gyre Heros) | 138.6 | FAIL (no axes: schematic and render, nothing to check) | accepted with reason |
-| `si/fig_readout.pdf` | ok | ok | FAIL (TeX Gyre Heros + CMSY8, a math symbol in `schematics/fig_readout.tex`) | 138.6 | FAIL (no axes: schematic) | accepted with reason; one family needs a change to the schematic source |
+| `si/fig_readout.pdf` | ok | ok | ok (TeX Gyre Heros; the CMSY8 math glyph was removed from `schematics/fig_readout.tex`) | 138.6 | FAIL (no axes: schematic, nothing to check) | accepted with reason: vector, fonts, one family and width pass; the axes rule has no axes to test |
 
 Figures 2, 3, G1 and within-host replace the versions that failed in M3 (Computer Modern or DejaVu fallback,
 widths of 164.0 and 81.5 mm, a legend inside the data area, panel titles in the plot). The M3 style exercise
