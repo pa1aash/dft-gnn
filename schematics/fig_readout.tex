@@ -1,0 +1,52 @@
+% Figure 2: the readout of S, with the D-state injection points. Caption: fig_readout.caption.md
+\documentclass[tikz,border=1pt]{standalone}
+\input{common}
+
+\begin{document}
+\begin{tikzpicture}
+  % ---------------- inputs ----------------
+  \tikzset{inp/.style={quantity, minimum width=2.6cm, minimum height=5.6mm}}
+  \node[inp] (xv) at (1.30, 1.20) {vacancy node $\mathbf{x}_\mathrm{v}^{(0)}$};
+  \node[inp] (xi) at (1.30, 0.40) {nodes $\mathbf{x}_i^{(0)}$};
+  \node[inp] (eij) at (1.30,-0.40) {edges $\mathbf{e}_{ij}^{(0)}$};
+  \node[inp] (u0) at (1.30,-1.20) {global state $u^{(0)}$};
+
+  % D-state injection points
+  \node[quantity, draw=cD, fill=cD!14] (site) at (1.30, 2.35) {site-electronic};
+  \node[quantity, draw=cD, fill=cD!14] (host) at (1.30,-2.35) {host-electronic};
+  \draw[inject] (site) -- (xv);
+  \draw[inject] (host) -- (u0);
+
+  % ---------------- backbone ----------------
+  \foreach \d in {0.16,0.08} {
+    \draw[draw=cS, fill=cS!8, rounded corners=1.2pt, line width=0.6pt]
+      ($(3.40,-1.55)+(\d,\d)$) rectangle ($(4.90,1.55)+(\d,\d)$);
+  }
+  \node[model=cS, minimum width=1.5cm, minimum height=3.1cm] (mg) at (4.15,0) {MEGNet\\block\\[1pt]$\times\,n$};
+  \foreach \n in {xv,xi,eij,u0} \draw[flow] (\n.east) -- (\n.east -| mg.west);
+
+  % ---------------- outputs and pooling ----------------
+  \tikzset{outp/.style={quantity, minimum height=5.6mm}}
+  \node[outp] (hv) at (6.25, 1.20) {$\mathbf{h}_\mathrm{v}$};
+  \node[outp] (hi) at (6.25, 0.00) {$\{\mathbf{h}_i\}$};
+  \node[outp] (uo) at (6.25,-1.20) {$u$};
+  \foreach \n in {hv,hi,uo} \draw[flow] ($(\n.west -| mg.east)+(0.16,0)$) -- (\n.west);
+  \node[box, draw=cS, align=center] (pool) at (7.75,0) {Set2Set\\or mean};
+  \draw[flow] (hi) -- (pool);
+
+  % ---------------- concatenated readout vector ----------------
+  \tikzset{seg/.style={draw=cS, fill=cS!14, minimum width=1.25cm, minimum height=6.5mm, inner sep=0pt, line width=0.6pt}}
+  \node[seg] (c1) at (9.55, 0.65) {$\mathbf{h}_\mathrm{v}$};
+  \node[seg] (c2) at (9.55, 0.00) {$\bar{\mathbf{h}}$};
+  \node[seg] (c3) at (9.55,-0.65) {$u$};
+  \draw[flow] (hv.east) -| ($(c1.west)+(-0.30,0)$) -- (c1.west);
+  \draw[flow] (pool) -- (c2);
+  \draw[flow] (uo.east) -| ($(c3.west)+(-0.30,0)$) -- (c3.west);
+
+  % ---------------- head ----------------
+  \node[model=cS, minimum width=1.1cm] (mlp) at (11.20,0) {MLP};
+  \node[quantity, minimum width=1.0cm] (ef) at (12.75,0) {\Ef};
+  \draw[flow] (c2.east) -- (mlp);
+  \draw[flow] (mlp) -- (ef);
+\end{tikzpicture}
+\end{document}
