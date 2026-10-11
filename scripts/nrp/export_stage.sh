@@ -64,6 +64,8 @@ print(f"{stage}: {len(keep)} tracked files to commit, {len(lines)} gitignored ar
 PY
 [ -s "$LIST" ] || { echo "no done jobs of stage $STAGE"; rm -f "$LIST" "$ARTS"; exit 1; }
 if [ ! -d "$WT" ]; then
+  # an export made earlier from another pod: continue the pushed branch instead of restarting at the tag
+  git rev-parse --verify -q "refs/heads/$BR" >/dev/null || git fetch -q origin "refs/heads/$BR:refs/heads/$BR" 2>/dev/null || true
   if git rev-parse --verify -q "refs/heads/$BR" >/dev/null; then git worktree add -q "$WT" "$BR"
   else git worktree add -q -b "$BR" "$WT" nrp-code-v1; fi
 fi
