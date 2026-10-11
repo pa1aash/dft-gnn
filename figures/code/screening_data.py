@@ -65,6 +65,15 @@ def first_shell(cif: Path, vac_index: int) -> tuple[int, float]:
     return len(shell), float(shell.mean())
 
 
+def space_group(cif: Path, symprec: float = 0.1) -> tuple[str, int]:
+    """International symbol and number of the host supercell's space group (pymatgen, ``symprec`` in A)."""
+    from pymatgen.core import Structure
+    from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+
+    sga = SpacegroupAnalyzer(Structure.from_file(cif), symprec=symprec)
+    return sga.get_space_group_symbol(), int(sga.get_space_group_number())
+
+
 def cluster_ci(err: np.ndarray, hosts: np.ndarray, n_boot: int, seed: int = 0) -> tuple[float, float]:
     """Percentile 95% interval of the site MAE over host-cluster bootstrap draws."""
     uniq = np.unique(hosts)
@@ -108,6 +117,7 @@ def main() -> None:
         assert rec["v1"]["n_resamples"] == sid["n_resamples"], s
         cif = a.data_root / u.supercell_cif_path
         rec["first_shell_cations"], rec["first_shell_mean_distance_A"] = first_shell(cif, int(u.vacancy_atom_index))
+        rec["_space_group"] = space_group(cif)
         rec.update({k: float(u[c]) for k, c in DESC.items()})
         rec["_candidate"], rec["_host_id"], rec["_label"] = sid["candidate"], sid["host_id"], u.site_label
         sites[s] = rec
@@ -162,6 +172,8 @@ def main() -> None:
                "sites": {s: {k: v for k, v in r.items() if not k.startswith("_")} for s, r in sites.items()},
                "site_index": {s: {"candidate": r["_candidate"], "host_id": r["_host_id"], "label": r["_label"]}
                               for s, r in sites.items()},
+               "hosts": {r["_candidate"]: {"space_group": r["_space_group"][0], "space_group_number": r["_space_group"][1]}
+                         for r in sites.values()},
                "absent": {"not_in_release": not_in_release, "phs_removed": phs_removed}}
     pd.set_option("display.width", 220)
     print(json.dumps({"scope": scope, "summary": summary, "descriptive": descriptive}, indent=1))
