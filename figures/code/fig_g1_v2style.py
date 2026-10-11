@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import style_paper as sp  # noqa: E402
+import style_paper as sp
 
 ROOT = sp.ROOT
 KUMAGAI_RF_EV = 0.34      # Kumagai et al. 2021, q = 0, N = 700 (docs/baselines.md)

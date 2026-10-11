@@ -22,12 +22,12 @@ from pathlib import Path
 import matplotlib as mpl
 
 mpl.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
+import matplotlib.pyplot as plt
 
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT / "src") not in sys.path:
     sys.path.insert(0, str(ROOT / "src"))
-from dftgnn.viz import style as base  # noqa: E402
+from dftgnn.viz import style as base
 
 MM = base.MM
 WIDTHS_MM = {"single": 138.6, "full": 184.6}   # docs/venue.md (mdpi.cls geometry)
@@ -82,8 +82,8 @@ def figure(width: str = "single", height_mm: float = 70.0, ncols: int = 1, nrows
 
 def _line_kw(key: str, version: str) -> dict:
     c = COLORS[key]
-    return dict(color=c, lw=LINE_W, ls=VERSION_LS[version], marker=MARKER, ms=MARKER_SIZE,
-                mfc=c if VERSION_FILLED[version] else "white", mec=c, mew=0.8)
+    return {"color": c, "lw": LINE_W, "ls": VERSION_LS[version], "marker": MARKER, "ms": MARKER_SIZE,
+            "mfc": c if VERSION_FILLED[version] else "white", "mec": c, "mew": 0.8}
 
 
 def band_curve(ax, x, mean, lo, hi, key: str, version: str = "v1", label: str | None = None) -> None:

@@ -71,7 +71,7 @@ def axes_rects(pdf: Path, page_w: float, page_h: float) -> list[tuple[float, flo
     """Distinct clip rectangles (x0, y0, x1, y1; PDF points, origin bottom-left) smaller than the page."""
     raw = pdf.read_bytes()
     rects = set()
-    for m in re.finditer(rb"stream\r?\n(.*?)\r?\nendstream", raw, re.S):
+    for m in re.finditer(rb"stream\r?\n(.*?)\r?\nendstream", raw, re.DOTALL):
         try:
             s = zlib.decompress(m.group(1)).decode("latin1")
         except zlib.error:
