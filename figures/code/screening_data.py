@@ -152,6 +152,13 @@ def main() -> None:
                           ("first_shell_cations", "first_shell_cations"),
                           ("first_shell_distance", "first_shell_mean_distance_A"))}
 
+    # sites of one host in pairs (label order): the difference first minus second, DFT and both backbones
+    pairs = {f"{r_i['_candidate']}_{r_i['_label']}_{r_j['_label']}": {
+        "dft_diff_eV": r_i["dft_eV"] - r_j["dft_eV"],
+        **{f"{k}_diff_eV": r_i[k]["pred_eV"] - r_j[k]["pred_eV"] for k in BACKBONES}}
+        for sl in cand_hosts.values() for i, j in combinations(sorted(sl, key=lambda s: sites[s]["_label"]), 2)
+        for r_i, r_j in [(sites[i], sites[j])]}
+
     ab = {c["candidate"]: c for c in absence["candidates"]}
     missing = [c for c in sc.candidates if c not in cand_hosts]
     not_in_release = [c for c in missing if ab[c]["reason"] == "not in the release"]
@@ -168,7 +175,7 @@ def main() -> None:
              "tio2_release": {"neutral_entries": len(ab["TiO2"]["neutral_entries"]),
                               "phs_entries": sum(e["phs"] for e in ab["TiO2"]["neutral_entries"]),
                               "in_universe_sites": ab["TiO2"]["universe_v1_sites"]}}
-    payload = {"budget": sc.budget, "scope": scope, "summary": summary, "descriptive": descriptive,
+    payload = {"budget": sc.budget, "scope": scope, "summary": summary, "descriptive": descriptive, "pairs": pairs,
                "sites": {s: {k: v for k, v in r.items() if not k.startswith("_")} for s, r in sites.items()},
                "site_index": {s: {"candidate": r["_candidate"], "host_id": r["_host_id"], "label": r["_label"]}
                               for s, r in sites.items()},
