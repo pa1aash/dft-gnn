@@ -101,19 +101,10 @@ widths of 164.0 and 81.5 mm, a legend inside the data area, panel titles in the 
 
 ## Structure renders
 
-Cycles PNG on a white background, RGB, at most 128 samples, at the MDPI text width (138.6 mm). The committed
-ZnO render `figures/main/fig1_zno_vacancy.png` is the M3 render at 300 dpi (1637 px). Figure 1 embeds it
-downsampled (Lanczos) to 600 dpi at the 0.45-width panel (1473 px over 62.37 mm), so panel (b) is a true 600 dpi
-raster. The 600 dpi full-width re-render (M3b task 3) has NOT been made: the memory gate of
-`blender/render_host.py` held at pressure level 2 (swap about 9.3 of 10 GB) from 20:57 to 21:23 and the
-render was stopped before Blender started. Command, to run when `kern.memorystatus_vm_pressure_level` is 1:
-
-```bash
-OMP_NUM_THREADS=3 nice -n 15 python blender/render_host.py mp-2133 150 figures/main/fig1_zno_vacancy.png \
-    --samples 128 --dpi 600 --data-root ~/Desktop/dft-gnn --max-wait 3600
-python figures/code/fig1_overview.py
-```
-
-Commit the render only if it is under 8 MB; otherwise render at `--dpi 450`, commit that, and note the 600 dpi
-path in `figures/main/fig1_zno_vacancy.caption.md`. Rerunning `fig1_overview.py` afterwards changes only the
-resampling source of panel (b). Element colours, vacancy marker and camera conventions: `blender/README.md`.
+Cycles PNG on a white background, RGB, at most 128 samples, at the MDPI text width (138.6 mm). The ZnO render
+`figures/main/fig1_zno_vacancy.png` was re-rendered in M3b at 600 dpi with the README command (`--dpi 600`,
+128 samples): 3274 x 2591 px, 3.5 MB (under the 8 MB limit, so the 600 dpi file is the committed one). The
+frame is fitted to the projected cell (height/width 0.79; the M3 render used 0.75). It ran at memory pressure
+level 2 by author instruction (the gate in `blender/render_host.py` was bypassed for this run only; 517 s).
+Figure 1 embeds it downsampled (Lanczos) to 600 dpi at the 0.45-width panel (1473 px over 62.37 mm).
+Element colours, vacancy marker and camera conventions: `blender/README.md`.
