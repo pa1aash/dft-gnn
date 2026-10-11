@@ -1,0 +1,34 @@
+% Purpose: data universe, graph representation, models (RF, B0, S, D, P), training, tuning and the pre-registered statistics, with software versions.
+\section{Materials and Methods}
+\label{sec:methods}
+
+\subsection{Data}
+\label{sec:data}
+
+All formation energies, descriptors and structures come from the database of Kumagai et al.\ \citep{Kumagai2021insights}; no new density-functional calculation was performed. Of the \numFilterCascadeStepsReleaseSites{} completed neutral entries in \numFilterCascadeStepsReleaseHosts{} hosts, the filters of Table~\ref{tab:filter_cascade} leave \numFilterCascadeStepsFinalSites{} sites in \numFilterCascadeStepsFinalHosts{} hosts. [Stub: perturbed-host-state filter and its physical meaning.]
+
+\begin{table}[H]
+\caption{Construction of the data universe from the database of Kumagai et al.\ \citep{Kumagai2021insights}. Each row gives the neutral oxygen-vacancy sites, hosts and distinct formulas that remain after the filter is applied. [Caption stub: define the perturbed-host-state and defect-type flags and the D1 to D3 filters.]\label{tab:filter_cascade}}
+\begin{adjustwidth}{-\extralength}{0cm}
+\centering
+\small
+\input{tables/filter_cascade}
+\end{adjustwidth}
+\end{table}
+
+\subsection{Models}
+\label{sec:models}
+
+[Stub: graph construction, the structure-only network S, the descriptor network D, the staged model P, the random forests and the two-parameter physics floor B0; Figure~\ref{fig:schematic}.]
+
+\begin{figure}[H]
+\figph{fig_pipeline}
+\caption{Schematic of the models. [Caption stub, to be taken from \texttt{schematics/fig\_pipeline.caption.md}: the pristine host graph with the vacancy site marked; the structure-only network S; the descriptor network D, which also receives the electronic descriptors of the pristine host and site; and the staged model P, which predicts those descriptors from structure.]\label{fig:schematic}}
+\end{figure}
+
+\subsection{Statistics}
+\label{sec:statistics}
+
+The advantage of the descriptors at a training budget is the difference of site-level test errors of S and D. Intervals come from a paired hierarchical bootstrap with \numGOnePrimaryBootstrapDraws{} replicates, and the pre-registered margin is \numGOnePrimaryDeltaEV{}~eV. [Stub: outer resamples, nested budgets, the definition of N* and the within-host metric.]
+
+\InputIfFileExists{local/ai_methods.tex}{}{}

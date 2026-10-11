@@ -1,0 +1,6 @@
+# latexmk settings for paper/main.tex. The MDPI template lives in paper/template/ (untracked,
+# fetched by tools/fetch_template.sh); put it on the TeX and BibTeX search paths.
+$pdf_mode = 1;
+$ENV{'TEXINPUTS'} = './template:' . ($ENV{'TEXINPUTS'} // '');
+$ENV{'BSTINPUTS'} = './template:' . ($ENV{'BSTINPUTS'} // '');
+$pdflatex = 'pdflatex -interaction=nonstopmode -halt-on-error -file-line-error %O %S';

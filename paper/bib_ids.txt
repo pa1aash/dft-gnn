@@ -60,3 +60,5 @@ doi:10.1146/annurev.matsci.33.022802.091651
 doi:10.1021/acs.jpclett.5b00710
 doi:10.1039/c3ee43874k
 doi:10.1021/jacs.1c05570
+# Compute resources
+doi:10.1145/3708035.3736060  # NRP (acknowledgement required by the NRP AUP, section 7)
