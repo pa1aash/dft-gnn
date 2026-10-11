@@ -16,7 +16,7 @@ Steps marked **[MAC]** run on Palaash's Mac. Everything else runs on NRP.
 | specs | 11 spec files (section 1). `make_specs.py --check` must reproduce each one byte-for-byte on the cluster |
 | identity | every commit you push uses exactly `user.name` = `aidenlee` and `user.email` = `aiden.lee.sd@gmail.com` (`export_stage.sh` refuses any other identity). Commit messages and files must not contain the project's banned words; the Mac rejects the branch otherwise |
 | hardware | mixed pool. Every result records GPU model, UUID, driver, node (`NODE_NAME`) and pod hostname (`dftgnn.hardware`). Node `hcc-nrp-shor-c6017.unl.edu` is excluded (N1 row of 2026-10-11) |
-| inputs | three bundles in the shared file folder, each with a sha256 manifest (section 2) |
+| inputs | three bundles in the GitHub release `inputs-v1`, each with a sha256 manifest (section 2) |
 | outputs | result JSONs and prediction parquets come back as git branches `nrp/<stage>`. Checkpoints, relaxed structures and embeddings stay on NRP storage; their hashes go in the tracked manifest `results/nrp/artefacts/<stage>.sha256` |
 
 ## 1. Stages, order and concurrency
@@ -55,8 +55,9 @@ estimates, from the training benchmark, reach 26.3 GB; run one peval job with `e
 
 ## 2. One-time setup
 
-**Shared folder [MAC → NRP].** Palaash builds three bundles and puts them in the shared file folder. Each bundle is
-a `.tar`, its member manifest `.sha256` and a `.tar.sha256`:
+**Release `inputs-v1` [MAC → NRP].** Palaash builds three bundles and publishes them as assets of the GitHub
+release `inputs-v1` (https://github.com/pa1aash/dft-gnn/releases/tag/inputs-v1). Each bundle is a `.tar`, its
+member manifest `.sha256` and a `.tar.sha256`; `INPUTS_MANIFEST.txt` lists every asset with its sha256 and size:
 - `nrp_inputs`: graph shards, universe table, DFT unit cells, the tiling map (one-operation rule, 818 of 818
   hosts) and the 818 release supercell CIFs;
 - `nrp_checkpoints`: the 583 S09 checkpoints, about 964 MB;
@@ -74,7 +75,10 @@ cd /tmp && git clone https://github.com/pa1aash/dft-gnn.git && cd dft-gnn
 git fetch --tags && git checkout --detach nrp-code-v1
 cp -a /tmp/dft-gnn /workspace/dft-gnn && cd /workspace/dft-gnn
 git config user.name aidenlee && git config user.email aiden.lee.sd@gmail.com
-# download the three bundles into /workspace/bundles, then for each <b> in inputs checkpoints mace:
+# download the release inputs-v1 into /workspace/bundles: gh release download inputs-v1 -R pa1aash/dft-gnn \
+#   -D /workspace/bundles, or curl each browser_download_url listed by
+#   https://api.github.com/repos/pa1aash/dft-gnn/releases/tags/inputs-v1
+# then verify every bundle with scripts/nrp/verify_bundle.sh; for each <b> in inputs checkpoints mace:
 bash scripts/nrp/verify_bundle.sh /workspace/bundles/nrp_<b>.tar.sha256 /workspace/bundles
 tar -xf /workspace/bundles/nrp_<b>.tar && bash scripts/nrp/verify_bundle.sh nrp_<b>.sha256
 (cd splits && sha256sum -c --quiet MANIFEST.sha256) && echo "splits OK"
