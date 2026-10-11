@@ -18,6 +18,8 @@ import re
 import sys
 from pathlib import Path
 
+import yaml
+
 ROOT = Path(__file__).resolve().parents[2]
 
 # subtrees that are never flattened (per-replicate detail, run metadata)
@@ -28,6 +30,21 @@ ID_KEYS = ("step", "name", "id", "model", "element", "site_label", "formula", "b
 MAX_SCALAR_LIST = 12
 # per-run records written by the training jobs are named by a 16-hex-digit run id
 RUN_RECORD = re.compile(r"^[0-9a-f]{16}$")
+# named records in these subdirectories of results/ are read too; their lists of objects without one
+# unique identifying key are flattened by the joined values of COMPOSITE_KEYS (N1 GPU repeatability)
+EXTRA_RESULT_DIRS = ("nrp",)
+COMPOSITE_KEYS = ("class", "model", "B", "node", "pass", "a", "b")
+# protocol constants (not results): file, macro prefix, top-level keys to read (None = all)
+PROTOCOL_SOURCES = (
+    ("configs/config.yaml", "Cfg", None),
+    ("configs/tuned_v1.yaml", "TunedVOne", None),
+    ("configs/tuned_v2.yaml", "TunedVTwo", None),
+    ("splits/meta.json", "SplitMeta", ("n_hosts", "n_test_hosts", "pool_size", "test_fraction",
+                                       "coverage")),
+    ("splits/loco_v1.json", "SplitLoco", ("n_families", "n_folds", "n_hosts")),
+    ("splits/cv_v1.json", "SplitCv", ("ks", "seed", "n_hosts")),
+    ("splits/resamples_10_29.json", "SplitExt", ("n_test_hosts", "pool_size", "budgets")),
+)
 
 ONES = ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
         "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen",
@@ -89,13 +106,14 @@ def skip(key: str) -> bool:
     return key in SKIP_KEYS or any(p in key for p in SKIP_KEY_PARTS)
 
 
-def flatten(obj, path: list[str], out: list[tuple[list[str], float]]) -> None:
+def flatten(obj, path: list[str], out: list[tuple[list[str], float]],
+            composite: bool = False) -> None:
     if is_num(obj):
         out.append((path, obj))
     elif isinstance(obj, dict):
         for k, v in obj.items():
             if not skip(str(k)):
-                flatten(v, path + [str(k)], out)
+                flatten(v, path + [str(k)], out, composite)
     elif isinstance(obj, list):
         if not obj:
             return
@@ -110,7 +128,26 @@ def flatten(obj, path: list[str], out: list[tuple[list[str], float]]) -> None:
             idk = next((k for k in ID_KEYS if all(k in v for v in obj)), None)
             if idk and len({str(v[idk]) for v in obj}) == len(obj):
                 for v in obj:
-                    flatten({k: w for k, w in v.items() if k != idk}, path + [str(v[idk])], out)
+                    flatten({k: w for k, w in v.items() if k != idk}, path + [str(v[idk])], out,
+                            composite)
+            elif composite:
+                ck = [k for k in COMPOSITE_KEYS if all(k in v for v in obj)]
+                ids = ["_".join(str(v[k]) for k in ck) for v in obj]
+                if ck and len(set(ids)) == len(obj):
+                    for i, v in zip(ids, obj):
+                        flatten({k: w for k, w in v.items() if k not in ck}, path + [i], out,
+                                composite)
+
+
+def protocol_leaves(path: Path, keys: tuple[str, ...] | None) -> list[tuple[list[str], float]]:
+    """Numeric leaves of a protocol file (config YAML or split metadata JSON), optionally only some keys."""
+    text = path.read_text()
+    obj = yaml.safe_load(text) if path.suffix in (".yaml", ".yml") else json.loads(text)
+    if keys is not None:
+        obj = {k: obj[k] for k in keys}
+    leaves: list[tuple[list[str], float]] = []
+    flatten(obj, [], leaves)
+    return leaves
 
 
 def named_records(results: Path) -> list[Path]:
@@ -135,19 +172,31 @@ def main(argv: list[str] | None = None) -> int:
 
     macros: dict[str, tuple[str, str, str]] = {}
     clashes = []
-    files = named_records(a.results)
-    for p in files:
-        rec = json.loads(p.read_text())
-        leaves: list[tuple[list[str], float]] = []
-        flatten(rec["payload"], [], leaves)
-        stem = camel(p.stem)
+
+    def add(prefix: str, leaves: list[tuple[list[str], float]], src_head: str) -> None:
         for path, val in leaves:
-            name = "num" + stem + "".join(camel(c) for c in path)
-            src = f"results/{p.name}#/payload/" + "/".join(path)
+            name = "num" + prefix + "".join(camel(c) for c in path)
+            src = src_head + "/".join(path)
             if name in macros and macros[name][2] != src:
                 clashes.append((name, macros[name][2], src))
                 continue
             macros[name] = (fmt(val), repr(val), src)
+
+    # the top-level records come first, so a later source never displaces one of their names
+    files = named_records(a.results)
+    for p in files:
+        leaves: list[tuple[list[str], float]] = []
+        flatten(json.loads(p.read_text())["payload"], [], leaves)
+        add(camel(p.stem), leaves, f"results/{p.name}#/payload/")
+    for sub in EXTRA_RESULT_DIRS:
+        extra = named_records(a.results / sub)
+        for p in extra:
+            leaves = []
+            flatten(json.loads(p.read_text())["payload"], [], leaves, composite=True)
+            add(camel(p.stem), leaves, f"results/{sub}/{p.name}#/payload/")
+        files += extra
+    for rel, prefix, keys in PROTOCOL_SOURCES:
+        add(prefix, protocol_leaves(ROOT / rel, keys), f"{rel}#/")
 
     if clashes:
         for name, s1, s2 in clashes[:20]:
