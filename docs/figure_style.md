@@ -33,6 +33,7 @@ Helpers: `figure`, `band_curve`, `baseline_curve`, `ext_points`, `ext_x`, `learn
 | Figure 1, models and input representation | `figures/main/fig1_overview.pdf` | `figures/code/fig1_overview.py` | `schematics/fig_pipeline.pdf`, `figures/main/fig1_zno_vacancy.png` |
 | Figure 2, learning curves of S and D | `figures/main/fig2_learning_curves.pdf` | `figures/code/fig2_learning_curves.py` | `results/c1c2_v2.json`, `results/c1c2_v1.json`, `results/diagnostics_sweep.json` |
 | Figure 3, advantage A | `figures/main/fig3_advantage.pdf` | `figures/code/fig3_advantage.py` | `results/c1c2_v2.json`, `results/c1c2_v1.json` |
+| Figure 7, screening demonstration (M8) | `figures/main/fig7_screening.pdf` | `figures/code/fig7_screening.py` | `figures/main/data/screening_demo.json` (from `figures/code/screening_data.py`: `results/screening_c5.json`, `results/screening_absence.json`, the S run records of `results/` and `results/v2_sweep/`) |
 | G1 learning curves (ANALYSIS_PLAN §14) | `figures/main/fig_g1_learning_curves.pdf` (+ PNG preview) | `figures/code/fig_g1_learning_curves.py` | `results/g1_primary.json` (v1), `results/c1c2_v2.json` (v2) |
 | Within-host skill and A_within | `figures/main/fig_within_host.pdf` | `figures/code/fig_within_host.py` | `results/c1c2_v2.json`, `results/c1c2_v1.json` |
 | SI, readout schematic (Figure S3) | `figures/si/fig_readout.pdf` | `figures/code/fig_si_readout.py` | `schematics/fig_readout.pdf` |
@@ -75,7 +76,6 @@ are POST HOC and are drawn as the primary backbone only once the v1 result they 
 | Figure 4, staging | C3a | v1: `results/peval/` (183 P runs, stage N2a-2) and the analysis record of item A-1 (`docs/remaining_work.md`); v2: `results/c3a_v2.json`, `results/p1_v2/`, `results/p_v2/` | pending: v1 staging not run |
 | Figure 5, geometry | C3b | v1: `results/mlip_v1/` (our 818 relaxations, stage N2a-1), `results/geomeval/` (stage N2a-4) and the analysis record of item A-2 | pending: v1 geometry evaluation not run. The collaborator's 809-host evaluation (`results/mlip/`, `results/mlip_eval_v2.json`) is excluded from C3b by the `docs/deviations.md` row of 2026-10-11 (§9) and is not drawn |
 | Figure 6, latent probe | C4 | v1: `results/embeddings_v1/` (stage N2a-3) and the analysis record of item A-3; v2: `results/probe_v2_sweep.json` | pending: v1 probe not run |
-| Figure 7, screening | C5 | `results/screening_c5.json` (`mae_S` v1, `mae_S_v2` v2), `results/screening_absence.json`, and the reconciliation of item A-11 | pending: reconciliation not run |
 
 ## QA
 
@@ -92,6 +92,7 @@ Status of every PDF in `figures/main/` and `figures/si/` on 2026-10-11 (M3c):
 | `main/fig3_advantage.pdf` | ok | ok | ok (Arial) | 138.6 | ok | PASS |
 | `main/fig_g1_learning_curves.pdf` | ok | ok | ok (Arial) | 138.6 | ok | PASS |
 | `main/fig_within_host.pdf` | ok | ok | ok (Arial) | 138.6 | ok | PASS |
+| `main/fig7_screening.pdf` | ok | ok | ok (Arial) | 138.6 | ok | PASS |
 | `main/fig1_overview.pdf` | FAIL (1 raster: the ZnO render, by design) | ok | ok (TeX Gyre Heros) | 138.6 | FAIL (no axes: schematic and render, nothing to check) | accepted with reason |
 | `si/fig_readout.pdf` | ok | ok | ok (TeX Gyre Heros; the CMSY8 math glyph was removed from `schematics/fig_readout.tex`) | 138.6 | FAIL (no axes: schematic, nothing to check) | accepted with reason: vector, fonts, one family and width pass; the axes rule has no axes to test |
 
