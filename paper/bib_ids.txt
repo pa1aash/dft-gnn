@@ -62,3 +62,13 @@ doi:10.1039/c3ee43874k
 doi:10.1021/jacs.1c05570
 # Compute resources
 doi:10.1145/3708035.3736060  # NRP (acknowledgement required by the NRP AUP, section 7)
+# Added in M6 (Methods)
+doi:10.1109/iccv.2015.123
+doi:10.1103/physrevlett.97.170201
+doi:10.1016/j.commatsci.2005.04.010
+doi:10.1037/0033-2909.86.2.420
+doi:10.1023/a:1010933404324
+arxiv:1903.02428  # PyTorch Geometric (ICLR 2019 workshop; no DOI)
+arxiv:1912.01703  # PyTorch (NeurIPS 2019; no DOI)
+arxiv:1711.05101  # AdamW (ICLR 2019; no DOI)
+arxiv:1511.06391  # Set2Set (ICLR 2016; no DOI)
