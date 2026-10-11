@@ -51,6 +51,10 @@ among a group's run records. Reference points:
 Counts over the 19 groups: PRE-REGISTERED 4 (#1, #3, #8, #10); POST HOC 9 (#2, #5, #6, #7, #9, #11,
 #17, #18, #19); EXTENSION 6 (#4, #12, #13, #14, #15, #16).
 
+Note on the v2 groups (#2, #5, #6, #7, #9, #11, #17, #18, #19), added 2026-10-11: primary backbone by
+author decision; chronology unchanged (`docs/deviations.md`, AUTHOR DECISION row of 2026-10-11). Every label
+above stands as written; v2 stays POST HOC and is never described as pre-registered.
+
 For every group, the rows of his that set its design were committed before its first run record. The
 v2 arm's design screen, selection rule, tuning and freeze each preceded the next step.
 
