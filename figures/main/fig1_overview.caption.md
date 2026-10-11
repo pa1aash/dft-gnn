@@ -20,6 +20,5 @@ with distances) joined into the coordination tetrahedron. Zn grey-blue, O red; o
 the pristine host, not the relaxed defect cell. Orthographic view along `direction` (Cartesian), c axis up;
 Blender Cycles on CPU, OpenImageDenoise, `samples` samples, rendered at `dpi` dpi over `width_mm` mm
 (`px`), and embedded in panel (b) resampled to 600 dpi at the panel width (0.45 of the text width). Full
-render description: `figures/main/fig1_zno_vacancy.caption.md`. The source render is the 300 dpi M3 render;
-the 600 dpi full-width re-render is pending (`docs/figure_style.md`, Structure renders).
+render description: `figures/main/fig1_zno_vacancy.caption.md`.
 Composite: `figures/code/fig1_overview.py` (panel (a) vector; panel (b) embedded raster).

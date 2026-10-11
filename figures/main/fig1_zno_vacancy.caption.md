@@ -11,5 +11,5 @@ the two cell faces nearest the viewer; the structure is the pristine host, not t
 (in the relaxed neutral defect cell no atom moves more than 0.17 Å; `docs/data_audit.md`, section 5).
 Orthographic view along (−0.46, −0.80, 0.37) in Cartesian coordinates (azimuth −120°, elevation 22°, c
 axis up). Rendered with `blender/render_host.py mp-2133 150` (Blender 5.2.2, Cycles on CPU, 128 samples,
-OpenImageDenoise); 1637 × 1228 px, 300 dpi at the 138.6 mm text width. Render parameters and the CIF
+OpenImageDenoise); 3274 × 2591 px, 600 dpi at the 138.6 mm text width (frame fitted to the projected cell). Render parameters and the CIF
 checksum: `figures/main/fig1_zno_vacancy.render.json`.
