@@ -1,8 +1,9 @@
-# Figure style and QA (M3)
+# Figure style and QA (M3, M3b)
 
 One visual language for every figure of the paper. Plot code imports `figures/code/style_paper.py`
-(which wraps `src/dftgnn/viz/style.py` without changing it); structure renders go through
-`blender/render_host.py` (see `blender/README.md`).
+(which wraps `src/dftgnn/viz/style.py` without changing it) and reads its inputs through
+`figures/code/inputs_paper.py`; vector composites go through `figures/code/composite_paper.py` (pdfLaTeX);
+structure renders go through `blender/render_host.py` (see `blender/README.md`).
 
 ## Plots
 
@@ -10,35 +11,109 @@ One visual language for every figure of the paper. Plot code imports `figures/co
 |---|---|
 | Width | 138.6 mm (`single`, MDPI text width) or 184.6 mm (`full`), from the mdpi.cls geometry in `docs/venue.md`. Height free. |
 | Format | Vector PDF, fonts embedded as TrueType (Type 42), no creation date (byte-stable reruns). |
-| Font | Arial for all text, including mathtext (no DejaVu or Computer Modern fallback). 8 pt labels, 7 pt ticks and legend, 9 pt bold panel letters. |
-| Model colours | B0 grey `#7F7F7F`, RF-Kumagai orange `#E69F00`, S blue `#0072B2`, D bluish green `#009E73`, P reddish purple `#CC79A7` (Okabe-Ito); advantage A black; published reference lines dark grey `#4D4D4D`. |
-| Dataset version | universe v1 solid line, filled markers; v2 dashed (4, 2), open markers. |
-| Marks | circles 3 pt, model lines 1.2 pt, reference lines 0.7 pt (published: dashes (4, 2) or (1.5, 1.5); margin delta: (4, 2); zero: dotted (1, 2)); bands are two-sided 95% intervals at alpha 0.22; parity points 4 pt^2 at alpha 0.45. |
-| Axes | Learning curves: log x axis in training hosts, ticks at 25, 50, 100, 200, 400, 654. Parity: square, shared limits, y = x line. Top and right spines off. |
-| Text | Only axis labels, tick labels, panel letters (a), (b) outside the top-left corner, and one legend below the panels. Numbers, n, definitions and statistics go in `<figure>.caption.md`. |
+| Font | Arial for all text, including mathtext (no DejaVu or Computer Modern fallback). 8 pt labels, 7 pt ticks and legend, 9 pt bold panel letters. Composites built with pdfLaTeX use TeX Gyre Heros, the schematics' family. |
+| Model colours | B0 grey `#7F7F7F`, RF-Kumagai orange `#E69F00`, S blue `#0072B2`, D bluish green `#009E73`, P reddish purple `#CC79A7` (Okabe-Ito); advantage A black; published reference lines and the training-mean predictor dark grey `#4D4D4D`. |
+| Backbone (author decision 2026-10-11, `docs/deviations.md`) | Primary backbone (v2): solid line, filled markers, filled band. Originally registered backbone (v1): dashed line (4, 2), open markers, hatched band without fill. Legend wording exactly "primary backbone (v2)" and "originally registered backbone (v1)" (`BACKBONE_LABELS`); backbones are named only in the legend and the caption, never in the plot. Captions never call v2 pre-registered; where chronology matters they say v2 was adopted after diagnostics of v1. |
+| Baselines | Backbone-independent baselines (B0, RF-Kumagai, training mean) on thinner lines (0.9 pt) with square markers and filled bands; the training mean dotted. |
+| Extension series | EXTENSION results (grouped K-fold CV, precision extension) as unconnected points with 95% interval bars: diamonds for precision (drawn just left of their budget), squares for CV (at the mean fold training size); filled or open by backbone; legend labels carry "(EXTENSION)". Never a third line style. |
+| Marks | circles 3 pt, model lines 1.2 pt, reference lines 0.7 pt (published: dashes (4, 2) or (1.5, 1.5); margin delta: (4, 2); zero: dotted (1, 2)); bands are two-sided 95% intervals at alpha 0.22 (hatch line width 0.35 pt); one-sided 95% upper bounds as short horizontal bars; parity points 4 pt^2 at alpha 0.45. |
+| Axes | Learning curves: log x axis in training hosts, ticks at 25, 50, 100, 200, 400, 654 (widened, not re-ticked, when CV points lie beyond 654). Parity: square, shared limits, y = x line. Top and right spines off. |
+| Text | Only axis labels, tick labels, panel letters (a), (b) outside the top-left corner, and one legend below the panels. No panel titles. Numbers, n, definitions and statistics go in `<figure>.caption.md`, which names the result file and key of every plotted value instead of typing it. |
+| Legend | One figure legend from explicit proxy handles (model colour, backbone line style, references, extension markers). `legend_handles` drops columns until it fits the page width and raises the axes bottom until the labels clear it; `save` refuses a figure whose legend leaves the page or overlaps an axes. |
 
-Helpers: `figure`, `learning_curve_panel`, `advantage_panel`, `parity_panel`, `band_curve`,
-`reference_line`, `legend_below`, `panel_letters`, `save`.
+Helpers: `figure`, `band_curve`, `baseline_curve`, `ext_points`, `ext_x`, `learning_curve_panel`,
+`advantage_panel`, `parity_panel`, `reference_line`, `budget_axis`, the proxy handles (`model_handle`,
+`baseline_handle`, `backbone_handle`, `ext_handle`, `reference_handle`), `legend_handles`, `legend_below`,
+`panel_letters`, `check_legends`, `save`.
+
+## Figure set (M3b)
+
+| Figure | Output | Script | Registered inputs (required) |
+|---|---|---|---|
+| Figure 1, models and input representation | `figures/main/fig1_overview.pdf` | `figures/code/fig1_overview.py` | `schematics/fig_pipeline.pdf`, `figures/main/fig1_zno_vacancy.png` |
+| Figure 2, learning curves of S and D | `figures/main/fig2_learning_curves.pdf` | `figures/code/fig2_learning_curves.py` | `results/c1c2_v2.json`, `results/c1c2_v1.json`, `results/diagnostics_sweep.json` |
+| Figure 3, advantage A | `figures/main/fig3_advantage.pdf` | `figures/code/fig3_advantage.py` | `results/c1c2_v2.json`, `results/c1c2_v1.json` |
+| G1 learning curves (ANALYSIS_PLAN §14) | `figures/main/fig_g1_learning_curves.pdf` (+ PNG preview) | `figures/code/fig_g1_learning_curves.py` | `results/g1_primary.json` (v1), `results/c1c2_v2.json` (v2) |
+| Within-host skill and A_within | `figures/main/fig_within_host.pdf` | `figures/code/fig_within_host.py` | `results/c1c2_v2.json`, `results/c1c2_v1.json` |
+| SI, readout schematic (Figure S3) | `figures/si/fig_readout.pdf` | `figures/code/fig_si_readout.py` | `schematics/fig_readout.pdf` |
+
+Every plot script takes `--results-root DIR` and `--out-dir DIR` (defaults `results/`, `figures/main/`) and
+writes its caption file beside the PDF. The registered inputs are the 10-resample x 3-seed records. The
+scripts superseded by these (`scripts/make_figures.py`, `scripts/analysis/fig_g1.py`,
+`figures/code/fig_g1_v2style.py`) are kept unchanged; rerunning the first two overwrites the M3b PDFs with
+the old style. Manuscript integration: `docs/figure_integration.md`.
+
+### Optional extension inputs
+
+The four plot scripts draw the K-fold CV and precision extensions when their analysis records exist, and
+otherwise build without them and print which inputs are missing. They never aggregate run records
+themselves (results come only from `write_result` records). Expected records, written under the analysis
+rules of the `docs/deviations.md` row of 2026-10-11 (§7, §11):
+
+| Extension | Analysis record read by the figures | Run records |
+|---|---|---|
+| precision, v1 | `results/precision_g1_v1.json` | `results/precision/` |
+| precision, v2 | `results/precision_g1_v2.json` | `results/precision_v2/` |
+| grouped CV, v1 | `results/cv_g1_v1.json` | `results/cv/` |
+| grouped CV, v2 | `results/cv_g1_v2.json` | `results/cv_v2/` |
+
+Payload schema: that of `results/c1c2_<arm>.json`: `budgets` (point keys, e.g. `"400"`, `"654"` or `"k10"`,
+`"k20"`), `mae.<key>.<S|D-state>.<mae|within_host_skill>.{mean, ci}`,
+`A_mae.<key>.{A, ci95, upper_one_sided_95}`, `A_within_host.<key>.{A, ci95}`, plus
+`x_training_hosts.<key>` (the mean fold training size for CV; may be omitted when the key is the budget).
+For precision, the payload's top-level estimates are the pooled 30 x 5 values. The scripts were checked
+against synthetic records of this schema (not committed): all four build and pass QA with three of the four
+extensions present.
+
+## Pending results: Figures 4 to 7
+
+Not built in M3b. Each is drawn only when its registered v1 result exists; the v2 records listed beside it
+are POST HOC and are drawn as the primary backbone only once the v1 result they accompany is in.
+
+| Figure | Claim | Result files it will read | Status |
+|---|---|---|---|
+| Figure 4, staging | C3a | v1: `results/peval/` (183 P runs, stage N2a-2) and the analysis record of item A-1 (`docs/remaining_work.md`); v2: `results/c3a_v2.json`, `results/p1_v2/`, `results/p_v2/` | pending: v1 staging not run |
+| Figure 5, geometry | C3b | v1: `results/mlip_v1/` (our 818 relaxations, stage N2a-1), `results/geomeval/` (stage N2a-4) and the analysis record of item A-2 | pending: v1 geometry evaluation not run. The collaborator's 809-host evaluation (`results/mlip/`, `results/mlip_eval_v2.json`) is excluded from C3b by the `docs/deviations.md` row of 2026-10-11 (§9) and is not drawn |
+| Figure 6, latent probe | C4 | v1: `results/embeddings_v1/` (stage N2a-3) and the analysis record of item A-3; v2: `results/probe_v2_sweep.json` | pending: v1 probe not run |
+| Figure 7, screening | C5 | `results/screening_c5.json` (`mae_S` v1, `mae_S_v2` v2), `results/screening_absence.json`, and the reconciliation of item A-11 | pending: reconciliation not run |
 
 ## QA
 
 `python figures/code/qa_figure.py <pdf> [...]` checks, on page 1: no raster images; every font embedded;
 one font family; width 138.6 or 184.6 mm (+/- 0.5 mm; or `--width-mm`); and no text whose box centre lies
-inside an axes (axes found from the clip rectangles matplotlib writes for data artists). Exit status 0 only if
-all checks pass.
+inside an axes (axes found from the clip rectangles matplotlib writes for data artists; a PDF without any
+axes fails this check, because the rule needs at least one). Exit status 0 only if all checks pass.
 
-Status of the figures in `figures/main/` on 2026-10-11:
+Status of every PDF in `figures/main/` and `figures/si/` on 2026-10-11 (M3b):
 
-| Figure | Result |
-|---|---|
-| `fig_g1_learning_curves_v2style.pdf` | PASS |
-| `fig_g1_learning_curves.pdf` (S10) | FAIL one_family (Arial + DejaVu Sans from mathtext); all else passes |
-| `fig2_learning_curves.pdf`, `fig3_advantage.pdf` | FAIL one_family (Computer Modern), width (164.0 / 81.5 mm) |
-| `fig_within_host.pdf` | FAIL one_family, width (81.5 mm), no_text_in_axes (legend inside the data area) |
+| Figure | vector | fonts | one_family | width (mm) | no_text_in_axes | Result |
+|---|---|---|---|---|---|---|
+| `main/fig2_learning_curves.pdf` | ok | ok | ok (Arial) | 138.6 | ok | PASS |
+| `main/fig3_advantage.pdf` | ok | ok | ok (Arial) | 138.6 | ok | PASS |
+| `main/fig_g1_learning_curves.pdf` | ok | ok | ok (Arial) | 138.6 | ok | PASS |
+| `main/fig_within_host.pdf` | ok | ok | ok (Arial) | 138.6 | ok | PASS |
+| `main/fig1_overview.pdf` | FAIL (1 raster: the ZnO render, by design) | ok | ok (TeX Gyre Heros) | 138.6 | FAIL (no axes: schematic and render, nothing to check) | accepted with reason |
+| `si/fig_readout.pdf` | ok | ok | FAIL (TeX Gyre Heros + CMSY8, a math symbol in `schematics/fig_readout.tex`) | 138.6 | FAIL (no axes: schematic) | accepted with reason; one family needs a change to the schematic source |
 
-The older figures are kept as they are; they should be regenerated through `style_paper.py` before submission.
+Figures 2, 3, G1 and within-host replace the versions that failed in M3 (Computer Modern or DejaVu fallback,
+widths of 164.0 and 81.5 mm, a legend inside the data area, panel titles in the plot). The M3 style exercise
+`fig_g1_learning_curves_v2style.pdf` was removed: the rebuilt G1 figure supersedes it, and it drew v1 solid.
 
 ## Structure renders
 
-Cycles PNG at 300 dpi at the MDPI text width (1637 px for 138.6 mm), at most 128 samples, white background,
-RGB. Element colours, vacancy marker and camera conventions: `blender/README.md`.
+Cycles PNG on a white background, RGB, at most 128 samples, at the MDPI text width (138.6 mm). The committed
+ZnO render `figures/main/fig1_zno_vacancy.png` is the M3 render at 300 dpi (1637 px). Figure 1 embeds it
+downsampled (Lanczos) to 600 dpi at the 0.45-width panel (1473 px over 62.37 mm), so panel (b) is a true 600 dpi
+raster. The 600 dpi full-width re-render (M3b task 3) has NOT been made: the memory gate of
+`blender/render_host.py` held at pressure level 2 (swap about 9.3 of 10 GB) from 20:57 to 21:23 and the
+render was stopped before Blender started. Command, to run when `kern.memorystatus_vm_pressure_level` is 1:
+
+```bash
+OMP_NUM_THREADS=3 nice -n 15 python blender/render_host.py mp-2133 150 figures/main/fig1_zno_vacancy.png \
+    --samples 128 --dpi 600 --data-root ~/Desktop/dft-gnn --max-wait 3600
+python figures/code/fig1_overview.py
+```
+
+Commit the render only if it is under 8 MB; otherwise render at `--dpi 450`, commit that, and note the 600 dpi
+path in `figures/main/fig1_zno_vacancy.caption.md`. Rerunning `fig1_overview.py` afterwards changes only the
+resampling source of panel (b). Element colours, vacancy marker and camera conventions: `blender/README.md`.
