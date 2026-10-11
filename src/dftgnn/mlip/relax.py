@@ -100,7 +100,9 @@ def relax_host(host_id: str, uc, tiling_row: dict | None, calc, *, model_sha256:
     if tiling_row is not None and tiling_row.get("status") == "ok":
         M = json.loads(tiling_row["M"]) if isinstance(tiling_row["M"], str) else tiling_row["M"]
         perm = json.loads(tiling_row["perm"]) if isinstance(tiling_row["perm"], str) else tiling_row["perm"]
-        tiled = tiled_supercell(relaxed, M, perm)
+        op = tiling_row.get("point_op")
+        op = json.loads(op) if isinstance(op, str) else op
+        tiled = tiled_supercell(relaxed, M, perm, point_op=op)
         p = out_dir / f"{host_id}_sc.json"
         p.write_text(json.dumps(tiled.as_dict()))
         files["supercell"] = {"path": p.name, "sha256": sha256_file(p)}

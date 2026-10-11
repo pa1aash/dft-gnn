@@ -4,7 +4,7 @@
 
 Writes data/processed/tiling_map_v1.parquet (gitignored; permutation and translation per host),
 data/tiling_summary_v1.csv (tracked) and results/tiling_v1.json (counts and reasons) via write_result.
-Procedure and tolerances: src/dftgnn/mlip/tiling.py.
+Procedure and tolerances: src/dftgnn/mlip/tiling.py (translation only, then one lattice point operation).
 """
 from __future__ import annotations
 
@@ -35,12 +35,15 @@ def main() -> None:
             print(f"{k}/{len(hosts)}", flush=True)
     t = pd.DataFrame(rows)
     t["excluded_from_C3b"] = t.status != "ok"
-    for c in ("M", "T_release", "perm", "translation"):
+    if "point_op" not in t:
+        t["point_op"] = None
+    t["point_op"] = t.point_op.map(lambda v: None if v is None or (isinstance(v, float) and v != v) else v)
+    for c in ("M", "T_release", "perm", "translation", "point_op"):
         t[c] = t[c].map(lambda v: None if v is None else json.dumps(v))
     MAP.parent.mkdir(parents=True, exist_ok=True)
     t.to_parquet(MAP, index=False)
     cols = ["host_id", "formula", "status", "reason", "frame", "T_agrees", "M", "T_release", "n_uc", "n_sc",
-            "max_residual_A", "M_direct_max_dev", "excluded_from_C3b"]
+            "max_residual_A", "M_direct_max_dev", "excluded_from_C3b", "point_op"]
     t[cols].to_csv(SUMMARY, index=False, float_format="%.6g")
     counts = dict(Counter(t.status))
     reasons = dict(Counter(t.reason[t.status != "ok"]))
@@ -56,6 +59,8 @@ def main() -> None:
         "hosts_release_T_disagrees": sorted(t.formula[t.T_agrees == False]),
         "max_residual_ok_A": float(t.max_residual_A[t.status == "ok"].max()),
         "excluded_from_C3b": sorted(t.host_id[t.excluded_from_C3b]),
+        "point_op_hosts": {r.formula: r.point_op for r in t[t.point_op.notna()].itertuples()},
+        "rule": "translation only, then one lattice point operation (docs/deviations.md 2026-10-11)",
         "tolerances": {"matrix_relative": tiling.REL_TOL, "residual_A": tiling.RESID_TOL_A},
         "summary": {"path": str(SUMMARY.relative_to(ROOT)), "sha256": sha256_file(SUMMARY)},
         "map": {"path": str(MAP.relative_to(ROOT)), "sha256": sha256_file(MAP), "tracked": False}})
