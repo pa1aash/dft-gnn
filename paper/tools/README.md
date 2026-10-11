@@ -29,6 +29,16 @@ Inside a payload:
   `model`, `element`, `site_label`, `formula` or `budget`, first match) with unique values; that value
   becomes the name component and the key itself is dropped. Other lists are skipped.
 
+Two further sources follow the top-level records, so they never displace one of their names:
+
+- the named records in `results/nrp/` (the N1 GPU-repeatability records); a list of objects without one
+  unique identifying key is flattened by the joined values of the keys `class`, `model`, `B`, `node`,
+  `pass`, `a`, `b` that every item carries (for example `per_class` items become `ATenSSixHundredFiftyFour`);
+- protocol constants, which are settings rather than results: `configs/config.yaml` (prefix `Cfg`),
+  `configs/tuned_v1.yaml` (`TunedVOne`), `configs/tuned_v2.yaml` (`TunedVTwo`), and selected top-level keys of
+  `splits/meta.json` (`SplitMeta`), `splits/loco_v1.json` (`SplitLoco`), `splits/cv_v1.json` (`SplitCv`) and
+  `splits/resamples_10_29.json` (`SplitExt`). Their source pointer is `<file>#/<key path>`.
+
 ## Naming scheme
 
 `\num` + `Name(record)` + `Name(key 1)` + `Name(key 2)` + ...
