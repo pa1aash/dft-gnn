@@ -51,7 +51,7 @@
   % ---------------- S ----------------
   \node[modelname=cS] (hS) at (1.10,\yH) {S};
   \node[model=cS, minimum width=2.0cm] (bbS) at (1.10,\yM) {MEGNet};
-  \draw[v2=cS] ($(bbS.south west)+(0.08,0.08)$) rectangle ($(bbS.north east)+(0.08,0.08)$);
+  \draw[v1=cS] ($(bbS.south west)+(0.08,0.08)$) rectangle ($(bbS.north east)+(0.08,0.08)$);
   \node[model=cS, minimum width=2.0cm] at (bbS) {MEGNet};
   \node[box, minimum width=2.0cm] (roS) at (1.10,\yR) {readout + MLP};
   \node[quantity, minimum width=1.0cm] (yS) at (1.10,\yO) {\Ef};
@@ -65,7 +65,7 @@
   \node[quantity, align=center] (host) at (3.55,\yI) {host-\\electronic};
   \node[quantity, align=center] (site) at (5.25,\yI) {site-\\electronic};
   \node[model=cD, minimum width=2.6cm, minimum height=9mm] (bbD) at (4.40,\yM) {};
-  \draw[v2=cD] ($(bbD.south west)+(0.08,0.08)$) rectangle ($(bbD.north east)+(0.08,0.08)$);
+  \draw[v1=cD] ($(bbD.south west)+(0.08,0.08)$) rectangle ($(bbD.north east)+(0.08,0.08)$);
   \node[model=cD, minimum width=2.6cm, minimum height=9mm] (bbD) at (4.40,\yM) {};
   \node at ($(bbD.center)+(0,-0.17)$) {MEGNet};
   \node[anchor=north, inner sep=2.6pt] at (bbD.north -| host) {$u^{(0)}$};
@@ -82,7 +82,7 @@
   % ---------------- P = P1 then D ----------------
   \node[modelname=cP] (hP) at (7.70,\yH) {P};
   \node[model=cP, minimum width=2.0cm] (bbP) at (7.70,\yM) {P1 (MEGNet)};
-  \draw[v2=cP] ($(bbP.south west)+(0.08,0.08)$) rectangle ($(bbP.north east)+(0.08,0.08)$);
+  \draw[v1=cP] ($(bbP.south west)+(0.08,0.08)$) rectangle ($(bbP.north east)+(0.08,0.08)$);
   \node[model=cP, minimum width=2.0cm] at (bbP) {P1 (MEGNet)};
   \node[quantity, align=center] (dhat) at (7.70,\yR) {predicted\\descriptors};
   \node[model=cD, minimum width=1.0cm] (DinP) at (7.70,\yO) {D};

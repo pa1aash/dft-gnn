@@ -22,13 +22,13 @@
     \draw[draw=cS, fill=cS!8, rounded corners=1.2pt, line width=0.6pt]
       ($(3.40,-1.55)+(\d,\d)$) rectangle ($(4.90,1.55)+(\d,\d)$);
   }
-  \node[model=cS, minimum width=1.5cm, minimum height=3.1cm] (mg) at (4.15,0) {MEGNet\\block\\[1pt]$\times\,n$};
+  \node[model=cS, minimum width=1.5cm, minimum height=3.1cm] (mg) at (4.15,0) {MEGNet\\block\\[1pt]\texttimes\,$n$};
   \foreach \n in {xv,xi,eij,u0} \draw[flow] (\n.east) -- (\n.east -| mg.west);
 
   % ---------------- outputs and pooling ----------------
   \tikzset{outp/.style={quantity, minimum height=5.6mm}}
   \node[outp] (hv) at (6.25, 1.20) {$\mathbf{h}_\mathrm{v}$};
-  \node[outp] (hi) at (6.25, 0.00) {$\{\mathbf{h}_i\}$};
+  \node[outp] (hi) at (6.25, 0.00) {\textbraceleft$\mathbf{h}_i$\textbraceright};
   \node[outp] (uo) at (6.25,-1.20) {$u$};
   \foreach \n in {hv,hi,uo} \draw[flow] ($(\n.west -| mg.east)+(0.16,0)$) -- (\n.west);
   \node[box, draw=cS, align=center] (pool) at (7.75,0) {Set2Set\\or mean};
