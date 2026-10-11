@@ -1,6 +1,6 @@
 % Shared preamble for the TikZ schematics (fig_*.tex). Load with \input{common} after
 % \documentclass[tikz,border=1pt]{standalone}.
-% Palette = src/dftgnn/viz/style.py COLORS (Okabe-Ito hues), extended with P and the v2 style.
+% Palette = src/dftgnn/viz/style.py COLORS (Okabe-Ito hues), extended with P and the v1 (dashed) style.
 \usepackage[T1]{fontenc}
 \usepackage[scale=1.0]{tgheros}            % Helvetica-metric sans, Type 1, embeddable
 \renewcommand{\familydefault}{\sfdefault}
@@ -33,7 +33,7 @@
   model/.style={box, draw=#1, fill=#1!14, line width=0.8pt},
   modelname/.style={font=\fontsize{9}{10}\selectfont\bfseries, text=#1},
   quantity/.style={box, draw=cNeutral, fill=black!4},
-  v2/.style={draw=#1, dashed, dash pattern=on 2pt off 1.2pt, line width=0.8pt, rounded corners=1.2pt},
+  v1/.style={draw=#1, dashed, dash pattern=on 2pt off 1.2pt, line width=0.8pt, rounded corners=1.2pt},
   panel/.style={font=\fontsize{9}{10}\selectfont\bfseries, anchor=north west, inner sep=0pt},
   atom/.style={circle, inner sep=0pt, minimum size=#1},
 }
