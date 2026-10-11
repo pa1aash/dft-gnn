@@ -104,21 +104,18 @@ def test_failures(tmp_path, case):
     assert "INGEST CHECK FAILED" in r.stdout
 
 
-def test_export_then_ingest_with_outbox(tmp_path):
-    """Cluster side: export_stage.sh commits the tracked files to nrp/cv in a separate worktree and packs the
-    outbox; Mac side: ingest_batch.sh --outbox places the gitignored checkpoint and passes every check."""
+def test_export_then_ingest_with_nrp_artefact_manifest(tmp_path):
+    """Cluster side: export_stage.sh commits the tracked files and results/nrp/artefacts/cv.sha256 to nrp/cv in a
+    separate worktree; the checkpoint stays behind. Mac side: ingest passes from the manifest alone, and fails when
+    the manifest disagrees with the result record."""
     repo = make_repo(tmp_path)
     git(repo, "checkout", "-q", "main")
-    (repo / "scripts" / "queue").mkdir()
-    for f in ("outbox.py", "_common.py"):
-        shutil.copy(ROOT / "scripts" / "queue" / f, repo / "scripts" / "queue" / f)
     shutil.copy(ROOT / "scripts" / "nrp" / "export_stage.sh", repo / "scripts" / "nrp" / "export_stage.sh")
-    (repo / ".gitignore").write_text("checkpoints/\njobs/\noutbox/\n")
+    (repo / ".gitignore").write_text("checkpoints/\njobs/\n")
     git(repo, "add", "-A")
     git(repo, "commit", "-qm", "tools")
     git(repo, "tag", "-f", "-a", "nrp-code-v1", "-m", "pin")
     git(repo, "branch", "-D", "nrp/cv")
-    # a finished cv run in the live checkout: result, predictions (tracked), checkpoint (gitignored), done record
     add_result(repo)
     (repo / "checkpoints").mkdir()
     ck = b"CHECKPOINT"
@@ -137,9 +134,10 @@ def test_export_then_ingest_with_outbox(tmp_path):
     assert r.returncode == 0, r.stdout + r.stderr
     assert git(repo, "branch", "--show-current").strip() == "main"          # the live checkout did not move
     files = git(repo, "ls-tree", "-r", "--name-only", "nrp/cv", "--", "results").split()
-    assert sorted(files) == sorted([f"results/cv/predictions/{RID}.parquet", f"results/cv/{RID}.json"])
-    tar = next((repo / "outbox").glob("outbox_cv_*.tar.gz"))
-    # the Mac: a fresh clone without the checkpoint
+    assert sorted(files) == sorted([f"results/cv/predictions/{RID}.parquet", f"results/cv/{RID}.json",
+                                    "results/nrp/artefacts/cv.sha256"])
+    man = git(repo, "show", "nrp/cv:results/nrp/artefacts/cv.sha256")
+    assert man == f"{hashlib.sha256(ck).hexdigest()}  {len(ck)}  checkpoints/{RID}.pt\n"
     mac = tmp_path / "mac"
     subprocess.run(["git", "clone", "-q", "-b", "main", str(repo), str(mac)], check=True, capture_output=True)
     git(mac, "fetch", "-q", "origin", "nrp/cv:refs/remotes/origin/nrp/cv", "--tags")
@@ -147,8 +145,25 @@ def test_export_then_ingest_with_outbox(tmp_path):
     (mac / ".git" / "hooks" / "_audit.sh").chmod(0o755)
     base = ["bash", "scripts/nrp/ingest_batch.sh", "nrp/cv", "--no-fetch"]
     r = subprocess.run(base, cwd=mac, capture_output=True, text=True, check=False)
-    assert r.returncode == 1 and "MISSING checkpoints/" in r.stdout              # checkpoint not yet placed
-    r = subprocess.run([*base, "--outbox", str(tar)], cwd=mac, capture_output=True, text=True, check=False)
     assert r.returncode == 0, r.stdout + r.stderr
-    assert (mac / "checkpoints" / f"{RID}.pt").read_bytes() == ck
-    assert not (mac / "results" / "cv").exists()                                  # tracked members left to the branch
+    assert "1 listed as kept on NRP" in r.stdout and not (mac / "checkpoints").exists()
+    # a manifest that disagrees with the result record fails
+    wt = repo.parent / f"{repo.name}-nrp-cv"
+    (wt / "results" / "nrp" / "artefacts" / "cv.sha256").write_text(f"{'0' * 64}  {len(ck)}  checkpoints/{RID}.pt\n")
+    git(wt, "commit", "-qam", "tamper", who=A)
+    git(mac, "fetch", "-q", "origin", "+nrp/cv:refs/remotes/origin/nrp/cv")
+    r = subprocess.run(base, cwd=mac, capture_output=True, text=True, check=False)
+    assert r.returncode == 1 and "differs from results/nrp/artefacts/" in r.stdout
+
+
+def test_verify_bundle(tmp_path):
+    (tmp_path / "d").mkdir()
+    (tmp_path / "d" / "a.bin").write_bytes(b"abc")
+    man = tmp_path / "m.sha256"
+    man.write_text(f"{hashlib.sha256(b'abc').hexdigest()}  d/a.bin\n")
+    vb = ROOT / "scripts" / "nrp" / "verify_bundle.sh"
+    r = subprocess.run(["bash", str(vb), str(man), str(tmp_path)], capture_output=True, text=True, check=False)
+    assert r.returncode == 0 and "OK: 1 of 1" in r.stdout
+    (tmp_path / "d" / "a.bin").write_bytes(b"abd")
+    r = subprocess.run(["bash", str(vb), str(man), str(tmp_path)], capture_output=True, text=True, check=False)
+    assert r.returncode == 1 and "MISMATCH d/a.bin" in r.stdout

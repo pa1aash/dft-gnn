@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Runs on the Mac: check a results branch pushed from the cluster before anything is merged (docs/nrp_runbook.md, 6).
-#   bash scripts/nrp/ingest_batch.sh nrp/<stage> [--outbox outbox_<stage>_<time>.tar.gz] [--base main] [--tracked-only]
-#                                                [--no-fetch]
+#   bash scripts/nrp/ingest_batch.sh nrp/<stage> [--base main] [--no-fetch]
 # Checks, over the commits of origin/<branch> that are not in <base>:
 #   1. identities: every author and committer is an allowed identity, and no commit message holds a banned string
 #      (the local hook .git/hooks/_audit.sh, which also defines the banned pattern; this tracked file never names it);
@@ -10,23 +9,18 @@
 #      relative to it (results only);
 #   4. artefacts: every results JSON added or changed on the branch names its run id as its file name, its run id is
 #      listed in specs/*.jsonl (ids computed with nrp-code-v1; a recorded code_ref must name that tag), and every
-#      artefact it records (predictions, checkpoint, task artifacts) has the recorded
-#      sha256: committed artefacts are hashed from the branch, gitignored ones (checkpoints, relaxed structures,
-#      embeddings) from the local files unpacked from the outbox tarball (--tracked-only skips those);
+#      artefact it records has the recorded sha256: committed artefacts (prediction parquets) are hashed from the
+#      branch; gitignored ones (checkpoints, relaxed structures, embeddings) stay on NRP storage and must be listed
+#      with the same sha256 in the branch's tracked manifest results/nrp/artefacts/<stage>.sha256;
 #   5. counts: results per stage, by matching run ids against specs/*.jsonl, against the stage totals.
-# --outbox: before step 4, check the tarball against its .sha256 and its inner manifest and place only its gitignored
-# members (checkpoints, relaxed structures, embeddings; never a tracked path, never overwriting a different file), so
-# the later merge cannot collide with untracked copies of tracked files.
-# It merges nothing and changes no tracked file. Exit status 0 only if every check passes.
+# It merges nothing and changes no file. Exit status 0 only if every check passes.
 set -euo pipefail
-BRANCH="${1:?usage: ingest_batch.sh nrp/<stage> [--outbox <tar.gz>] [--base main] [--tracked-only] [--no-fetch]}"; shift
-BASE=main; TRACKED_ONLY=0; FETCH=1; OUTBOX=""
+BRANCH="${1:?usage: ingest_batch.sh nrp/<stage> [--base main] [--no-fetch]}"; shift
+BASE=main; FETCH=1
 while [ $# -gt 0 ]; do
   case "$1" in
     --base) BASE="$2"; shift 2 ;;
-    --tracked-only) TRACKED_ONLY=1; shift ;;
     --no-fetch) FETCH=0; shift ;;
-    --outbox) OUTBOX="$2"; shift 2 ;;
     *) echo "unknown arg $1" >&2; exit 2 ;;
   esac
 done
@@ -67,50 +61,20 @@ else
   if [ -z "$CH" ]; then echo "3 code unchanged since $TAG: OK"; else echo "3 code: FAIL, changed since $TAG:"; echo "$CH" | head -20; FAIL=1; fi
 fi
 
-# outbox: place the gitignored artefacts
-if [ -n "$OUTBOX" ]; then
-  if python3 - "$OUTBOX" <<'PY'
-import hashlib, pathlib, subprocess, sys, tarfile
-tar_path = pathlib.Path(sys.argv[1])
-sha = lambda b: hashlib.sha256(b).hexdigest()
-side = tar_path.with_name(tar_path.name + ".sha256")
-if not side.is_file() or side.read_text().split()[0] != sha(tar_path.read_bytes()):
-    raise SystemExit(f"{tar_path}: missing or mismatching .sha256")
-placed = same = 0
-with tarfile.open(tar_path, "r:gz") as tar:
-    man = dict(reversed(ln.split("  ", 1)) for ln in tar.extractfile("OUTBOX_MANIFEST.sha256").read().decode().splitlines())
-    names = [n for n in man if not n.startswith("/") and ".." not in pathlib.Path(n).parts]
-    if len(names) != len(man):
-        raise SystemExit("unsafe member paths")
-    ignored = set(subprocess.run(["git", "check-ignore", "--stdin"], input="\n".join(names), capture_output=True,
-                                 text=True).stdout.split())
-    for n in sorted(ignored):
-        data = tar.extractfile(n).read()
-        if sha(data) != man[n]:
-            raise SystemExit(f"{n}: member differs from the inner manifest")
-        dst = pathlib.Path(n)
-        if dst.exists():
-            if sha(dst.read_bytes()) != man[n]:
-                raise SystemExit(f"{n}: a different file already exists; refusing to overwrite")
-            same += 1
-            continue
-        dst.parent.mkdir(parents=True, exist_ok=True)
-        dst.write_bytes(data)
-        placed += 1
-print(f"outbox {tar_path.name}: {len(man)} members verified; {placed} gitignored artefacts placed, {same} already present, "
-      f"{len(man) - len(ignored)} tracked members left to the branch")
-PY
-  then echo "outbox: OK"; else echo "outbox: FAIL"; FAIL=1; fi
-fi
-
 # 4-5. artefact hashes and counts per stage
-if python3 - "$MB" "$REF" "$TRACKED_ONLY" "$TAG" <<'PY'
+if python3 - "$MB" "$REF" "$TAG" <<'PY'
 import collections, hashlib, json, pathlib, subprocess, sys
-mb, ref, tracked_only, tag = sys.argv[1], sys.argv[2], sys.argv[3] == "1", sys.argv[4]
+mb, ref, tag = sys.argv[1], sys.argv[2], sys.argv[3]
 git = lambda *a: subprocess.run(["git", *a], check=True, capture_output=True).stdout
 changed = [p for p in git("diff", "--name-only", "--diff-filter=AM", mb, ref, "--", "results").decode().split()
            if p.endswith(".json")]
 tree = set(git("ls-tree", "-r", "--name-only", ref, "--", "results").decode().split())
+nrp_store = {}                                   # gitignored artefacts kept on NRP: path -> sha256
+for m in sorted(p for p in tree if p.startswith("results/nrp/artefacts/") and p.endswith(".sha256")):
+    for line in git("show", f"{ref}:{m}").decode().splitlines():
+        if line.strip():
+            h, _size, path = line.split("  ", 2)
+            nrp_store[path] = h
 stage_of, expected = {}, collections.Counter()
 for f in sorted(pathlib.Path("specs").glob("*.jsonl")):
     for line in f.read_text().splitlines():
@@ -141,22 +105,21 @@ for p in changed:
         if path in tree:
             if blob_sha(path) != a["sha256"]:
                 bad.append(f"{p}: {path} sha256 differs (branch)")
-        elif tracked_only:
-            continue
-        elif pathlib.Path(path).is_file():
-            if hashlib.sha256(pathlib.Path(path).read_bytes()).hexdigest() != a["sha256"]:
-                bad.append(f"{p}: {path} sha256 differs (local, from the outbox tarball)")
+        elif path in nrp_store:
+            if nrp_store[path] != a["sha256"]:
+                bad.append(f"{p}: {path} sha256 differs from results/nrp/artefacts/")
         else:
             missing.append(path)
     if rid in stage_of:
         found[stage_of[rid]] += 1
     else:
         unknown.append(rid)
-print(f"4 artefacts: {n} result records checked, {len(bad)} problems, {len(missing)} gitignored artefacts not present")
+print(f"4 artefacts: {n} result records checked, {len(bad)} problems, {len(missing)} artefacts neither committed nor "
+      f"listed in results/nrp/artefacts/ ({len(nrp_store)} listed as kept on NRP)")
 for b in bad[:20]:
     print("  BAD", b)
 for m in missing[:10]:
-    print("  MISSING", m, "(unpack the stage's outbox tarball with scripts/queue/outbox.py unpack)")
+    print("  MISSING", m, "(not committed and not in results/nrp/artefacts/<stage>.sha256)")
 print("5 counts per stage (results on this branch / specs):")
 for st in sorted(set(found) | set(expected), key=lambda s: list(expected).index(s) if s in expected else 99):
     print(f"  {st:10s} {found.get(st, 0):5d} / {expected.get(st, 0)}")
