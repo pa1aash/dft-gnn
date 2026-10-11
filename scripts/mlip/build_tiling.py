@@ -8,7 +8,9 @@ Procedure and tolerances: src/dftgnn/mlip/tiling.py (translation only, then one 
 """
 from __future__ import annotations
 
+import hashlib
 import json
+import math
 from collections import Counter
 from pathlib import Path
 
@@ -37,14 +39,14 @@ def main() -> None:
     t["excluded_from_C3b"] = t.status != "ok"
     if "point_op" not in t:
         t["point_op"] = None
-    t["point_op"] = t.point_op.map(lambda v: None if v is None or (isinstance(v, float) and v != v) else v)
+    t["point_op"] = t.point_op.map(lambda v: None if v is None or (isinstance(v, float) and math.isnan(v)) else v)
     for c in ("M", "T_release", "perm", "translation", "point_op"):
         t[c] = t[c].map(lambda v: None if v is None else json.dumps(v))
     MAP.parent.mkdir(parents=True, exist_ok=True)
     t.to_parquet(MAP, index=False)
     cols = ["host_id", "formula", "status", "reason", "frame", "T_agrees", "M", "T_release", "n_uc", "n_sc",
             "max_residual_A", "M_direct_max_dev", "excluded_from_C3b", "point_op"]
-    t[cols].to_csv(SUMMARY, index=False, float_format="%.6g")
+    csv_bytes = t[cols].to_csv(index=False, float_format="%.6g").encode()   # written after write_result (clean tree)
     counts = dict(Counter(t.status))
     reasons = dict(Counter(t.reason[t.status != "ok"]))
     print(f"tiling: {counts}; failure reasons {reasons}; frames {dict(Counter(t.frame.fillna('none')))}; "
@@ -62,8 +64,9 @@ def main() -> None:
         "point_op_hosts": {r.formula: r.point_op for r in t[t.point_op.notna()].itertuples()},
         "rule": "translation only, then one lattice point operation (docs/deviations.md 2026-10-11)",
         "tolerances": {"matrix_relative": tiling.REL_TOL, "residual_A": tiling.RESID_TOL_A},
-        "summary": {"path": str(SUMMARY.relative_to(ROOT)), "sha256": sha256_file(SUMMARY)},
+        "summary": {"path": str(SUMMARY.relative_to(ROOT)), "sha256": hashlib.sha256(csv_bytes).hexdigest()},
         "map": {"path": str(MAP.relative_to(ROOT)), "sha256": sha256_file(MAP), "tracked": False}})
+    SUMMARY.write_bytes(csv_bytes)
 
 
 if __name__ == "__main__":
