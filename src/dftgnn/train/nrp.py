@@ -6,12 +6,16 @@ instead of the generating commit, so the Mac and the cluster compute the same id
 Building specs is pure: it reads tracked files only (splits, tuned hyperparameters, committed results for the
 checkpoint index, the GPU benchmark), and uses no GPU and no network.
 
-Stages, programme group (priority order) and job counts for the v1 backbone:
-    N2a  relax 818 (minus the hosts already relaxed, ``hosts``), peval 183, embed 240, geomeval 180
-    N2b  loco 30, moment 60, cgcnn 18, capped 33 (POST HOC)
-    N3   cv 180 per backbone (EXTENSION): {S, D} x K in {10, 20} x folds x seeds 0-2
-    N4   precision 480 (EXTENSION): {S, D} x B in {400, 654} x (r = 10..29 x seeds 0-4 + r = 0..9 x seeds 3, 4)
-The N2a and N2b stages reuse the S12 builders (``dftgnn.train.s12``) unchanged.
+Stages, programme group (priority order) and job counts:
+    N2a  relax 818 (all hosts; ``hosts`` restricts it), peval 183, embed 240, geomeval 180          (v1)
+    N2b  moment 60, cgcnn 18, capped 33 (POST HOC)                                                   (v1)
+    N3   cv 180 per backbone (EXTENSION): {S, D} x K in {10, 20} x folds x seeds 0-2                  (v1 and v2)
+    N4   precision 480 per backbone (EXTENSION): {S, D} x B in {400, 654} x (r = 10..29 x seeds 0-4
+         + r = 0..9 x seeds 3, 4)                                                                     (v1 and v2)
+The N2a and N2b stages reuse the S12 builders (``dftgnn.train.s12``) unchanged. LOCO is not a stage: the
+collaborator's 30 v1 LOCO runs are adopted (docs/deviations.md, 2026-10-11). The v2 backbone (POST HOC,
+``configs/tuned_v2.yaml``: its a654 values plus the fixed ``arch`` options) writes to ``results/cv_v2/`` and
+``results/precision_v2/``.
 """
 from __future__ import annotations
 
@@ -32,16 +36,19 @@ from dftgnn.train.stages import TUNED, _job, load_tuned, tuned_hparams
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SPECS_DIR = REPO_ROOT / "specs"
 CODE_REF = "nrp-code-v1"
-STAGES = ("relax", "peval", "embed", "geomeval", "loco", "moment", "cgcnn", "capped", "cv", "precision")
-GROUP = {"relax": "N2a", "peval": "N2a", "embed": "N2a", "geomeval": "N2a", "loco": "N2b", "moment": "N2b",
-         "cgcnn": "N2b", "capped": "N2b", "cv": "N3", "precision": "N4"}
+STAGES = ("relax", "peval", "embed", "geomeval", "moment", "cgcnn", "capped", "cv", "precision")
+GROUP = {"relax": "N2a", "peval": "N2a", "embed": "N2a", "geomeval": "N2a", "moment": "N2b", "cgcnn": "N2b",
+         "capped": "N2b", "cv": "N3", "precision": "N4"}
 LABEL = {"relax": "registered", "peval": "registered", "embed": "registered",
-         "geomeval": "registered (B = 200 DESCRIPTIVE EXTRA)", "loco": "registered", "moment": "registered",
-         "cgcnn": "registered", "capped": "POST HOC", "cv": "EXTENSION", "precision": "EXTENSION"}
-EXPECTED = {"relax": 818, "peval": 183, "embed": 240, "geomeval": 180, "loco": 30, "moment": 60, "cgcnn": 18,
-            "capped": 33, "cv": 180, "precision": 480}
+         "geomeval": "registered (B = 200 DESCRIPTIVE EXTRA)", "moment": "registered", "cgcnn": "registered",
+         "capped": "POST HOC", "cv": "EXTENSION", "precision": "EXTENSION"}
+EXPECTED = {"relax": 818, "peval": 183, "embed": 240, "geomeval": 180, "moment": 60, "cgcnn": 18, "capped": 33,
+            "cv": 180, "precision": 480}
 BACKBONES = ("v1", "v2")
-V2_STAGES = ("cv", "precision")             # stages that get a v2 version once the v2 backbone is merged
+V2_STAGES = ("cv", "precision")             # stages with a v2 version (the v2 backbone of configs/tuned_v2.yaml)
+TUNED_V2 = REPO_ROOT / "configs" / "tuned_v2.yaml"
+V2_LABEL = "EXTENSION, v2 backbone (POST HOC)"
+V2_PRIORITY_OFFSET = 50_000                 # v2 jobs follow the v1 jobs of the same stage
 PRIORITY_STRIDE = 100_000
 PRECISION_BUDGETS = (400, 654)
 PRECISION_NEW = (EXT_RESAMPLES, range(5))   # r = 10..29, seeds 0-4
@@ -62,9 +69,10 @@ def read_hosts_file(path: Path) -> list[str]:
 
 
 # ----------------------------------------------------------------------------------------- new stages
-def build_cv(code: str, gsha: str, tuned: dict, cfg: Config, table: dict | None) -> list[dict]:
-    """N3: S and D x K in {10, 20} x folds x seeds 0-2, a654 hyperparameters, results/cv/."""
+def build_cv(code: str, gsha: str, tuned: dict, cfg: Config, table: dict | None, subdir: str = "cv") -> list[dict]:
+    """N3: S and D x K in {10, 20} x folds x seeds 0-2, a654 hyperparameters, results/<subdir>/."""
     d = tuned["d_variant"]
+    tags = {"v2": tuned["version"]} if tuned.get("arch") else {}
     cv = load_split(CV_NAME)
     jobs = []
     for k in CV_KS:
@@ -72,8 +80,8 @@ def build_cv(code: str, gsha: str, tuned: dict, cfg: Config, table: dict | None)
             for s in CV_SEEDS:
                 for m in ("S", d):
                     spec = RunSpec(model=m, **tuned_hparams(tuned, m, 654), split=split_name(k, f["fold"]),
-                                   r=f["fold"], budget=f["n_train"], seed=s, results_subdir="cv",
-                                   tags={"extension": "N3_cv", "k": k})
+                                   r=f["fold"], budget=f["n_train"], seed=s, results_subdir=subdir,
+                                   tags={"extension": "N3_cv", "k": k, **tags})
                     jobs.append(_job(spec, "cv", code, gsha, table=table))
     return jobs
 
@@ -86,15 +94,17 @@ def precision_cells() -> list[tuple[int, int, int]]:
     return out
 
 
-def build_precision(code: str, gsha: str, tuned: dict, cfg: Config, table: dict | None) -> list[dict]:
-    """N4: S and D at B = 400 and 654, hyperparameters by the registered budget-to-anchor map, results/precision/."""
+def build_precision(code: str, gsha: str, tuned: dict, cfg: Config, table: dict | None,
+                    subdir: str = "precision") -> list[dict]:
+    """N4: S and D at B = 400 and 654, hyperparameters by the registered budget-to-anchor map, results/<subdir>/."""
     d = tuned["d_variant"]
+    tags = {"v2": tuned["version"]} if tuned.get("arch") else {}
     b2a = cfg.tuning.budget_to_anchor
     jobs = []
     for r, b, s in precision_cells():
         for m in ("S", d):
             spec = RunSpec(model=m, **tuned_hparams(tuned, m, b2a[b]), split=f"outer_r{r}", r=r, budget=b, seed=s,
-                           results_subdir="precision", tags={"extension": "N4_precision"})
+                           results_subdir=subdir, tags={"extension": "N4_precision", **tags})
             jobs.append(_job(spec, "precision", code, gsha, table=table))
     return jobs
 
@@ -110,7 +120,7 @@ def _benchmark() -> dict | None:
 
 
 def build_stage(stage: str, *, code_ref: str = CODE_REF, backbone: str = "v1", hosts: list[str] | None = None,
-                tuned_path: Path = TUNED, cfg: Config | None = None) -> list[dict]:
+                tuned_path: Path | None = None, cfg: Config | None = None) -> list[dict]:
     """Jobs of one stage, with ``code_ref``, ``backbone``, ``group``, ``label`` and a global ``priority``.
 
     ``hosts`` (relax and geomeval): the relax top-up list. relax builds only these hosts; geomeval drops the
@@ -122,10 +132,9 @@ def build_stage(stage: str, *, code_ref: str = CODE_REF, backbone: str = "v1", h
         raise ValueError(f"unknown stage {stage!r}")
     if backbone not in BACKBONES:
         raise ValueError(f"unknown backbone {backbone!r}")
-    if backbone == "v2":
-        if stage not in V2_STAGES:
-            raise ValueError(f"stage {stage!r} has a v1 version only")
-        raise NotImplementedError("the v2 backbone is not merged yet; FINISH M2 wires it into cv and precision")
+    if backbone == "v2" and stage not in V2_STAGES:
+        raise ValueError(f"stage {stage!r} has a v1 version only")
+    tuned_path = tuned_path if tuned_path is not None else (TUNED_V2 if backbone == "v2" else TUNED)
     cfg = cfg if cfg is not None else load_config()
     tuned, gsha, table, code = load_tuned(tuned_path), manifest_sha(), _benchmark(), code_ref
     if stage in ("peval", "embed", "geomeval"):
@@ -147,8 +156,6 @@ def build_stage(stage: str, *, code_ref: str = CODE_REF, backbone: str = "v1", h
         jobs = S12.build_geomeval(code, prim, relax, cfg, table)
         if keep is not None:
             jobs = [{**j, "after": [a for a in j["after"] if a in keep]} for j in jobs]
-    elif stage == "loco":
-        jobs = S12.build_loco(code, gsha, tuned, cfg, table)
     elif stage == "moment":
         jobs = S12.build_moment(code, gsha, tuned, cfg, table)
     elif stage == "cgcnn":
@@ -156,10 +163,13 @@ def build_stage(stage: str, *, code_ref: str = CODE_REF, backbone: str = "v1", h
     elif stage == "capped":
         jobs = S12.build_capped(code, gsha, table)
     elif stage == "cv":
-        jobs = build_cv(code, gsha, tuned, cfg, table)
+        jobs = build_cv(code, gsha, tuned, cfg, table, subdir="cv" if backbone == "v1" else "cv_v2")
     else:
-        jobs = build_precision(code, gsha, tuned, cfg, table)
-    base = STAGES.index(stage) * PRIORITY_STRIDE
+        jobs = build_precision(code, gsha, tuned, cfg, table, subdir="precision" if backbone == "v1" else "precision_v2")
+    if bool(tuned.get("arch")) != (backbone == "v2"):
+        raise ValueError(f"{tuned_path} does not match backbone {backbone}")
+    base = STAGES.index(stage) * PRIORITY_STRIDE + (V2_PRIORITY_OFFSET if backbone == "v2" else 0)
+    label = V2_LABEL if backbone == "v2" else LABEL[stage]
     out = []
     for i, j in enumerate(jobs):
         spec = dict(j["spec"])
@@ -168,7 +178,7 @@ def build_stage(stage: str, *, code_ref: str = CODE_REF, backbone: str = "v1", h
             if run_id(RunSpec.from_dict(spec), code_ref, gsha) != j["run_id"]:
                 raise RuntimeError(f"run id of {j['run_id']} does not reproduce from its spec")
         out.append({**j, "spec": spec, "stage": stage, "code_ref": code_ref, "backbone": backbone,
-                    "group": GROUP[stage], "tranche": GROUP[stage], "label": LABEL[stage], "priority": base + i})
+                    "group": GROUP[stage], "tranche": GROUP[stage], "label": label, "priority": base + i})
     return out
 
 
@@ -189,8 +199,11 @@ def manifest(stage: str, jobs: list[dict], body: bytes, *, jsonl_name: str, code
         p = Path(p).resolve()
         return str(p.relative_to(REPO_ROOT)) if p.is_relative_to(REPO_ROOT) else str(p)
 
-    return {"stage": stage, "group": GROUP[stage], "label": LABEL[stage], "code_ref": code_ref,
-            "backbone": backbone, "jsonl": jsonl_name, "sha256": hashlib.sha256(body).hexdigest(),
+    return {"stage": stage, "group": GROUP[stage], "label": V2_LABEL if backbone == "v2" else LABEL[stage],
+            "code_ref": code_ref, "backbone": backbone,
+            "backbones_with_this_stage": {"v1": f"{stage}.jsonl", **({"v2": f"{stage}_v2.jsonl"} if stage in V2_STAGES
+                                                                       else {})},
+            "jsonl": jsonl_name, "sha256": hashlib.sha256(body).hexdigest(),
             "count": len(jobs), "counts_by_model": dict(sorted(Counter(j["spec"]["model"] for j in jobs).items())),
             "priority_range": [min(j["priority"] for j in jobs), max(j["priority"] for j in jobs)] if jobs else None,
             "graphs_manifest_sha256": manifest_sha(),

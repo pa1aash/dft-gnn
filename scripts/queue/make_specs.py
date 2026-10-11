@@ -1,7 +1,7 @@
 """Write the job specs of one cluster stage (docs/nrp_runbook.md; ``dftgnn.train.nrp``).
 
     python scripts/queue/make_specs.py --stage cv --code-ref nrp-code-v1 --backbone v1 --out specs/cv.jsonl
-    python scripts/queue/make_specs.py --stage relax --hosts-file specs/relax_hosts.txt --out specs/relax.jsonl
+    python scripts/queue/make_specs.py --stage cv --backbone v2                # specs/cv_v2.jsonl (configs/tuned_v2.yaml)
     python scripts/queue/make_specs.py --stage cv --check            # regenerate and compare, write nothing
 
 Writes ``specs/<stage>.jsonl`` (one queue job per line, sorted by priority; canonical JSON) and
@@ -44,13 +44,14 @@ def main() -> None:
     ap.add_argument("--code-ref", default=nrp.CODE_REF)
     ap.add_argument("--backbone", default="v1", choices=nrp.BACKBONES)
     ap.add_argument("--hosts-file", help="relax / geomeval: host ids to relax (the top-up list), one per line")
-    ap.add_argument("--tuned", default=str(ROOT / "configs" / "tuned_v1.yaml"))
+    ap.add_argument("--tuned", help="default configs/tuned_v1.yaml (v1) or configs/tuned_v2.yaml (v2)")
     ap.add_argument("--out", help="default specs/<stage>.jsonl (specs/<stage>_v2.jsonl for --backbone v2)")
     ap.add_argument("--check", action="store_true", help="regenerate and compare with the files; write nothing")
     a = ap.parse_args()
     out = Path(a.out) if a.out else nrp.SPECS_DIR / f"{a.stage}{'_v2' if a.backbone == 'v2' else ''}.jsonl"
     man_path = out.with_name(out.name.removesuffix(".jsonl") + ".manifest.json")
-    _jobs, body, man = generate(a.stage, a.code_ref, a.backbone, a.hosts_file, a.tuned, out)
+    tuned = a.tuned or str(nrp.TUNED_V2 if a.backbone == "v2" else ROOT / "configs" / "tuned_v1.yaml")
+    _jobs, body, man = generate(a.stage, a.code_ref, a.backbone, a.hosts_file, tuned, out)
     if a.check:
         if out.read_bytes() != body or man_path.read_bytes() != man:
             raise SystemExit(f"{out} or {man_path} differs from regeneration")

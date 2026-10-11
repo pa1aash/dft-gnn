@@ -136,11 +136,32 @@ def test_relax_hosts_file_and_geomeval_dependencies(tmp_path, built):
     assert [j["run_id"] for j in geo] == [j["run_id"] for j in built["geomeval"][0]]
 
 
-def test_backbone_v2_pending():
-    with pytest.raises(NotImplementedError):
-        NRP.build_stage("cv", backbone="v2")
+@pytest.fixture(scope="module")
+def built_v2():
+    return {s: MS.generate(s, NRP.CODE_REF, "v2", None, str(NRP.TUNED_V2), Path("x") / f"{s}_v2.jsonl")
+            for s in NRP.V2_STAGES}
+
+
+def test_backbone_v2_cv_and_precision(built, built_v2):
+    import yaml
+
+    arch = yaml.safe_load(NRP.TUNED_V2.read_text())["arch"]
+    for s, (jobs, body, man) in built_v2.items():
+        m = json.loads(man)
+        assert len(jobs) == NRP.EXPECTED[s] and m["backbone"] == "v2" and m["label"] == NRP.V2_LABEL
+        assert m["backbones_with_this_stage"] == {"v1": f"{s}.jsonl", "v2": f"{s}_v2.jsonl"}
+        assert {j["spec"]["results_subdir"] for j in jobs} == {f"{s}_v2"}
+        assert all({k: j["spec"]["hp"][k] for k in arch} == arch for j in jobs)
+        assert not {j["run_id"] for j in jobs} & {j["run_id"] for j in built[s][0]}
+        assert [(j["spec"]["model"], j["spec"]["split"], j["spec"]["budget"], j["spec"]["seed"]) for j in jobs] == \
+            [(j["spec"]["model"], j["spec"]["split"], j["spec"]["budget"], j["spec"]["seed"]) for j in built[s][0]]
+        assert min(j["priority"] for j in jobs) > max(j["priority"] for j in built[s][0])
+        for j in random.Random(1).sample(jobs, 30):
+            for test, seen in NRP.leakage_hosts(j):
+                assert test and not test & seen
     with pytest.raises(ValueError):
         NRP.build_stage("relax", backbone="v2")
+    assert "loco" not in NRP.STAGES
 
 
 def test_pure_no_gpu_no_network(monkeypatch):
