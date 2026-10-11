@@ -16,6 +16,7 @@ from pathlib import Path
 
 from dftgnn.config import Config, load_config
 from dftgnn.graphs.store import sha256_file
+from dftgnn.hardware import hardware_info
 from dftgnn.io.results import write_result
 from dftgnn.train import (
     CKPT_DIR,
@@ -87,7 +88,8 @@ def execute(spec: RunSpec, data: Store, *, cfg: Config | None = None, results_di
     frame.to_parquet(ppath, index=False)
     payload = {
         "run_id": rid, "spec": spec.to_dict(), "smoke": spec.smoke, "code_sha": code,
-        "graphs_manifest_sha256": data.manifest_sha, **({"code_ref": spec.code_ref} if spec.code_ref else {}), **res,
+        "graphs_manifest_sha256": data.manifest_sha, **({"code_ref": spec.code_ref} if spec.code_ref else {}),
+        "hardware": hardware_info(device), **res,
         "predictions": {"path": _rel(ppath), "sha256": sha256_file(ppath), "rows": len(frame)},
         "checkpoint": None if ckpt is None else {"path": _rel(ckpt), "sha256": sha256_file(ckpt)},
     }
