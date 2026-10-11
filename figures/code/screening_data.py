@@ -135,6 +135,13 @@ def main() -> None:
                       "spearman_across_sites": rho}
     assert abs(summary["v1"]["mae_eV"] - c5["mae_S"]) < 1e-9 and abs(summary["v2"]["mae_eV"] - c5["mae_S_v2"]) < 1e-9
 
+    # descriptive association of the DFT target with host quantities over the screened sites (no inference)
+    descriptive = {f"spearman_dft_vs_{name}": float(pd.Series(dft).corr(
+        pd.Series([r[key] for r in sites.values()]), method="spearman"))
+        for name, key in (("host_formation_energy", "host_formation_energy_eV_per_atom"), ("band_gap", "band_gap_eV"),
+                          ("first_shell_cations", "first_shell_cations"),
+                          ("first_shell_distance", "first_shell_mean_distance_A"))}
+
     ab = {c["candidate"]: c for c in absence["candidates"]}
     missing = [c for c in sc.candidates if c not in cand_hosts]
     not_in_release = [c for c in missing if ab[c]["reason"] == "not in the release"]
@@ -151,13 +158,13 @@ def main() -> None:
              "tio2_release": {"neutral_entries": len(ab["TiO2"]["neutral_entries"]),
                               "phs_entries": sum(e["phs"] for e in ab["TiO2"]["neutral_entries"]),
                               "in_universe_sites": ab["TiO2"]["universe_v1_sites"]}}
-    payload = {"budget": sc.budget, "scope": scope, "summary": summary,
+    payload = {"budget": sc.budget, "scope": scope, "summary": summary, "descriptive": descriptive,
                "sites": {s: {k: v for k, v in r.items() if not k.startswith("_")} for s, r in sites.items()},
                "site_index": {s: {"candidate": r["_candidate"], "host_id": r["_host_id"], "label": r["_label"]}
                               for s, r in sites.items()},
                "absent": {"not_in_release": not_in_release, "phs_removed": phs_removed}}
     pd.set_option("display.width", 220)
-    print(json.dumps({"scope": scope, "summary": summary}, indent=1))
+    print(json.dumps({"scope": scope, "summary": summary, "descriptive": descriptive}, indent=1))
     print(pd.DataFrame({s: {"dft": r["dft_eV"], "v2": r["v2"]["pred_eV"], "v2_rng": (r["v2"]["min_eV"], r["v2"]["max_eV"]),
                             "v1": r["v1"]["pred_eV"], "v1_rng": (r["v1"]["min_eV"], r["v1"]["max_eV"]),
                             "n": r["v1"]["n_resamples"], "cn": r["first_shell_cations"],
