@@ -8,8 +8,10 @@ MAE, the maximum and mean absolute prediction difference from the reference and 
 bitwise equal (and their sha256); per (class, model, B) the seed-ensemble MAE (mean of the three seeds' predictions
 per site, as in the primary analysis) and its difference from the reference ensemble MAE; for the same-node repeat
 the number of bitwise-identical runs and the maximum difference between passes; the seed SD of MAE at the same
-(model, B) from results/g1_variance.json for scale; and a node flag where a node's ensemble MAE differs from the
-other nodes of its class by more than that seed SD. Writes write_result("nrp_n1_gpu_repeat").
+(model, B) from results/g1_variance.json for scale; a node flag where a node's ensemble MAE differs from the
+other nodes of its class by more than that seed SD; for every class run on two or more nodes, whether each run's
+predictions are bitwise identical across those nodes; and the requested classes that have no runs. Writes
+write_result("nrp_n1_gpu_repeat").
 """
 from __future__ import annotations
 
@@ -76,6 +78,7 @@ def seed_sd() -> dict:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--faulty-node", default="hcc-nrp-shor-c6017.unl.edu")
+    ap.add_argument("--requested", nargs="+", default=["a10", "geforce-rtx-4090", "geforce-rtx-3090", "l4", "rtx-a4000"])
     ap.add_argument("--no-write", action="store_true")
     a = ap.parse_args()
     ref, rs, sd = references(), runs(), seed_sd()
@@ -135,8 +138,22 @@ def main() -> None:
             dev = abs(row.ensemble_mae - others)
             flags.append({"class": cls, "model": m, "B": int(b), "node": row.node, "abs_diff_from_other_nodes_eV": float(dev),
                           "seed_sd_resample0": row.seed_sd_resample0, "exceeds_seed_sd": bool(dev > row.seed_sd_resample0)})
+    # same class, different nodes (pass1): bitwise identity of each run's predictions
+    cross = []
+    p1 = pr[pr["pass"] == "pass1"]
+    for (cls, m, b, sd), g in p1.groupby(["class", "model", "B", "seed"]):
+        if g.node.nunique() < 2:
+            continue
+        frames = [next(x["frame"] for x in rs if x["class"] == cls and x["node"] == nd and x["pass"] == "pass1"
+                       and x["key"] == (m, b, sd)).y_pred.to_numpy() for nd in sorted(g.node)]
+        cross.append({"class": cls, "model": m, "B": int(b), "seed": int(sd), "nodes": sorted(g.node),
+                      "bitwise_identical": bool(all(np.array_equal(frames[0], f) for f in frames[1:])),
+                      "max_abs_diff_eV": float(max(np.abs(frames[0] - f).max() for f in frames[1:]))})
     hosts = sorted(pr.node.unique())
     res = {"per_run": per_run, "ensemble": ens, "same_node_repeat": rep, "node_effects": flags,
+           "cross_node_same_class": cross,
+           "cross_node_same_class_summary": {"n": len(cross), "bitwise_identical": sum(c["bitwise_identical"] for c in cross)},
+           "classes_requested": a.requested, "classes_without_runs": sorted(set(a.requested) - set(pr["class"])),
            "classes": sorted(pr["class"].unique()), "nodes": hosts,
            "peak_gpu_gb_by_class": pr.groupby("class").peak_gpu_gb.max().to_dict(),
            "wall_s_by_class_model_B": {f"{c}|{m}|{b}": float(v) for (c, m, b), v in pr.groupby(["class", "model", "B"]).wall_s.median().items()},
@@ -151,6 +168,8 @@ def main() -> None:
     if not en.empty:
         print(en[["class", "node", "pass", "model", "B", "ensemble_mae", "ref_ensemble_mae", "ensemble_mae_minus_ref",
                   "seed_sd_resample0"]].round(4).to_string(index=False))
+    print("cross-node same class:", res["cross_node_same_class_summary"], "classes without runs:",
+          res["classes_without_runs"])
     print(res.get("same_node_repeat_summary"), "nodes:", hosts, "runs on faulty node:", res["runs_on_faulty_node"])
     if not a.no_write:
         from dftgnn.io.results import write_result
