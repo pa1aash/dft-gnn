@@ -89,7 +89,9 @@ def main() -> int:
 
     git = ["git", "-C", str(repo)]
     dirty = subprocess.run(git + ["status", "--porcelain", "--untracked-files=no"],
-                           capture_output=True, text=True, check=True).stdout.strip()
+                           capture_output=True, text=True, check=True).stdout
+    # the output file itself may differ from HEAD (it is rewritten on every run and not listed in itself)
+    dirty = "\n".join(ln for ln in dirty.splitlines() if ln[3:] != OUT_NAME)
     if dirty:
         print("refusing: tracked files differ from HEAD:\n" + dirty, file=sys.stderr)
         return 2
