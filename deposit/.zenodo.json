@@ -1,0 +1,48 @@
+{
+  "upload_type": "dataset",
+  "access_right": "open",
+  "license": "CC-BY-4.0",
+  "title": "Data, models and code for: Oxygen-vacancy formation energies in non-magnetic oxides: how much do explicit electronic descriptors add to graph networks as training data grows?",
+  "creators": [
+    {
+      "name": "Gang, Palaash",
+      "affiliation": "Indus International School, Pune, India",
+      "orcid": "0009-0006-7448-9488"
+    },
+    {
+      "name": "Lee, Aiden",
+      "affiliation": "Westview High School, San Diego, CA, USA",
+      "orcid": "0009-0007-3281-8420"
+    }
+  ],
+  "description": "<p>Processed inputs, splits, job specifications, trained checkpoints, per-site predictions, result records and code for a study of graph-network prediction of neutral oxygen-vacancy formation energies in non-magnetic oxides, as a function of the number of training hosts. All DFT values come from the oxygen-vacancy database of Kumagai et al. (Phys. Rev. Materials 5, 123803, 2021; doi:10.1103/PhysRevMaterials.5.123803; CC BY 4.0). No new DFT calculations were performed.</p><p>Licences: derived data (processed tables, graphs, splits, predictions, result records) CC BY 4.0 with attribution to Kumagai et al.; code, job specifications and checkpoints MIT; MACE-MP-0 medium weights redistributed unchanged under the MIT License of ACEsuit/mace-foundations (text in MACE-MP-0_LICENSE.txt). Code: https://github.com/pa1aash/dft-gnn, cluster reference tag nrp-code-v1, final tag [FINAL-TAG-TBD]. README.md describes every file; FILES.sha256 lists the sha256 and size of every file and bundle member.</p><p>Checkpoints, relaxed structures and embeddings from the National Research Platform stages stay on NRP storage; their sha256 lists are in results/nrp/artefacts/ of the code snapshot, and copies can be requested from the corresponding author.</p>",
+  "keywords": [
+    "oxygen vacancy",
+    "defect formation energy",
+    "non-magnetic oxides",
+    "density functional theory",
+    "graph neural network",
+    "electronic descriptors",
+    "learning curve",
+    "MEGNet",
+    "MACE-MP-0"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/pa1aash/dft-gnn",
+      "relation": "isSupplementTo",
+      "scheme": "url"
+    },
+    {
+      "identifier": "10.1103/PhysRevMaterials.5.123803",
+      "relation": "isDerivedFrom",
+      "scheme": "doi"
+    },
+    {
+      "identifier": "10.1145/3708035.3736060",
+      "relation": "references",
+      "scheme": "doi"
+    }
+  ],
+  "notes": "Funding: no external funding was received. Acknowledgement: This work used resources available through the National Research Platform (NRP) at the University of California, San Diego. NRP has been developed, and is supported in part, by funding from National Science Foundation, from awards 1730158, 1540112, 1541349, 1826967, 2112167, 2100237, and 2120019, as well as additional funding from community partners."
+}

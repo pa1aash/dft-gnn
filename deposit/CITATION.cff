@@ -1,0 +1,102 @@
+# DRAFT. Fields follow the Citation File Format 1.2.0 schema
+# (https://citation-file-format.github.io/1.2.0/schema.json, fetched from
+# citation-file-format/citation-file-format at dd51afe18fe23b4daaaf923d305e3046415b2c7c).
+# At the results freeze add: doi (the Zenodo DOI, [ZENODO-DOI-TBD]), version ([FINAL-TAG-TBD]),
+# commit (the commit of the final tag) and date-released. They are left out here because a placeholder
+# would not pass the schema.
+cff-version: 1.2.0
+message: >-
+  If you use these data, models or code, please cite this record and the article by
+  Kumagai et al. (doi:10.1103/PhysRevMaterials.5.123803) from which every DFT value is derived.
+type: dataset
+title: >-
+  Data, models and code for: Oxygen-vacancy formation energies in non-magnetic oxides:
+  how much do explicit electronic descriptors add to graph networks as training data grows?
+authors:
+  - family-names: Gang
+    given-names: Palaash
+    affiliation: Indus International School, Pune, India
+    email: palaash.gang@indusschoolpune.com
+    orcid: https://orcid.org/0009-0006-7448-9488
+  - family-names: Lee
+    given-names: Aiden
+    affiliation: Westview High School, San Diego, CA, USA
+    email: aiden.lee.sd@gmail.com
+    orcid: https://orcid.org/0009-0007-3281-8420
+contact:
+  - family-names: Gang
+    given-names: Palaash
+    affiliation: Indus International School, Pune, India
+    email: palaash.gang@indusschoolpune.com
+    orcid: https://orcid.org/0009-0006-7448-9488
+abstract: >-
+  Processed inputs, splits, job specifications, trained checkpoints, per-site predictions, result records
+  and code for a study of graph-network prediction of neutral oxygen-vacancy formation energies in
+  non-magnetic oxides, as a function of the number of training hosts. All DFT values come from the
+  oxygen-vacancy database of Kumagai et al. (Phys. Rev. Materials 5, 123803, 2021; CC BY 4.0).
+  No new DFT calculations were performed. Derived data are released under CC BY 4.0 and code under MIT.
+  No external funding was received. This work used resources of the National Research Platform (NRP).
+repository-code: https://github.com/pa1aash/dft-gnn
+license:
+  - CC-BY-4.0
+  - MIT
+keywords:
+  - oxygen vacancy
+  - defect formation energy
+  - non-magnetic oxides
+  - density functional theory
+  - graph neural network
+  - electronic descriptors
+  - learning curve
+  - MEGNet
+  - MACE-MP-0
+references:
+  - type: article
+    title: Insights into oxygen vacancies from high-throughput first-principles calculations
+    authors:
+      - family-names: Kumagai
+        given-names: Yu
+      - family-names: Tsunoda
+        given-names: Naoki
+      - family-names: Takahashi
+        given-names: Akira
+      - family-names: Oba
+        given-names: Fumiyasu
+    journal: Physical Review Materials
+    volume: 5
+    issue: "12"
+    year: 2021
+    doi: 10.1103/PhysRevMaterials.5.123803
+    license: CC-BY-4.0
+  - type: conference-paper
+    title: "The National Research Platform: Stretched, Multi-Tenant, Scientific Kubernetes Cluster"
+    authors:
+      - family-names: Weitzel
+        given-names: Derek
+      - family-names: Graves
+        given-names: Ashton
+      - family-names: Albin
+        given-names: Sam
+      - family-names: Zhu
+        given-names: Huijun
+      - family-names: Wuerthwein
+        given-names: Frank
+      - family-names: Tatineni
+        given-names: Mahidhar
+      - family-names: Mishin
+        given-names: Dmitry
+      - family-names: Khoda
+        given-names: Elham
+      - family-names: Sada
+        given-names: Mohammad
+      - family-names: Smarr
+        given-names: Larry
+      - family-names: DeFanti
+        given-names: Thomas
+      - family-names: Graham
+        given-names: John
+    collection-title: "Practice and Experience in Advanced Research Computing 2025: The Power of Collaboration"
+    publisher:
+      name: ACM
+    year: 2025
+    doi: 10.1145/3708035.3736060
