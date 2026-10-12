@@ -38,5 +38,7 @@ pair differences. These are new numbers derived from existing records; none is a
 - Panel (b) of the optional structure render was not added: the SnO2 render is a raster and Figure 7 must pass
   `qa_figure.py` (no raster images). The render is cited as a Supplementary figure.
 - The TiO2 host of the release is a monoclinic polymorph (space group number 12, four inequivalent oxygen sites with
-  two-, three-, three- and four-fold coordination), not rutile. `paper/sections/data.tex` and the TiO2 remark in
-  `docs/limitations_notes.md` call it rutile; `screening.tex` does not, and does not repeat that wording.
+  two-, three-, three- and four-fold coordination), not rutile (`figures/main/data/screening_demo.json`,
+  `payload.hosts.TiO2.space_group_number` = 12, C2/m). `docs/limitations_notes.md` does not call it rutile: its
+  TiO2 remark gives only the PHS count of the four sites and names no polymorph. `paper/sections/data.tex` names
+  no TiO2 polymorph either (corrected in 517043e). `screening.tex` lists the TiO2 host as monoclinic.
