@@ -59,7 +59,7 @@ Hashes are sha256. "Snapshot" means the code snapshot zip; paths are repository-
 | Embedding manifest (S readout embeddings, stage embed) | `results/nrp/artefacts/embed.sha256` and the records in `results/embeddings_v1/` in the snapshot | 0 merged | - | one line per embedding file kept on NRP | CC BY 4.0 | PENDING: stage embed not yet returned |
 | MACE-MP-0 medium weights (`2023-12-03-mace-128-L1_epoch-199.model`, release `mace_mp_0`) | `.cache/mace/20231203mace128L1_epoch199model` in `nrp_mace.tar` | 1 | 44,422,970 | `01bfe22100139f424713cf921144e5509cbe353d67aa9fa1be9c6e1e0ed35845` (identity check in `results/mace_model.json`) | MIT (ACEsuit), text in `MACE-MP-0_LICENSE.txt` | final |
 | Code release, cluster reference | tag `nrp-code-v1` = commit `ffd86cedc3cc87a6fc842b04fda0d86d6b6a58af` | - | - | - | MIT | final |
-| Code release, final | tag `[FINAL-TAG-TBD]`; snapshot `dft-gnn-[FINAL-TAG-TBD].zip` | `FILES.sha256` (component `code`) lists 3818 tracked files now | 162,623,561 now | sha256 of the zip added at the freeze | MIT (code); CC BY 4.0 (data and results) | PENDING |
+| Code release, final | tag `[FINAL-TAG-TBD]`; snapshot `dft-gnn-[FINAL-TAG-TBD].zip` | `FILES.sha256` (components `code` and `deposit`) lists 3826 tracked files now | about 163 MB now (exact totals in the `FILES.sha256` header) | sha256 of the zip added at the freeze | MIT (code); CC BY 4.0 (data and results) | PENDING |
 
 The source database itself is not redistributed. The 818 supercell CIFs are the only exception. Download it from
 https://github.com/kumagai-group/oxygen_vacancies_db at commit `e310353ecbf698499c85a5ec5416b76e82dcecfd`.
