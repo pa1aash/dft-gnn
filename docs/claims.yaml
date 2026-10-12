@@ -68,3 +68,36 @@ claims:
     figure: Fig7
     falsifiable_how: "Demonstration, not a claim."
     status: planned
+  # EXTENSION (M9; docs/deviations.md row of 2026-10-11 "Within-host breakdown", logged before any number;
+  # docs/within_host_physics.md). New analysis of existing B = 654 test predictions of both backbones; v2 columns
+  # are POST HOC by backbone. All hosts: zero-skill 0.184 eV; within-host residual MAE S-v2 0.146, D-v2 0.146,
+  # S-v1 0.138, D-v1 0.154 eV (739 hosts, 1561 sites; 463 hosts with >= 2 sites).
+  - id: WH1
+    statement: "EXTENSION. At B = 654, the within-host residual MAE of S and D on both backbones, broken down by d-electron class, cation element, PHS-prone cations, stability and band-gap terciles and vacancy-site Bader-charge rank, is reported against the zero-skill value of a predictor constant within each host, with host-cluster bootstrap intervals; descriptive, no hypothesis test."
+    tested_by: "analysis/within_host_breakdown.py (tests: analysis/tests/test_within_host_breakdown.py; sanity checks against results/g1_primary.json, results/g1_within_host.json and results/c1c2_v2.json)"
+    figure: "SI Fig. within-host groups (figures/si/fig_si_withinhost_groups.pdf)"
+    falsifiable_how: "A model whose within-host residual MAE is not below the zero-skill value in a group has no within-host skill there; a mismatch of the pooled values with the G1 records (> 1e-3 eV) would invalidate the breakdown."
+    status: measured
+    result_ref: results/within_host_breakdown.json
+  # EXTENSION (M8; docs/screening_demo.md). New numbers derived from the registered screening record
+  # results/screening_c5.json (per-site means asserted equal to 1e-9): per-resample ranges, host-cluster MAE
+  # intervals, within-host pair differences. v1 values PRE-REGISTERED by origin (provenance label #10), v2 values
+  # POST HOC (#11). C5 itself stays planned. MAE v1 0.294 [0.195, 0.424] eV, v2 0.420 [0.307, 0.553] eV; 10 sites,
+  # 7 hosts; 3 of 4 within-host pairs in the DFT order on both backbones.
+  - id: SD1
+    statement: "EXTENSION. Out-of-sample predictions of S at B = 654 for the 10 oxygen sites of the 7 named candidate oxides in universe v1 are set against the DFT value of the same site, on both backbones, with the per-resample range, a host-cluster bootstrap interval on the MAE and the within-host pair order; a demonstration, not a test of a hypothesis."
+    tested_by: "figures/code/screening_data.py (record written via write_result; aggregation checked against results/screening_c5.json)"
+    figure: "Fig7 (figures/main/fig7_screening.pdf); Tables screening_sites and screening_pairs"
+    falsifiable_how: "Demonstration; per-site means that differed from results/screening_c5.json (> 1e-9 eV) would invalidate the record."
+    status: measured
+    result_ref: figures/main/data/screening_demo.json
+  # POST HOC (docs/deviations.md, AUTHOR DECISION row of 2026-10-11; docs/provenance_labels.md, note on the v2
+  # groups). Chronology unchanged: v2 was adopted after test-set diagnostics of v1; every v2 result keeps its
+  # POST HOC label and v1 stays the originally registered backbone, reported in full.
+  - id: V2P
+    statement: "POST HOC. The v2 backbone (He initialisation; otherwise the registered MEGNet backbone) is the primary backbone of the manuscript by author decision (docs/deviations.md, AUTHOR DECISION row of 2026-10-11); v1 remains the originally registered backbone, is reported in full beside it, and v2 is never described as pre-registered."
+    tested_by: "docs/deviations.md (AUTHOR DECISION row of 2026-10-11; v2 deviation rows of 2026-10-08 and 2026-10-09); docs/provenance_labels.md (groups #2, #5, #6, #7, #9, #11, #17, #18, #19)"
+    figure: "Fig1 (pipeline, v2 solid and v1 dashed); Fig2, Fig3 (both backbones)"
+    falsifiable_how: "Any v2 result reported without its POST HOC label, or any v1 result dropped or replaced, breaks this row; checked against docs/provenance_labels.md."
+    status: measured
+    result_ref: results/c1c2_v2.json
