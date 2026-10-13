@@ -12,7 +12,7 @@ Steps marked **[MAC]** run on Palaash's Mac. Everything else runs on NRP.
 
 | item | value |
 |---|---|
-| code | annotated tag `nrp-code-v1` on main. `scripts/queue/worker.py` (through `dftgnn.train.check_code_ref`) refuses a job unless `nrp-code-v1` is an ancestor of HEAD and `src/`, `scripts/`, `configs/`, `splits/` and `specs/` are unchanged since that tag. Commits that only add results on top are allowed |
+| code | annotated tag `nrp-code-v1` on main. `scripts/queue/worker.py` (through `dftgnn.train.check_code_ref`) refuses a job unless `nrp-code-v1` is an ancestor of HEAD and `src/`, `scripts/`, `configs/`, `splits/` and `specs/` are unchanged since that tag. Commits that only add results on top are allowed. The rerun of relax, embed and geomeval uses the bug-fix tag `nrp-code-v2` (section 9): the worker also accepts a checkout whose pinned paths equal `nrp-code-v2`, as long as `nrp-code-v1` is an ancestor. Run ids keep the string `nrp-code-v1` |
 | specs | 11 spec files (section 1). `make_specs.py --check` must reproduce each one byte-for-byte on the cluster |
 | identity | every commit you push uses exactly `user.name` = `aidenlee` and `user.email` = `aiden.lee.sd@gmail.com` (`export_stage.sh` refuses any other identity). Commit messages and files must not contain the project's banned words; the Mac rejects the branch otherwise |
 | hardware | mixed pool. Every result records GPU model, UUID, driver, node (`NODE_NAME`) and pod hostname (`dftgnn.hardware`). Node `hcc-nrp-shor-c6017.unl.edu` is excluded (N1 row of 2026-10-11) |
@@ -138,6 +138,14 @@ not sent anywhere. Monitor with `$PY scripts/queue/status.py --queue /workspace/
 
 To run one group at a time instead, enqueue only that group's files (for example `--specs $N3`).
 
+Admission is queue-wide. A worker admits a job only if the `est_peak_gb` of every running job in its queue, on any
+card, plus the new one fits in 0.85 of its own card's memory. On one shared queue the whole cluster therefore holds
+about one card's worth of estimated memory at a time: jobs with large estimates (embed and geomeval at 6.8-26.3 GB,
+peval and the v2-size training jobs at up to 17-26 GB) run one or two at a time however many GPUs are up. This
+accounting is left unchanged. For such jobs give every GPU worker its own queue: the sharded per-worker queues of
+section 7 (`enqueue.py specs --shard i/N --queue <checkout>/jobs_s<i>`, and `DFTGNN_QUEUE` set per pod), which may
+share one checkout on the shared volume. Section 9 uses this layout.
+
 Canary: before the large wave, check that one peval job with `est_peak_gb` above 20 finishes on a 24 GB card. If
 it runs out of memory twice, use two queues: enqueue with `--max-est-gb 20 --queue /workspace/dft-gnn/jobs` for
 cards under 40 GB and `--min-est-gb 20 --queue /workspace/dft-gnn/jobs_big` for larger cards, and give the large-card
@@ -196,3 +204,95 @@ make audit-history && perl -e 'alarm 120; exec @ARGV' -- git push origin main
 
 The analyses run on the Mac from the merged files, under the rules logged in `docs/deviations.md`. The cv and
 precision rules were logged on 2026-10-11, before any result.
+
+## 9. Rerun of relax, embed and geomeval at `nrp-code-v2` (2026-10-14)
+
+Two implementation bugs in `nrp-code-v1` stopped these three stages: a translation-only host's point operation read
+as NaN in `relax_host`, and checkpoints were loaded onto the CPU while the batches were on the GPU (`readout_vector`).
+Both are fixed under the annotated tag `nrp-code-v2` (deviations row of 2026-10-14). No spec file, run id or
+completed result changes: the specs still carry `code_ref` = `nrp-code-v1`, and the worker accepts a checkout of
+`nrp-code-v2` because `nrp-code-v1` is its ancestor and nothing under `src/`, `scripts/`, `configs/`, `splits/` or
+`specs/` has changed since `nrp-code-v2`.
+
+Leave `/workspace/dft-gnn` untouched: it holds the checkpoints of the finished stages. The 5 relax records the buggy
+code wrote there (`results/mlip_v1/`, `data/processed/mlip_v1/`) are discarded: never export relax, embed or
+geomeval from that checkout. The rerun uses a fresh checkout, `/workspace/dft-gnn-v2`, with its own queues and chain
+directory.
+
+| stage | spec file | jobs | depends on | est_peak_gb | results (tracked) | kept on NRP |
+|---|---|---:|---|---|---|---|
+| relax | `relax.jsonl` | 818 | - | 0.8-2.4 | `results/mlip_v1/` | `data/processed/mlip_v1/` |
+| embed | `embed.jsonl` | 240 | S09 checkpoints | 6.8-17.2 | `results/embeddings_v1/` | `data/processed/embeddings_v1/` |
+| geomeval | `geomeval.jsonl` | 180 | relax of its test hosts | 6.8-26.3 | `results/geomeval/` | - |
+
+**9.1 Checkout and inputs (CPU pod).** The bundles of release `inputs-v1` are already in `/workspace/bundles`.
+
+```bash
+cd /tmp && rm -rf dft-gnn-v2 && git clone https://github.com/pa1aash/dft-gnn.git dft-gnn-v2 && cd dft-gnn-v2
+git fetch --tags && git checkout --detach nrp-code-v2
+git merge-base --is-ancestor nrp-code-v1 HEAD && echo "nrp-code-v1 is an ancestor"
+cp -a /tmp/dft-gnn-v2 /workspace/dft-gnn-v2 && cd /workspace/dft-gnn-v2
+git config user.name aidenlee && git config user.email aiden.lee.sd@gmail.com
+for b in inputs checkpoints mace; do
+  tar -xf /workspace/bundles/nrp_$b.tar && bash scripts/nrp/verify_bundle.sh nrp_$b.sha256; done
+(cd splits && sha256sum -c --quiet MANIFEST.sha256) && echo "splits OK"
+DFTGNN_CHECKOUT=/workspace/dft-gnn-v2 bash scripts/nrp/stage_pod.sh env      # prints nrp-code-v1 -> <nrp-code-v2 commit>
+export PYTHONPATH=$PWD/src; PY=/tmp/venv/bin/python
+for s in relax embed geomeval; do $PY scripts/queue/make_specs.py --stage $s --check; done   # each: files match
+```
+
+Each `verify_bundle.sh` call must print `OK: n of n`; each `--check` line must end in `files match`.
+
+**9.2 Phase A: relax and embed, one queue per GPU pod.** Set `N` to the number of GPU pods. Pod `i` (0 to N - 1)
+gets queue `jobs_s<i>`. Enqueue and start the supervisors (one per queue, on the CPU pod) before any GPU pod, because
+a worker that finds its queue empty exits.
+
+```bash
+cd /workspace/dft-gnn-v2 && export PYTHONPATH=$PWD/src; PY=/tmp/venv/bin/python; N=<number of GPU pods>
+for i in $(seq 0 $((N-1))); do
+  $PY scripts/queue/enqueue.py specs --queue /workspace/dft-gnn-v2/jobs_s$i --shard $i/$N \
+      --specs specs/relax.jsonl specs/embed.jsonl; done
+mkdir -p /workspace/chain-v2 && cp scripts/queue/supervisor.py /workspace/chain-v2/
+for i in $(seq 0 $((N-1))); do mkdir -p /workspace/chain-v2/a$i
+  nohup $PY /workspace/chain-v2/supervisor.py --checkout /workspace/dft-gnn-v2 --queue /workspace/dft-gnn-v2/jobs_s$i \
+      --chain /workspace/chain-v2/a$i --python $PY --no-launch --workers 1 --guard 1e9 --stage nrp \
+      --specs specs/relax.jsonl specs/embed.jsonl --shard $i/$N --tranches N2a \
+      >> /workspace/chain-v2/a$i/supervisor.log 2>&1 & done
+```
+
+GPU pod `i` runs `bash /workspace/dft-gnn-v2/scripts/nrp/stage_pod.sh` with `DFTGNN_CHECKOUT=/workspace/dft-gnn-v2`,
+`DFTGNN_QUEUE=/workspace/dft-gnn-v2/jobs_s<i>` and `DFTGNN_CHAIN=/workspace/chain-v2` (pod spec, node affinity and
+resources as in section 4). Monitor with
+`for i in $(seq 0 $((N-1))); do $PY scripts/queue/status.py --queue /workspace/dft-gnn-v2/jobs_s$i; done` and
+`ls /workspace/dft-gnn-v2/jobs_s*/failed`. Phase A ends when every `/workspace/chain-v2/a<i>/` holds `ALL_DONE`.
+
+**9.3 Phase B: geomeval, after all 818 relax jobs.** A geomeval job waits on the relax jobs of its test hosts, which
+lie in other shards; once their results verify in the checkout, the enqueue drops those dependencies.
+
+```bash
+cd /workspace/dft-gnn-v2 && export PYTHONPATH=$PWD/src; PY=/tmp/venv/bin/python; N=<number of GPU pods>
+ls results/mlip_v1/*.json | wc -l                                                     # must print 818
+for i in $(seq 0 $((N-1))); do mkdir -p /workspace/chain-v2/b$i
+  $PY scripts/queue/enqueue.py specs --queue /workspace/dft-gnn-v2/jobs_s$i --shard $i/$N --specs specs/geomeval.jsonl
+  nohup $PY /workspace/chain-v2/supervisor.py --checkout /workspace/dft-gnn-v2 --queue /workspace/dft-gnn-v2/jobs_s$i \
+      --chain /workspace/chain-v2/b$i --python $PY --no-launch --workers 1 --guard 1e9 --stage nrp \
+      --specs specs/geomeval.jsonl --shard $i/$N --tranches N2a \
+      >> /workspace/chain-v2/b$i/supervisor.log 2>&1 & done
+```
+
+Then start the GPU pods again with the same settings as phase A. Phase B ends when every `/workspace/chain-v2/b<i>/`
+holds `ALL_DONE`. To stop cleanly at any time, `touch /workspace/chain-v2/HALT`.
+
+**9.4 Export.** Each stage collects its done jobs from every shard queue into one branch, then pushes once. The
+branches start at `nrp-code-v1` and add results only, as in section 5.
+
+```bash
+cd /workspace/dft-gnn-v2; N=<number of GPU pods>
+for s in relax embed geomeval; do
+  for i in $(seq 0 $((N-1))); do bash scripts/nrp/export_stage.sh $s --queue /workspace/dft-gnn-v2/jobs_s$i --no-push; done
+  git -C ../dft-gnn-v2-nrp-$s push origin nrp/$s:nrp/$s
+done
+```
+
+**[MAC]** Ingest each branch with `bash scripts/nrp/ingest_batch.sh nrp/<stage>` (section 8); the counts must be
+relax 818, embed 240 and geomeval 180.

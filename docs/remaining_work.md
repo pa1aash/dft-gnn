@@ -1,8 +1,51 @@
-# Remaining work (after tag nrp-code-v1)
+# Remaining work (after tag nrp-code-v1; rerun at nrp-code-v2)
 
 State on 2026-10-11: code and specs are pinned at `nrp-code-v1` (commit ffd86ce). The cluster runbook is
 `docs/nrp_runbook.md`. All analysis rules for the new stages are logged in `docs/deviations.md` (rows of
 2026-10-11).
+
+## Update of 2026-10-14: rerun of relax, geomeval and embed at `nrp-code-v2`
+
+The cluster finished moment, cgcnn, capped, cv, cv_v2, precision and precision_v2 (1,230 training runs) and peval
+(183 runs); all are merged on main (`docs/nrp/n2_ingest.md`). Two implementation bugs in `nrp-code-v1` blocked relax,
+geomeval and embed. They are fixed under the annotated tag `nrp-code-v2` (deviations row of 2026-10-14). Run ids,
+spec files and completed results are unchanged; the 5 relax records written by the buggy code are discarded.
+
+| ID | What runs | Where | Spec file and count | Depends on | Status |
+|---|---|---|---|---|---|
+| R-1 | relax: MACE-MP-0 relaxation + tiling | cluster, checkout of `nrp-code-v2` | `relax.jsonl` 818 | inputs-v1 bundles | ready to rerun |
+| R-2 | embed: S readout embeddings | cluster, checkout of `nrp-code-v2` | `embed.jsonl` 240 | S09 checkpoints | ready to rerun |
+| R-3 | geomeval: S, D, P under DFT, MLIP, rescaled geometry | cluster, checkout of `nrp-code-v2` | `geomeval.jsonl` 180 | R-1 (relax of its test hosts) | waits on R-1 |
+| R-4 | Ingest `nrp/relax`, `nrp/embed`, `nrp/geomeval` | Mac | per stage | R-1 to R-3 | waiting |
+
+Commands (full text and checks in `docs/nrp_runbook.md`, section 9). `N` is the number of GPU pods; pod `i` uses
+the queue `/workspace/dft-gnn-v2/jobs_s<i>`, because admission is queue-wide (runbook section 4).
+
+```bash
+# 9.1 fresh checkout of the tag, inputs from /workspace/bundles, spec check
+cd /tmp && rm -rf dft-gnn-v2 && git clone https://github.com/pa1aash/dft-gnn.git dft-gnn-v2 && cd dft-gnn-v2
+git fetch --tags && git checkout --detach nrp-code-v2 && git merge-base --is-ancestor nrp-code-v1 HEAD
+cp -a /tmp/dft-gnn-v2 /workspace/dft-gnn-v2 && cd /workspace/dft-gnn-v2
+git config user.name aidenlee && git config user.email aiden.lee.sd@gmail.com
+for b in inputs checkpoints mace; do
+  tar -xf /workspace/bundles/nrp_$b.tar && bash scripts/nrp/verify_bundle.sh nrp_$b.sha256; done
+DFTGNN_CHECKOUT=/workspace/dft-gnn-v2 bash scripts/nrp/stage_pod.sh env
+export PYTHONPATH=$PWD/src; PY=/tmp/venv/bin/python; N=<number of GPU pods>
+for s in relax embed geomeval; do $PY scripts/queue/make_specs.py --stage $s --check; done
+# 9.2 phase A: relax (818) and embed (240)
+for i in $(seq 0 $((N-1))); do
+  $PY scripts/queue/enqueue.py specs --queue /workspace/dft-gnn-v2/jobs_s$i --shard $i/$N \
+      --specs specs/relax.jsonl specs/embed.jsonl; done
+#   supervisors per queue (runbook 9.2), then GPU pod i: DFTGNN_CHECKOUT=/workspace/dft-gnn-v2
+#   DFTGNN_QUEUE=/workspace/dft-gnn-v2/jobs_s<i> DFTGNN_CHAIN=/workspace/chain-v2 bash .../stage_pod.sh
+# 9.3 phase B, once ls results/mlip_v1/*.json | wc -l prints 818: geomeval (180)
+for i in $(seq 0 $((N-1))); do
+  $PY scripts/queue/enqueue.py specs --queue /workspace/dft-gnn-v2/jobs_s$i --shard $i/$N --specs specs/geomeval.jsonl; done
+# 9.4 export, one branch per stage
+for s in relax embed geomeval; do
+  for i in $(seq 0 $((N-1))); do bash scripts/nrp/export_stage.sh $s --queue /workspace/dft-gnn-v2/jobs_s$i --no-push; done
+  git -C ../dft-gnn-v2-nrp-$s push origin nrp/$s:nrp/$s; done
+```
 
 **How the estimates were made.**
 - **Cluster training stages:** N1's measured per-class mean wall times per run, with the same tuned-v1 cells on
