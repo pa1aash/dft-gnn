@@ -20,6 +20,10 @@ claims:
   # Collaborator NRP branch (merged 2026-10-11): results/c1c2_v1.json, same estimand and inputs as
   # results/g1_primary.json, identical point values (docs/ingest_report.md rows 4-7). POST HOC (v2):
   # results/c1c2_v2.json, A at 654 +0.015 [-0.008, +0.036], N* 654; LOCO A in both files.
+  # EXTENSION (A1; docs/deviations.md rows of 2026-10-11 and 2026-10-14; docs/a1_notes.md). Extra records beside
+  # the registered result_ref: results/precision_a_b400_b654.json (30 resamples x 5 seeds at B = 400 and 654, both
+  # backbones; subsets 10 x 3, 10 x 5, 30 x 3) and results/cv_extended_budget.json (grouped K-fold CV at about 736
+  # and 777 training hosts, extended-budget statement). Neither replaces results/g1_primary.json.
   - id: C1
     statement: "The MAE advantage of explicit DFT electronic descriptors over structure alone (D minus S) falls below delta = 0.05 eV, with the upper 95% bootstrap bound below delta at budget N* and all larger budgets; extends the descriptor-only learning curve of Kumagai et al. (2021) to the structure-versus-descriptor gap."
     tested_by: M5
@@ -29,6 +33,9 @@ claims:
     result_ref: results/g1_primary.json
   # Collaborator NRP branch: C2 also in results/c1c2_v1.json (identical point value, -0.012) and, POST HOC (v2),
   # results/c1c2_v2.json (+0.015 [-0.008, +0.036]).
+  # EXTENSION (A1): the C2 ceiling refined over 30 resamples x 5 seeds in results/precision_a_b400_b654.json
+  # (v1.30x5.654.A, v2.30x5.654.A) and measured beyond 654 hosts in results/cv_extended_budget.json (v1.k10, v1.k20,
+  # v2.k10, v2.k20); the registered C2 value stays results/g1_primary.json c2_ceiling.
   - id: C2
     statement: "At maximum training budget, the D minus S gap, with 95% CI, bounds the improvement perfect pristine-host electronic information can provide."
     tested_by: M5
@@ -101,3 +108,22 @@ claims:
     falsifiable_how: "Any v2 result reported without its POST HOC label, or any v1 result dropped or replaced, breaks this row; checked against docs/provenance_labels.md."
     status: measured
     result_ref: results/c1c2_v2.json
+  # EXTENSION (A1; docs/deviations.md N4 row of 2026-10-11 and implementation row of 2026-10-14; docs/a1_notes.md).
+  # v2 primary backbone, POST HOC; v1 originally registered backbone. Rule: the bound holds at 654 only if the pooled
+  # 30 x 5 one-sided upper bound on A at B = 654 is below delta.
+  - id: PR1
+    statement: "EXTENSION. Over 30 outer resamples x 5 training seeds, the one-sided 95% upper bound on A = MAE_S - MAE_D at B = 654 is below delta = 0.05 eV for both backbones, so the non-inferiority bound holds at 654 under the precision rule; at B = 400 it is not below delta for either backbone. The 10 x 3, 10 x 5 and 30 x 3 subsets are reported beside the pooled set."
+    tested_by: "analysis/precision_analysis.py on analysis/precision_cv_eval_table.py (tests: analysis/tests/test_precision_cv.py); sanity: the 10 x 3 subset reproduces results/g1_primary.json and results/c1c2_v2.json to 1e-6"
+    figure: "Fig3 extended (figures/main/fig3_advantage_extended.pdf); SI Fig. GPU class (figures/si/fig_si_gpu_class.pdf)"
+    falsifiable_how: "A pooled 30 x 5 upper bound at B = 654 at or above delta for a backbone refutes the statement for that backbone."
+    status: measured
+    result_ref: results/precision_a_b400_b654.json
+  # EXTENSION (A1; docs/deviations.md N3 row of 2026-10-11 and implementation row of 2026-10-14; docs/a1_notes.md).
+  # v2 primary backbone, POST HOC; v1 originally registered backbone.
+  - id: CV1
+    statement: "EXTENSION. With grouped K-fold CV (K = 10 and 20, about 736 and 777 training hosts, pooled out-of-fold predictions, host-cluster bootstrap), the one-sided 95% upper bound on A is below delta = 0.05 eV at B = 654 (registered G1 result), at about 736 and at about 777 training hosts for both backbones, so the extended-budget statement holds for v1 and for v2. It bounds the advantage below delta at these budgets; it does not show that the descriptors carry no information."
+    tested_by: "analysis/cv_analysis.py on analysis/precision_cv_eval_table.py (tests: analysis/tests/test_precision_cv.py); fold partition of the 818 hosts asserted"
+    figure: "Fig3 extended (figures/main/fig3_advantage_extended.pdf)"
+    falsifiable_how: "An upper bound at or above delta at any of the three points names that point as failing and refutes the statement for that backbone."
+    status: measured
+    result_ref: results/cv_extended_budget.json
