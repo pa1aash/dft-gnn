@@ -6,7 +6,7 @@ State on 2026-10-11: code and specs are pinned at `nrp-code-v1` (commit ffd86ce)
 
 ## Update of 2026-10-14: rerun of relax, geomeval and embed at `nrp-code-v2`
 
-The cluster finished moment, cgcnn, capped, cv, cv_v2, precision and precision_v2 (1,230 training runs) and peval
+The cluster finished moment, cgcnn, capped, cv, cv_v2, precision and precision_v2 (1,431 training runs) and peval
 (183 runs); all are merged on main (`docs/nrp/n2_ingest.md`). Two implementation bugs in `nrp-code-v1` blocked relax,
 geomeval and embed. They are fixed under the annotated tag `nrp-code-v2` (deviations row of 2026-10-14). Run ids,
 spec files and completed results are unchanged; the 5 relax records written by the buggy code are discarded.
