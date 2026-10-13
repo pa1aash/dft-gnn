@@ -79,3 +79,23 @@ adopted after diagnostics of v1. None calls v2 pre-registered. Paper captions sh
 - results.tex line 8 quotes N*, the error at 654 hosts and the ceiling from `results/g1_primary.json` (the
   originally registered backbone) without saying so, while methods.tex makes v2 primary. The v2 values are in
   `results/c1c2_v2.json`.
+
+## 6. F2: extension series in the results figures (2026-10-14)
+
+- `figures/main/fig3_advantage.pdf` is now the extended Figure 3: the registered budgets with bands, the
+  precision-refined points at the two largest outer-resample budgets and the grouped K-fold CV points beyond them,
+  with the one-sided upper bounds of every point in panel (b). It is built by `figures/code/fig3_advantage.py`,
+  which now follows the logic of `figures/code/fig_extended_budget.py` but keeps the extension records optional.
+  The stem, width (138.6 mm, two panels) and `\figph{fig3_advantage}` line of section 3 are unchanged.
+- `figures/main/fig3_advantage_extended.pdf` and its caption file were removed from `figures/main` once the new
+  Figure 3 was checked against it (same records, same points; only the CV marker and one legend entry differ).
+  `figures/code/fig_extended_budget.py` is kept; rerunning it writes `fig3_advantage_extended.pdf` back into
+  `figures/main`, so pass `--out-dir` to a scratch directory if it is needed for comparison.
+- Figure 2, G1 and the within-host figure draw the same extension points. Marker shape and legend alone separate
+  the series: circles on lines, registered outer resamples; diamonds, precision (EXTENSION); triangles, K-fold CV
+  (EXTENSION). CV moved from squares to triangles because the baselines use squares.
+- The caption files now contain no typed numbers (records, keys and figure identifiers only), state that the CV
+  test sets differ from the registered ones, and label each series as registered design or EXTENSION; v2 is never
+  called pre-registered. The paper's caption text should take its numbers from the macros of those keys.
+- Heights changed (Figure 2 84 mm, G1 94 mm, within-host 82 mm, Figure 3 72 mm); widths unchanged, so no
+  `\figph` width needs editing.

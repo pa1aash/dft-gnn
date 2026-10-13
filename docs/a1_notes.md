@@ -241,7 +241,9 @@ not separable from seed and resample variation run by run.
 
 ## Figures
 
-- `figures/main/fig3_advantage_extended.pdf` (`figures/code/fig_extended_budget.py`): A against training hosts,
+- (F2: superseded in `figures/main` by the extended `figures/main/fig3_advantage.pdf`; see
+  `docs/figure_integration.md` section 6.) `figures/main/fig3_advantage_extended.pdf`
+  (`figures/code/fig_extended_budget.py`): A against training hosts,
   registered budgets 25 to 654 with bands, precision points at 400 and 654, CV points at 736.2 and 777.1, δ and
   zero, one-sided bounds in panel (b). New file; `figures/code/fig3_advantage.py` and its PDF are unchanged.
 - `figures/si/fig_si_gpu_class.pdf` (`figures/code/fig_si_gpu_class.py`): paired-cell A by GPU class at the four

@@ -15,7 +15,7 @@ structure renders go through `blender/render_host.py` (see `blender/README.md`).
 | Model colours | B0 grey `#7F7F7F`, RF-Kumagai orange `#E69F00`, S blue `#0072B2`, D bluish green `#009E73`, P reddish purple `#CC79A7` (Okabe-Ito); advantage A black; published reference lines and the training-mean predictor dark grey `#4D4D4D`. |
 | Backbone (author decision 2026-10-11, `docs/deviations.md`) | Primary backbone (v2): solid line, filled markers, filled band. Originally registered backbone (v1): dashed line (4, 2), open markers, hatched band without fill. Legend wording exactly "primary backbone (v2)" and "originally registered backbone (v1)" (`BACKBONE_LABELS`); backbones are named only in the legend and the caption, never in the plot. Captions never call v2 pre-registered; where chronology matters they say v2 was adopted after diagnostics of v1. |
 | Baselines | Backbone-independent baselines (B0, RF-Kumagai, training mean) on thinner lines (0.9 pt) with square markers and filled bands; the training mean dotted. |
-| Extension series | EXTENSION results (grouped K-fold CV, precision extension) as unconnected points with 95% interval bars: diamonds for precision (drawn just left of their budget), squares for CV (at the mean fold training size); filled or open by backbone; legend labels carry "(EXTENSION)". Never a third line style. |
+| Extension series | EXTENSION results (grouped K-fold CV, precision extension) as unconnected points with 95% interval bars: diamonds for precision (drawn just left of their budget), triangles for CV (at the mean fold training size; squares until F2, changed because the baselines also use squares); filled or open by backbone; legend labels carry "(EXTENSION)". When an extension is drawn, the legend also shows a circle labelled "registered outer resamples" (`series_handles`), so registered, precision and CV series differ by marker shape and legend only. Never a third line style. |
 | Marks | circles 3 pt, model lines 1.2 pt, reference lines 0.7 pt (published: dashes (4, 2) or (1.5, 1.5); margin delta: (4, 2); zero: dotted (1, 2)); bands are two-sided 95% intervals at alpha 0.22 (hatch line width 0.35 pt); one-sided 95% upper bounds as short horizontal bars; parity points 4 pt^2 at alpha 0.45. |
 | Axes | Learning curves: log x axis in training hosts, ticks at 25, 50, 100, 200, 400, 654 (widened, not re-ticked, when CV points lie beyond 654). Parity: square, shared limits, y = x line. Top and right spines off. |
 | Text | Only axis labels, tick labels, panel letters (a), (b) outside the top-left corner, and one legend below the panels. No panel titles. Numbers, n, definitions and statistics go in `<figure>.caption.md`, which names the result file and key of every plotted value instead of typing it. |
@@ -23,7 +23,7 @@ structure renders go through `blender/render_host.py` (see `blender/README.md`).
 
 Helpers: `figure`, `band_curve`, `baseline_curve`, `ext_points`, `ext_x`, `learning_curve_panel`,
 `advantage_panel`, `parity_panel`, `reference_line`, `budget_axis`, the proxy handles (`model_handle`,
-`baseline_handle`, `backbone_handle`, `ext_handle`, `reference_handle`), `legend_handles`, `legend_below`,
+`baseline_handle`, `backbone_handle`, `ext_handle`, `registered_handle`, `series_handles`, `reference_handle`), `legend_handles`, `legend_below`,
 `panel_letters`, `check_legends`, `save`.
 
 ## Figure set (M3b)
@@ -32,7 +32,7 @@ Helpers: `figure`, `band_curve`, `baseline_curve`, `ext_points`, `ext_x`, `learn
 |---|---|---|---|
 | Figure 1, models and input representation | `figures/main/fig1_overview.pdf` | `figures/code/fig1_overview.py` | `schematics/fig_pipeline.pdf`, `figures/main/fig1_zno_vacancy.png` |
 | Figure 2, learning curves of S and D | `figures/main/fig2_learning_curves.pdf` | `figures/code/fig2_learning_curves.py` | `results/c1c2_v2.json`, `results/c1c2_v1.json`, `results/diagnostics_sweep.json` |
-| Figure 3, advantage A | `figures/main/fig3_advantage.pdf` | `figures/code/fig3_advantage.py` | `results/c1c2_v2.json`, `results/c1c2_v1.json` |
+| Figure 3, advantage A (extended since F2: precision and CV points, upper bounds of every point in panel (b)) | `figures/main/fig3_advantage.pdf` | `figures/code/fig3_advantage.py` | `results/c1c2_v2.json`, `results/c1c2_v1.json` (extension records optional, see below) |
 | Figure 7, screening demonstration (M8) | `figures/main/fig7_screening.pdf` | `figures/code/fig7_screening.py` | `figures/main/data/screening_demo.json` (from `figures/code/screening_data.py`: `results/screening_c5.json`, `results/screening_absence.json`, the S run records of `results/` and `results/v2_sweep/`) |
 | G1 learning curves (ANALYSIS_PLAN §14) | `figures/main/fig_g1_learning_curves.pdf` (+ PNG preview) | `figures/code/fig_g1_learning_curves.py` | `results/g1_primary.json` (v1), `results/c1c2_v2.json` (v2) |
 | Within-host skill and A_within | `figures/main/fig_within_host.pdf` | `figures/code/fig_within_host.py` | `results/c1c2_v2.json`, `results/c1c2_v1.json` |
@@ -84,17 +84,27 @@ one font family; width 138.6 or 184.6 mm (+/- 0.5 mm; or `--width-mm`); and no t
 inside an axes (axes found from the clip rectangles matplotlib writes for data artists; a PDF without any
 axes fails this check, because the rule needs at least one). Exit status 0 only if all checks pass.
 
-Status of every PDF in `figures/main/` and `figures/si/` on 2026-10-11 (M3c):
+Status of every PDF in `figures/main/` and `figures/si/` on 2026-10-14 (F2, after the rebuild with the extension
+inputs; `python figures/code/qa_figure.py figures/main/*.pdf figures/si/*.pdf`):
 
-| Figure | vector | fonts | one_family | width (mm) | no_text_in_axes | Result |
-|---|---|---|---|---|---|---|
-| `main/fig2_learning_curves.pdf` | ok | ok | ok (Arial) | 138.6 | ok | PASS |
-| `main/fig3_advantage.pdf` | ok | ok | ok (Arial) | 138.6 | ok | PASS |
-| `main/fig_g1_learning_curves.pdf` | ok | ok | ok (Arial) | 138.6 | ok | PASS |
-| `main/fig_within_host.pdf` | ok | ok | ok (Arial) | 138.6 | ok | PASS |
-| `main/fig7_screening.pdf` | ok | ok | ok (Arial) | 138.6 | ok | PASS |
-| `main/fig1_overview.pdf` | FAIL (1 raster: the ZnO render, by design) | ok | ok (TeX Gyre Heros) | 138.6 | FAIL (no axes: schematic and render, nothing to check) | accepted with reason |
-| `si/fig_readout.pdf` | ok | ok | ok (TeX Gyre Heros; the CMSY8 math glyph was removed from `schematics/fig_readout.tex`) | 138.6 | FAIL (no axes: schematic, nothing to check) | accepted with reason: vector, fonts, one family and width pass; the axes rule has no axes to test |
+| Figure | vector | fonts | one_family | width (mm) | height (mm) | no_text_in_axes | Result |
+|---|---|---|---|---|---|---|---|
+| `main/fig2_learning_curves.pdf` | ok | ok | ok (Arial) | 138.6 | 84.0 | ok | PASS |
+| `main/fig3_advantage.pdf` (extended) | ok | ok | ok (Arial) | 138.6 | 72.0 | ok | PASS |
+| `main/fig_g1_learning_curves.pdf` | ok | ok | ok (Arial) | 138.6 | 94.0 | ok | PASS |
+| `main/fig_within_host.pdf` | ok | ok | ok (Arial) | 138.6 | 82.0 | ok | PASS |
+| `main/fig7_screening.pdf` | ok | ok | ok (Arial) | 138.6 | 80.0 | ok | PASS |
+| `main/fig1_overview.pdf` | FAIL (1 raster: the ZnO render, by design) | ok | ok (TeX Gyre Heros) | 138.6 | 142.0 | FAIL (no axes: schematic and render, nothing to check) | accepted with reason (documented exception) |
+| `si/fig_si_gpu_class.pdf` | ok | ok | ok (Arial) | 138.6 | 118.0 | ok | PASS |
+| `si/fig_si_withinhost_groups.pdf` | ok | ok | ok (Arial) | 138.6 | 205.0 | ok | PASS |
+| `si/fig_readout.pdf` | ok | ok | ok (TeX Gyre Heros; the CMSY8 math glyph was removed from `schematics/fig_readout.tex`) | 138.6 | 53.9 | FAIL (no axes: schematic, nothing to check) | accepted with reason (documented exception): vector, fonts, one family and width pass; the axes rule has no axes to test |
+
+F2 rebuilt Figure 2, Figure 3, G1, within-host and the SI GPU-class figure (CV marker change) with all four
+extension records drawn; Figure 2, G1 and within-host grew in height (74 to 84, 88 to 94, 72 to 82 mm) so the
+legend, now one entry longer, does not shrink the panels. `figures/main/fig3_advantage_extended.pdf` is no longer
+in `figures/main` (see `docs/figure_integration.md`). Their captions name records and keys and contain no typed
+numbers outside file names, keys and figure identifiers; the SI GPU-class caption still types its design points
+and GPU class names (not rewritten in F2).
 
 Figures 2, 3, G1 and within-host replace the versions that failed in M3 (Computer Modern or DejaVu fallback,
 widths of 164.0 and 81.5 mm, a legend inside the data area, panel titles in the plot). The M3 style exercise
