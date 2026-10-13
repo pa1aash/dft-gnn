@@ -17,6 +17,7 @@ Idempotent: a host whose record exists and whose structure files match their has
 from __future__ import annotations
 
 import json
+import math
 import resource
 import sys
 import time
@@ -60,6 +61,20 @@ def record_ok(host_id: str, out_dir: Path = OUT_DIR) -> bool:
         return False
 
 
+def point_op(tiling_row: dict):
+    """The host's recorded lattice point operation R, or None (identity: a translation-only host).
+
+    A pandas row read from the tiling map carries NaN (not None) for a translation-only host; NaN, None, an empty
+    string and JSON null all mean no operation.
+    """
+    op = tiling_row.get("point_op")
+    if isinstance(op, str):
+        op = json.loads(op) if op.strip() else None
+    if op is None or (isinstance(op, float) and math.isnan(op)):
+        return None
+    return op
+
+
 def relax_structure(uc, calc, fmax: float = FMAX, steps: int = MAX_STEPS) -> tuple:
     """(relaxed pymatgen Structure, info dict) for one unit cell."""
     from ase.optimize import FIRE
@@ -100,9 +115,7 @@ def relax_host(host_id: str, uc, tiling_row: dict | None, calc, *, model_sha256:
     if tiling_row is not None and tiling_row.get("status") == "ok":
         M = json.loads(tiling_row["M"]) if isinstance(tiling_row["M"], str) else tiling_row["M"]
         perm = json.loads(tiling_row["perm"]) if isinstance(tiling_row["perm"], str) else tiling_row["perm"]
-        op = tiling_row.get("point_op")
-        op = json.loads(op) if isinstance(op, str) else op
-        tiled = tiled_supercell(relaxed, M, perm, point_op=op)
+        tiled = tiled_supercell(relaxed, M, perm, point_op=point_op(tiling_row))
         p = out_dir / f"{host_id}_sc.json"
         p.write_text(json.dumps(tiled.as_dict()))
         files["supercell"] = {"path": p.name, "sha256": sha256_file(p)}
