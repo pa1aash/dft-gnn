@@ -1,10 +1,12 @@
-"""Figure 3 (M3b): the advantage A = MAE_S - MAE_D of the DFT descriptors, both backbones.
+"""Figure 3: the advantage A = MAE_S - MAE_D of the DFT descriptors, both backbones, with the extension points.
 
-Same records as scripts/make_figures.py (kept unchanged): results/c1c2_v2.json and results/c1c2_v1.json, key
-``A_mae``. Optional EXTENSION records (figures/code/inputs_paper.py) are drawn when present.
+Built from the logic of figures/code/fig_extended_budget.py (kept; it writes fig3_advantage_extended, which is no
+longer in figures/main). Registered budgets from results/c1c2_v2.json and results/c1c2_v1.json (key ``A_mae``,
+bands); the precision-refined estimates (pooled resamples x seeds) from results/precision_g1_<arm>.json and the
+grouped K-fold CV points from results/cv_g1_<arm>.json, drawn when present (figures/code/inputs_paper.py).
 
-    (a) A against training hosts over every budget, with the margin delta and zero
-    (b) the same at the largest budgets, with the one-sided 95% upper bounds that decide N*
+    (a) every point, with the margin delta and zero
+    (b) from ZOOM_FROM training hosts up, with the one-sided 95% upper bounds of every point (these decide N*)
 
     python figures/code/fig3_advantage.py [--results-root DIR] [--out-dir DIR]
 """
@@ -33,7 +35,7 @@ def main() -> Path:
     ext = ip.extensions(a.results_root)
     delta = arms["v2"]["delta_eV"]
 
-    fig, axes = sp.figure("single", height_mm=70.0, ncols=2)
+    fig, axes = sp.figure("single", height_mm=72.0, ncols=2)
     fig.subplots_adjust(left=0.09, right=0.985, top=0.93, bottom=0.31, wspace=0.30)
     spans = {0: [0.0, delta], 1: [0.0, delta]}
     for i, ax in enumerate(axes):
@@ -54,7 +56,7 @@ def main() -> Path:
                     _upper(ax, x if kind is None else sp.ext_x(x, kind, arm), ub, arm)
                 spans[i] += lo + hi + [u for u in ub if u is not None]
             else:
-                spans[i] += m
+                spans[i] += m + ([] if kind is None else lo + hi)
         sp.budget_axis(ax, x_max=ip.x_upper(ext), x_min=None if i == 0 else ZOOM_FROM / 1.15)
         lo_, hi_ = min(spans[i]), max(spans[i])
         pad = 0.08 * (hi_ - lo_)
@@ -65,7 +67,7 @@ def main() -> Path:
                sp.reference_handle(r"margin $\delta$", "delta"), sp.reference_handle("zero", "zero")]
     from matplotlib.lines import Line2D
     handles.append(Line2D([], [], color=sp.COLORS["A"], label="one-sided 95% upper bound", **UB_MARKER))
-    handles += [sp.ext_handle(k) for k in sorted({k for k, _ in ext})]
+    handles += sp.series_handles(k for k, _ in ext)
     sp.legend_handles(fig, handles, ncol=3)
     sp.panel_letters(fig, axes)
     pdf = sp.save(fig, Path(a.out_dir) / STEM)
@@ -75,19 +77,29 @@ def main() -> Path:
 
 def caption(ext: dict) -> str:
     return f"""
-**Figure 3. The advantage of explicit DFT descriptors over structure alone.** A = MAE_S − MAE_D (eV; positive
-when the descriptors help) against the number of training hosts (logarithmic axis). (**a**) Every budget,
-`payload.budgets`; the axis spans the point estimates, and intervals reaching beyond it are clipped (full
-intervals in the keys below). (**b**) The budgets from 200 training hosts up, where the decision on the margin
-is made; the horizontal bars are the one-sided 95% upper bounds of A, `upper_one_sided_95`, which define N*
-(the smallest budget whose upper bound lies below δ at it and at every larger budget). Solid line with filled
-circles: primary backbone (v2), adopted after diagnostics of the originally registered backbone; dashed line
-with open circles, a hatched band and lighter bars: originally registered backbone (v1). Values:
-`results/c1c2_v2.json` and
-`results/c1c2_v1.json`, key `payload.A_mae.<B>` (`A`, two-sided 95% interval `ci95`, `upper_one_sided_95`);
-N* and the ceiling at the largest budget in `payload.N_star` and `payload.C2` of the same files. The dashed
-horizontal line is the margin δ (`payload.delta_eV`), the dotted line zero. Shaded bands are two-sided 95%
-intervals from the paired hierarchical bootstrap. {ip.drawn_note(ext)} Script: `figures/code/fig3_advantage.py`.
+**Figure 3. The advantage of explicit DFT descriptors over structure alone, at the registered budgets and beyond
+them.** A = MAE_S − MAE_D (eV; positive when the descriptors help) against the number of training hosts
+(logarithmic axis). (**a**) Every point; the axis spans the point estimates and the extension intervals, and
+registered bands reaching beyond it are clipped (full intervals in the keys below). (**b**) The largest
+registered budgets and the extension points, where the decision on the margin is made; the horizontal bars are
+the one-sided upper bounds of A, `upper_one_sided_95` (quantile `payload.bootstrap.one_sided_upper_quantile` of
+`results/g1_primary.json`), which define N* (the smallest budget whose upper bound lies below δ at it and at
+every larger budget). Lines with bands, registered outer-resample design: `results/c1c2_v2.json` and
+`results/c1c2_v1.json`, key `payload.A_mae.<B>` (`A`, two-sided interval `ci95`, `upper_one_sided_95`), budgets
+`payload.budgets`; N* and the ceiling at the largest budget in `payload.N_star` and `payload.C2` of the same
+files. Precision-extension points: the same keys in `results/precision_g1_v2.json` and
+`results/precision_g1_v1.json` (the smaller subsets in `payload.beside_subsets`; every subset in
+`results/precision_a_b400_b654.json`, key `payload.subsets`). CV points: `results/cv_g1_v2.json` and
+`results/cv_g1_v1.json`, keys `payload.A_mae.<k10|k20>` (fold-level SD in `fold_sd`) at
+`payload.x_training_hosts.<k10|k20>`; the extended-budget statement is in `results/cv_extended_budget.json`,
+key `payload.extended_budget_statement`. Solid line, filled markers, filled band and dark bars: primary
+backbone (v2), adopted after diagnostics of the originally registered backbone; dashed line, open markers,
+hatched band and lighter bars: originally registered backbone (v1). The dashed horizontal line is the margin δ
+(`payload.delta_eV`), the dotted line zero. Bands and interval bars are two-sided intervals at the level
+`payload.bootstrap.two_sided_ci` of `results/g1_primary.json` (`two_sided_ci` of `payload.estimator` in the
+extension source records): paired hierarchical bootstrap over resamples and test hosts for the registered and
+precision points, paired host-cluster bootstrap over all hosts for the CV points. {ip.drawn_note(ext)}
+Script: `figures/code/fig3_advantage.py`.
 """
 
 
