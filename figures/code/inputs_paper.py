@@ -129,15 +129,28 @@ def write_caption(out_dir: Path, stem: str, text: str) -> Path:
 
 
 def drawn_note(found: dict) -> str:
-    """Caption sentence on the optional extension series."""
+    """Caption sentences on the optional extension series: which records, how each design is marked, and that the
+    CV test sets differ from the registered ones. No typed numbers; every value is named by record and key."""
     if not found:
         return ("No extension series is drawn: the K-fold CV and precision-extension analysis records "
                 "(`results/cv_g1_v1.json`, `results/cv_g1_v2.json`, `results/precision_g1_v1.json`, "
                 "`results/precision_g1_v2.json`) do not exist yet.")
-    names = {"precision": "precision-extension", "cv": "grouped K-fold CV"}
-    parts = [f"{names[k]} estimates of the {'primary' if a == 'v2' else 'originally registered'} backbone "
+    names = {"precision": "precision extension", "cv": "grouped K-fold CV"}
+    parts = [f"{names[k]}, {'primary' if a == 'v2' else 'originally registered'} backbone "
              f"(`results/{EXTENSIONS[(k, a)][0]}.json`)" for k, a in found]
-    return ("EXTENSION series, not pre-registered, drawn as unconnected points (diamonds: precision extension; "
-            "drawn just left of their budget; squares: grouped K-fold CV, placed at the mean training-set size "
-            "`x_training_hosts`): "
-            + "; ".join(parts) + ".")
+    kinds = {k for k, _ in found}
+    text = ("Three series are drawn, each labelled in the legend by its marker shape: circles on lines, the "
+            "registered outer-resample design (the resamples and budgets are registered; the primary backbone "
+            "(v2) evaluated on them is not); diamonds, the precision extension (EXTENSION), the pooled estimate "
+            "over the resamples and seeds named in `payload.design`, drawn just left of its budget; triangles, "
+            "grouped K-fold CV (EXTENSION), placed at the mean fold training size `payload.x_training_hosts`. "
+            "The extension series are unconnected points with two-sided interval bars and are not "
+            "pre-registered (label `payload.label` of each record; analysis rules in `docs/deviations.md`, cited "
+            "under `payload.rules` of the source records). "
+            "Records: " + "; ".join(parts) + ", each with its source analysis in `payload.source_record`.")
+    if "cv" in kinds:
+        text += (" The CV test sets differ from the registered ones: every host is tested once across the folds, "
+                 "including hosts that no outer resample tests, so a CV value is not directly comparable with a "
+                 "registered-budget value at a similar number of training hosts (partition check in "
+                 "`results/cv_extended_budget.json`, `payload.fold_partition`).")
+    return text

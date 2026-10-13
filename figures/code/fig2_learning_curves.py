@@ -29,7 +29,7 @@ def main() -> Path:
     ext = ip.extensions(a.results_root)
     budgets = [int(b) for b in arms["v2"]["budgets"]]
 
-    fig, axes = sp.figure("single", height_mm=74.0, ncols=2, sharey=True)
+    fig, axes = sp.figure("single", height_mm=84.0, ncols=2, sharey=True)
     fig.subplots_adjust(left=0.09, right=0.985, top=0.93, bottom=0.33, wspace=0.12)
     tops = []
     for ax, model in zip(axes, ("S", "D")):
@@ -52,7 +52,7 @@ def main() -> Path:
     handles = [sp.model_handle("S"), sp.model_handle("D"),
                *(sp.baseline_handle(k, dashes=d) for k, _, d in BASELINES),
                *(sp.backbone_handle(v) for v in sp.BACKBONES),
-               *(sp.ext_handle(k) for k in sorted({k for k, _ in ext}))]
+               *sp.series_handles(k for k, _ in ext)]
     sp.legend_handles(fig, handles, ncol=3)
     sp.panel_letters(fig, axes)
     pdf = sp.save(fig, Path(a.out_dir) / STEM)
@@ -71,11 +71,11 @@ dashed lines with open circles and hatched bands: originally registered backbone
 evaluated on the
 same registered outer resamples, with the prediction of each test site the mean over the training seeds.
 Values: `results/c1c2_v2.json` and `results/c1c2_v1.json`, key `payload.mae.<B>.S.mae` (a) and
-`payload.mae.<B>.D-state.mae` (b), each with `mean` and the two-sided 95% interval `ci` (paired hierarchical
-bootstrap over resamples and then test hosts). Baselines, which do not depend on the backbone (squares on
+`payload.mae.<B>.D-state.mae` (b), each with `mean` and the two-sided interval `ci` at the level `payload.bootstrap.two_sided_ci` of `results/g1_primary.json`
+(paired hierarchical bootstrap over resamples and then test hosts). Baselines, which do not depend on the backbone (squares on
 thinner lines): the training-mean predictor (dotted), the two-descriptor physics floor B0 and the random
 forest on the Kumagai descriptors (RF-Kumagai), from `results/diagnostics_sweep.json`, key
-`payload.references.<B>.<mean|B0|RF-Kumagai>`, evaluated on the same test sites. Bands are the 95%
+`payload.references.<B>.<mean|B0|RF-Kumagai>`, evaluated on the same test sites. Bands are these
 intervals; bands are clipped at the axis limits, and their full extent is in the keys above. {ip.drawn_note(ext)}
 Script: `figures/code/fig2_learning_curves.py`.
 """

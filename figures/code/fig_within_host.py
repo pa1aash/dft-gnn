@@ -28,7 +28,7 @@ def main() -> Path:
     delta = arms["v2"]["delta_eV"]
     x_max = ip.x_upper(ext)
 
-    fig, (ax1, ax2) = sp.figure("single", height_mm=72.0, ncols=2)
+    fig, (ax1, ax2) = sp.figure("single", height_mm=82.0, ncols=2)
     fig.subplots_adjust(left=0.105, right=0.985, top=0.93, bottom=0.33, wspace=0.32)
     sp.reference_line(ax1, 0.0, "", "zero")
     for model in ("S", "D"):
@@ -53,7 +53,7 @@ def main() -> Path:
     handles = [sp.model_handle("S"), sp.model_handle("D"),
                *(sp.backbone_handle(v) for v in sp.BACKBONES),
                sp.reference_handle(r"margin $\delta$", "delta"), sp.reference_handle("zero", "zero"),
-               *(sp.ext_handle(k) for k in sorted({k for k, _ in ext}))]
+               *sp.series_handles(k for k, _ in ext)]
     sp.legend_handles(fig, handles, ncol=3)
     sp.panel_letters(fig, (ax1, ax2))
     pdf = sp.save(fig, Path(a.out_dir) / STEM)
@@ -67,14 +67,15 @@ def caption(ext: dict) -> str:
 plus the DFT descriptors of the pristine host and site) against the number of training hosts (logarithmic
 axis): the within-host residual MAE of a predictor that is constant within each host, minus the model's, on
 the same test hosts with at least two oxygen sites. Zero (dotted) means the model ranks hosts but does not
-distinguish the sites of a host. Key `payload.mae.<B>.<S|D-state>.within_host_skill` (`mean`, two-sided 95%
+distinguish the sites of a host. Key `payload.mae.<B>.<S|D-state>.within_host_skill` (`mean`, two-sided
 interval `ci`). (**b**) The within-host advantage of the descriptors, A_within = within-host residual MAE of S
 minus that of D, with the margin δ (dashed, `payload.delta_eV`) and zero (dotted); key
 `payload.A_within_host.<B>` (`A`, `ci95`), and the within-host N* in `payload.N_star_within_host`. Solid lines,
 filled circles and filled bands: primary backbone (v2), adopted after diagnostics of the originally
 registered backbone; dashed lines, open circles and hatched bands: originally registered backbone (v1).
 Values from `results/c1c2_v2.json` and `results/c1c2_v1.json` (registered outer resamples; prediction of each
-site the mean over the training seeds; 95% intervals from the paired hierarchical bootstrap). The v1 values
+site the mean over the training seeds; two-sided intervals at the level `payload.bootstrap.two_sided_ci` of `results/g1_primary.json`, from the paired
+hierarchical bootstrap). The v1 values
 also appear, with the G1 estimator, in `results/g1_within_host.json`. {ip.drawn_note(ext)}
 Script: `figures/code/fig_within_host.py`.
 """
