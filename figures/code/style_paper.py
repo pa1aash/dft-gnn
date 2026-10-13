@@ -11,7 +11,8 @@ Conventions, fixed for every plot in the paper:
   with filled markers, the originally registered backbone (v1) dashed with open markers; backbones are named
   only in the legend (``BACKBONE_LABELS``) and the caption;
 * extension series (grouped K-fold CV, precision extension) as unconnected points with their own marker
-  shapes (``EXT_MARKERS``), never as a third line style;
+  shapes (``EXT_MARKERS``: diamonds and triangles, distinct from the circles of the registered-design curves and
+  the squares of the baselines), never as a third line style;
 * one marker shape, line width and band alpha for every curve; bands are two-sided 95% intervals, filled for
   the primary backbone and the baselines, hatched without fill for the originally registered backbone;
 * no in-plot text other than axis labels, tick labels and panel letters; the legend sits outside the data
@@ -57,8 +58,9 @@ BACKBONE_LS = {"v2": "-", "v1": (0, (4.0, 2.0))}
 BACKBONE_FILLED = {"v2": True, "v1": False}
 BACKBONE_LABELS = {"v2": "primary backbone (v2)", "v1": "originally registered backbone (v1)"}
 BACKBONES = ("v2", "v1")      # drawing and legend order
-EXT_MARKERS = {"precision": "D", "cv": "s"}
+EXT_MARKERS = {"precision": "D", "cv": "^"}
 EXT_LABELS = {"precision": "precision (EXTENSION)", "cv": "K-fold CV (EXTENSION)"}
+REGISTERED_LABEL = "registered outer resamples"
 EXT_MARKER_SIZE = 3.6
 # Precision estimates share their budgets with the registered points: drawn slightly to the left (log axis).
 EXT_DODGE = {("precision", "v2"): 0.90, ("precision", "v1"): 0.95}
@@ -238,6 +240,21 @@ def ext_handle(kind: str, color: str = "#000000"):
 
     return Line2D([], [], color=color, ls="none", marker=EXT_MARKERS[kind], ms=EXT_MARKER_SIZE, mfc=color,
                   mec=color, label=EXT_LABELS[kind])
+
+
+def registered_handle(color: str = "#000000"):
+    """Legend proxy for the marker of the registered-design curves (circles), shown beside the extension markers."""
+    from matplotlib.lines import Line2D
+
+    return Line2D([], [], color=color, ls="none", marker=MARKER, ms=MARKER_SIZE, mfc=color, mec=color,
+                  label=REGISTERED_LABEL)
+
+
+def series_handles(kinds) -> list:
+    """Marker-shape proxies of the designs drawn: the registered circles, then each extension kind; empty when no
+    extension is drawn (the backbone handles then carry the circles alone)."""
+    kinds = sorted(set(kinds))
+    return [registered_handle(), *(ext_handle(k) for k in kinds)] if kinds else []
 
 
 def reference_handle(label: str, kind: str = "published", color: str | None = None):
