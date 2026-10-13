@@ -56,7 +56,7 @@ def model_for(kind: str, rec: dict, device=None):
     torch.manual_seed(seed)
     init = build_model(mc["kind"], hparams_for(mc["kind"], mc["hp"]), n_host=mc["n_host"], n_site=mc["n_site"],
                        cutoff=mc["cutoff"])
-    return init.eval(), ck
+    return init.to(device or "cpu").eval(), ck
 
 
 def extract(kind: str, rec: dict, sites: infer.Sites, r: int, budget: int, *, device=None,

@@ -406,10 +406,13 @@ def train_run(spec: RunSpec, data: Store, cfg: Config | None = None, *, device: 
 
 
 def load_checkpoint(path: Path, device: torch.device | None = None) -> tuple[torch.nn.Module, dict]:
+    """(model in eval mode on ``device``, checkpoint dict). The model is moved to ``device`` before its weights are
+    loaded, so every parameter, including the distance-basis centres of the bond expansion, is on the device of the
+    batches it will see (nrp-code-v1 left it on the CPU; deviations row of 2026-10-14)."""
     ck = torch.load(path, map_location=device or "cpu", weights_only=False)
     mc = ck["model_config"]
     net = build_model(mc["kind"], hparams_for(mc["kind"], mc["hp"]), n_host=mc["n_host"], n_site=mc["n_site"],
-                      cutoff=mc["cutoff"])
+                      cutoff=mc["cutoff"]).to(device or "cpu")
     net.load_state_dict(ck["state_dict"])
     return net.eval(), ck
 
