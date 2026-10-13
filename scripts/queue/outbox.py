@@ -16,6 +16,7 @@ import argparse
 import hashlib
 import io
 import json
+import os
 import tarfile
 import time
 from pathlib import Path
@@ -70,14 +71,26 @@ def pack_files(paths: list[str], outbox: Path, label: str) -> Path:
     return _pack_files(files, outbox, f"outbox_{label}_{time.strftime('%Y%m%dT%H%M%S')}.tar.gz")
 
 
+def arcname(path: Path) -> Path:
+    """Member path of a file: repo-relative inside the checkout; ``external/<dir>/<state>/<file>`` for a file outside
+    it (the done/ records of a queue that lies outside the checkout), so the name never climbs out with ``..``."""
+    for p, root in ((Path(os.path.abspath(path)), Path(os.path.abspath(ROOT))), (Path(path).resolve(), ROOT.resolve())):
+        try:
+            return p.relative_to(root)
+        except ValueError:
+            continue
+    return Path("external", *Path(path).resolve().parts[-3:])
+
+
 def _pack_files(files: list[Path], outbox: Path, name: str) -> Path:
     outbox.mkdir(parents=True, exist_ok=True)
     tar_path = outbox / name
-    rel = [f.resolve().relative_to(ROOT) for f in files]
-    manifest = "".join(f"{_sha(ROOT / r)}  {r}\n" for r in rel).encode()
+    src = [Path(f).resolve() for f in files]
+    rel = [arcname(f) for f in src]
+    manifest = "".join(f"{_sha(f)}  {r}\n" for f, r in zip(src, rel, strict=True)).encode()
     with tarfile.open(tar_path, "w:gz") as tar:
-        for r in rel:
-            tar.add(ROOT / r, arcname=str(r))
+        for f, r in zip(src, rel, strict=True):
+            tar.add(f, arcname=str(r))
         info = tarfile.TarInfo(MANIFEST)
         info.size = len(manifest)
         tar.addfile(info, io.BytesIO(manifest))

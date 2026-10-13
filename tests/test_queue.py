@@ -229,3 +229,35 @@ def test_worker_claim_loop_survives_a_vanishing_heartbeat(tmp_path, monkeypatch)
     assert Q.run_worker(root, "w1", lambda job: ran.append(job["run_id"]) or {}, poll=0.01, log=lambda m: None) == 1
     assert ran == ["mine"] and (root / "done" / "mine.json").exists()
 
+
+def _outbox_module(monkeypatch):
+    import importlib.util
+    import sys
+
+    qdir = Q.Path(__file__).resolve().parents[1] / "scripts" / "queue"
+    monkeypatch.syspath_prepend(str(qdir))
+    spec = importlib.util.spec_from_file_location("outbox", qdir / "outbox.py")
+    ob = importlib.util.module_from_spec(spec)
+    monkeypatch.setitem(sys.modules, "outbox", ob)
+    spec.loader.exec_module(ob)
+    return ob
+
+
+def test_outbox_packs_a_queue_outside_the_checkout(tmp_path, monkeypatch):
+    """The NRP queue may sit beside the checkout (/workspace/jobs); pack must not fail on relative_to, so the
+    supervisor reaches ALL_DONE."""
+    ob = _outbox_module(monkeypatch)
+    root = tmp_path / "repo"
+    monkeypatch.setattr(ob, "ROOT", root)
+    (root / "results/mlip_v1").mkdir(parents=True)
+    (root / "data/processed/mlip_v1").mkdir(parents=True)
+    (root / "data/processed/mlip_v1/h.json").write_text("{}")
+    res = root / "results/mlip_v1/x.json"
+    res.write_text(json.dumps({"payload": {"artifacts": [{"path": "data/processed/mlip_v1/h.json"}]}}))
+    q = Q.init(tmp_path / "elsewhere" / "jobs")
+    (q / "done" / "x.json").write_text(json.dumps({**_job("x"), "stage": "relax", "result": str(res)}))
+    tar = ob.pack(q, root / "outbox", "relax")
+    dest = tmp_path / "mac"
+    assert ob.unpack(tar, dest) == 3
+    assert (dest / "external/jobs/done/x.json").is_file() and (dest / "results/mlip_v1/x.json").is_file()
+    assert ob.arcname(root / "results/mlip_v1/x.json") == Q.Path("results/mlip_v1/x.json")
