@@ -23,7 +23,8 @@ import inputs_paper as ip
 import style_paper as sp
 
 STEM = "fig4_staging"
-CONTRAST_COLORS = {"P_minus_S": sp.COLORS["P"], "D_minus_P": sp.COLORS["A"]}
+# contrasts are not models: P - S in Okabe-Ito vermillion (used by no model), D - P in the paired-difference black
+CONTRAST_COLORS = {"P_minus_S": "#D55E00", "D_minus_P": sp.COLORS["A"]}
 CONTRAST_LABELS = {"P_minus_S": r"P $-$ S (staging against end-to-end)",
                    "D_minus_P": r"D $-$ P (cost of predicting the descriptors)"}
 MODELS = ("S", "D", "P")
@@ -50,7 +51,7 @@ def main() -> Path:
     from matplotlib.lines import Line2D
 
     a = ip.cli(__doc__)
-    arms = {v: ip.require(f"staging_{v}", a.results_root)["payload"] for v in sp.BACKBONES}
+    arms = {v: ip.require(f"staging_{v}", a.results_root) for v in sp.BACKBONES}
     delta = arms["v2"]["delta_P_eV"]
     if arms["v1"]["delta_P_eV"] != delta:
         raise ValueError("the two records carry different margins")
