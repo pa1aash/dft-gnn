@@ -20,6 +20,29 @@ def _smi(*args: str) -> str | None:
         return None
 
 
+def _cuda_driver_api_version() -> str | None:
+    """CUDA version supported by the installed driver ("13.2"), from cuDriverGetVersion; None if unavailable.
+
+    The fallback when the ``CUDA Version`` line of the plain ``nvidia-smi`` banner cannot be read (it was empty on
+    the 615.71.09 nodes in N2). ``--query-gpu=driver_version`` gives the kernel driver (``driver``), not this.
+    """
+    import ctypes
+
+    try:
+        import torch
+
+        v = int(torch._C._cuda_getDriverVersion())
+    except (AttributeError, RuntimeError, TypeError, ValueError):
+        try:
+            n = ctypes.c_int()
+            if ctypes.CDLL("libcuda.so.1").cuDriverGetVersion(ctypes.byref(n)) != 0:
+                return None
+            v = n.value
+        except (OSError, AttributeError):
+            return None
+    return f"{v // 1000}.{v % 1000 // 10}" if v > 0 else None
+
+
 def hardware_info(device=None) -> dict:
     """GPU model, UUID, driver, memory, CUDA versions and host names; GPU fields None on a CPU device."""
     import torch
@@ -40,6 +63,6 @@ def hardware_info(device=None) -> dict:
     q = _smi("--query-gpu=driver_version", "--format=csv,noheader")
     out["driver"] = q.strip().splitlines()[0] if q and q.strip() else None
     smi = _smi()
-    m = re.search(r"CUDA Version: ([0-9.]+)", smi or "")
-    out["cuda_driver_version"] = m.group(1) if m else None
+    m = re.search(r"CUDA(?: Driver)? Version\s*:\s*([0-9.]+)", smi or "")
+    out["cuda_driver_version"] = m.group(1) if m else _cuda_driver_api_version()
     return out

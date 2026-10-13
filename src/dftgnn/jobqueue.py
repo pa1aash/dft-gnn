@@ -57,13 +57,27 @@ def _ready(root: Path, job: dict) -> bool:
     return all((root / "done" / f"{a}.json").exists() for a in job.get("after", []))
 
 
+def _age(hb: Path, job: Path, now: float) -> float | None:
+    """Seconds since the heartbeat (or, without one, the claim) was last touched; None if the job is gone.
+
+    A worker that finishes a job unlinks its running/ files while other workers and the supervisor scan them, so
+    either file may vanish between the listing and the ``stat``.
+    """
+    for p in (hb, job):
+        try:
+            return now - p.stat().st_mtime
+        except FileNotFoundError:
+            continue
+    return None
+
+
 def requeue_stale(root: Path, max_age: float = STALE_S, now: float | None = None) -> list[str]:
     now = time.time() if now is None else now
     back = []
     for f in sorted((root / "running").glob("*.json")):
         hb = f.with_suffix(".hb")
-        age = now - (hb.stat().st_mtime if hb.exists() else f.stat().st_mtime)
-        if age > max_age:
+        age = _age(hb, f, now)
+        if age is not None and age > max_age:
             try:
                 os.rename(f, root / "pending" / f.name)
             except FileNotFoundError:

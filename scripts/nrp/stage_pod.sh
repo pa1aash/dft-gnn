@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # One GPU worker on one NRP pod for the cluster stages (docs/nrp_runbook.md, section 4).
 #   bash /workspace/dft-gnn/scripts/nrp/stage_pod.sh [worker|env]
-# The shared checkout /workspace/dft-gnn (on the project volume, at the tag nrp-code-v1) holds the code, the inputs,
+# The shared checkout /workspace/dft-gnn (on the project volume, at the tag nrp-code-v2) holds the code, the inputs,
 # the queue and every output. This script builds the N0 environment lock (env/lock-nrp-rtx2080ti.txt) in a venv on
 # the pod's local disk (importing torch from the CephFS volume took over 20 minutes in N0 and N1), checks that the
-# checkout still matches the tag (dftgnn.train.check_code_ref), and runs one queue worker on the pod's GPU with
+# checkout matches nrp-code-v2, the bug-fix tag of nrp-code-v1 (dftgnn.train.check_code_ref), and runs one queue worker on the pod's GPU with
 # MPS off. "env" stops after the environment (for enqueue, supervisor or export pods). Environment variables:
 # DFTGNN_CHECKOUT (default /workspace/dft-gnn), DFTGNN_QUEUE (default <checkout>/jobs), DFTGNN_CHAIN (default
 # /workspace/chain), NODE_NAME (set from the downward API; recorded in every result).

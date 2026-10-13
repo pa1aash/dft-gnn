@@ -218,6 +218,59 @@ def test_check_code_ref(tmp_path):
         check_code_ref("nrp-code-v1", root=tmp_path)
 
 
+
+def test_check_code_ref_accepts_the_bug_fix_tag(tmp_path):
+    """Specs pinned to nrp-code-v1 run on a checkout of nrp-code-v2 (deviations row of 2026-10-14): v1 must stay an
+    ancestor and the pinned paths must be unchanged since v2."""
+    _git(tmp_path, "init", "-q")
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.py").write_text("x = 1\n")
+    _git(tmp_path, "add", "-A")
+    _git(tmp_path, "commit", "-qm", "c1")
+    _git(tmp_path, "tag", "-a", "nrp-code-v1", "-m", "pin")
+    (tmp_path / "src" / "a.py").write_text("x = 2\n")                     # the bug fix
+    _git(tmp_path, "commit", "-qam", "fix")
+    with pytest.raises(RuntimeError, match="differs"):                   # refused: fix not tagged yet
+        check_code_ref("nrp-code-v1", root=tmp_path)
+    _git(tmp_path, "tag", "-a", "nrp-code-v2", "-m", "fix")
+    c2 = _git_out(tmp_path, "rev-parse", "nrp-code-v2^{commit}")
+    assert check_code_ref("nrp-code-v1", root=tmp_path) == c2            # accepted: checkout of v2
+    _git(tmp_path, "checkout", "-q", "--detach", "nrp-code-v2")
+    assert check_code_ref("nrp-code-v1", root=tmp_path) == c2
+    (tmp_path / "results").mkdir()
+    (tmp_path / "results" / "r.json").write_text("{}\n")
+    _git(tmp_path, "add", "-A")
+    _git(tmp_path, "commit", "-qm", "results on top")
+    assert check_code_ref("nrp-code-v1", root=tmp_path) == c2            # results on top of v2 are fine
+    (tmp_path / "specs").mkdir()
+    (tmp_path / "specs" / "s.jsonl").write_text("{}\n")
+    _git(tmp_path, "add", "-A")
+    _git(tmp_path, "commit", "-qm", "spec change")
+    with pytest.raises(RuntimeError, match="nrp-code-v2"):              # refused: changed since v2
+        check_code_ref("nrp-code-v1", root=tmp_path)
+    with pytest.raises(RuntimeError, match="differs"):
+        check_code_ref("nrp-code-v2", root=tmp_path)                     # v2 has no successor of its own
+
+
+def test_check_code_ref_refuses_v2_without_v1_ancestor(tmp_path):
+    _git(tmp_path, "init", "-q")
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.py").write_text("x = 1\n")
+    _git(tmp_path, "add", "-A")
+    _git(tmp_path, "commit", "-qm", "c1")
+    _git(tmp_path, "tag", "-a", "nrp-code-v1", "-m", "pin")
+    _git(tmp_path, "checkout", "-q", "--orphan", "other")
+    (tmp_path / "src" / "a.py").write_text("x = 2\n")
+    _git(tmp_path, "add", "-A")
+    _git(tmp_path, "commit", "-qm", "unrelated history")
+    _git(tmp_path, "tag", "-a", "nrp-code-v2", "-m", "fix")
+    with pytest.raises(RuntimeError, match="not an ancestor"):
+        check_code_ref("nrp-code-v1", root=tmp_path)
+
+
+def _git_out(cwd, *args):
+    return subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True, text=True).stdout.strip()
+
 def test_spec_file_verification_shards_and_dependencies(tmp_path, built):
     for s in ("relax", "geomeval"):
         _jobs, body, man = built[s]

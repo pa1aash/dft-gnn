@@ -110,29 +110,44 @@ def code_sha(root: Path = REPO_ROOT) -> str:
 
 
 CODE_REF_PATHS = ("src", "scripts", "configs", "splits", "specs")
+# Bug-fix tags whose code may run the specs pinned to a code reference (deviations row of 2026-10-14). The run ids
+# keep the original reference string; only the code check accepts the successor.
+CODE_REF_SUCCESSORS = {"nrp-code-v1": ("nrp-code-v2",)}
 
 
 def check_code_ref(ref: str, root: Path = REPO_ROOT) -> str:
-    """Commit of the pinned code reference ``ref`` (EXTENSION, docs/deviations.md, 2026-10-11).
+    """Commit of the tag whose code the checkout runs, for the pinned code reference ``ref`` (EXTENSION,
+    docs/deviations.md, 2026-10-11 and 2026-10-14).
 
     A spec with ``code_ref`` has its run id computed with ``ref`` in place of the commit SHA, so it may run only
     on that code: ``ref`` must resolve to an ancestor of HEAD and nothing under ``CODE_REF_PATHS`` may differ
-    between it and HEAD (commits that add results on top of the tag are allowed). Raises RuntimeError otherwise.
+    between it and HEAD (commits that add results on top of the tag are allowed). A bug-fix successor of ``ref``
+    (``CODE_REF_SUCCESSORS``; nrp-code-v2 for nrp-code-v1) is accepted in its place: it must exist, be an ancestor of
+    HEAD, and nothing under ``CODE_REF_PATHS`` may differ between it and HEAD. Raises RuntimeError otherwise.
     """
     def git(*args: str) -> subprocess.CompletedProcess:
         return subprocess.run(["git", *args], cwd=root, capture_output=True, text=True, check=False)
 
-    rev = git("rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}")
-    if rev.returncode:
+    def resolve(tag: str) -> str | None:
+        rev = git("rev-parse", "--verify", "--quiet", f"{tag}^{{commit}}")
+        return None if rev.returncode else rev.stdout.strip()
+
+    commit = resolve(ref)
+    if commit is None:
         raise RuntimeError(f"code reference {ref!r} does not exist in this clone (git fetch --tags)")
-    commit = rev.stdout.strip()
     if git("merge-base", "--is-ancestor", commit, "HEAD").returncode:
         raise RuntimeError(f"code reference {ref!r} ({commit[:12]}) is not an ancestor of HEAD")
-    diff = git("diff", "--name-only", commit, "HEAD", "--", *CODE_REF_PATHS)
-    if diff.returncode or diff.stdout.strip():
-        raise RuntimeError(f"code under {', '.join(CODE_REF_PATHS)} differs from {ref!r}: "
-                           f"{diff.stdout.split()[:5] or diff.stderr.strip()}")
-    return commit
+    tried = []
+    for tag in (*reversed(CODE_REF_SUCCESSORS.get(ref, ())), ref):          # newest fix first
+        c = commit if tag == ref else resolve(tag)
+        if c is None or git("merge-base", "--is-ancestor", c, "HEAD").returncode:
+            continue
+        diff = git("diff", "--name-only", c, "HEAD", "--", *CODE_REF_PATHS)
+        if not diff.returncode and not diff.stdout.strip():
+            return c
+        tried.append(f"{tag}: {diff.stdout.split()[:5] or diff.stderr.strip()}")
+    raise RuntimeError(f"code under {', '.join(CODE_REF_PATHS)} differs from {ref!r} and its bug-fix tags "
+                       f"({'; '.join(tried)})")
 
 
 @dataclass
@@ -406,10 +421,13 @@ def train_run(spec: RunSpec, data: Store, cfg: Config | None = None, *, device: 
 
 
 def load_checkpoint(path: Path, device: torch.device | None = None) -> tuple[torch.nn.Module, dict]:
+    """(model in eval mode on ``device``, checkpoint dict). The model is moved to ``device`` before its weights are
+    loaded, so every parameter, including the distance-basis centres of the bond expansion, is on the device of the
+    batches it will see (nrp-code-v1 left it on the CPU; deviations row of 2026-10-14)."""
     ck = torch.load(path, map_location=device or "cpu", weights_only=False)
     mc = ck["model_config"]
     net = build_model(mc["kind"], hparams_for(mc["kind"], mc["hp"]), n_host=mc["n_host"], n_site=mc["n_site"],
-                      cutoff=mc["cutoff"])
+                      cutoff=mc["cutoff"]).to(device or "cpu")
     net.load_state_dict(ck["state_dict"])
     return net.eval(), ck
 
