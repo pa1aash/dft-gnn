@@ -38,7 +38,9 @@ FIGURE_RECORD_DIRS = ("figures/main/data",)
 COMPOSITE_KEYS = ("class", "model", "B", "node", "pass", "a", "b")
 # named records with a list of objects identified by several fields together (M9 within-host breakdown):
 # record stem -> {payload list key: identifying fields}; each item is flattened under the joined field values
-MULTIKEY_LISTS = {"within_host_breakdown": {"groups": ("variable", "group")}}
+MULTIKEY_LISTS = {"within_host_breakdown": {"groups": ("variable", "group")},
+                  # A2 swap-in check: one item per (backbone, r, B, seed) cell
+                  "staging_swapin_check": {"cells": ("backbone", "r", "B", "seed")}}
 # A1 precision and CV records: lists of objects identified by several fields, nested one level below a payload
 # path (path -> {design point: [items]}); each item is flattened under the design point and its joined fields
 NESTED_MULTIKEY_LISTS = {
