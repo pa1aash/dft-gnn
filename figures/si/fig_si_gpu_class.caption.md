@@ -10,6 +10,6 @@ separable from them and are not read as hardware effects. Values: `results/preci
 `ci95_descriptive`, `n_paired_cells`, `n_runs`); classes without a paired cell are not drawn. Bars: descriptive
 95% percentile intervals from a bootstrap over the paired cells (`bootstrap_seed`). Filled markers: primary
 backbone (v2), adopted after diagnostics of the originally registered backbone; open markers: originally
-registered backbone (v1). Diamonds: precision extension; squares: grouped K-fold CV. Dashed line: the margin δ;
+registered backbone (v1). Diamonds: precision extension; triangles: grouped K-fold CV. Dashed line: the margin δ;
 dotted line: zero. Rule: `docs/deviations.md`, row of 2026-10-14, item e1. Script:
 `figures/code/fig_si_gpu_class.py`.
