@@ -6,7 +6,7 @@ geomeval) through ``dftgnn.tasks.TaskRunner`` in the same process (one task at a
     python scripts/queue/worker.py --max-concurrent 8 --device cuda
 
 Launch one invocation per GPU (CUDA_VISIBLE_DEVICES selects it). A job carrying ``code_ref`` (cluster specs from
-``scripts/queue/make_specs.py``) runs only if that reference matches the checked-out code. Torch threads are split evenly between the
+``scripts/queue/make_specs.py``) runs only if that reference, or its bug-fix tag (nrp-code-v2 for nrp-code-v1), matches the checked-out code. Torch threads are split evenly between the
 processes over the CPUs the container may use (cgroup quota, not the host core count).
 """
 from __future__ import annotations
