@@ -47,6 +47,8 @@ MODEL_NAME = {"S": "S", "D-state": "D", "P": "P", "P1": "P1"}
 # results_subdir of each (backbone, model); None = the records directly under results/
 SOURCES = {"v1": {"S": None, "D-state": None, "P": "peval", "P1": None},
            "v2": {"S": "v2_sweep", "D-state": "v2_sweep", "P": "p_v2", "P1": "p1_v2"}}
+# where the Kiyohara-split D-state runs (the D components of the Kiyohara P runs) live
+KIYOHARA_D = {"v1": None, "v2": "v2_kiyohara"}
 N_OUTER = len(BUDGETS) * N_RESAMPLES * len(SEEDS)        # 180 cells per model and backbone
 N_STAGED = N_OUTER + len(SEEDS)                          # 183: plus the Kiyohara-split cells (P, P1)
 DESC_CLASSES = {"host-electronic DFT": 12, "site-electronic DFT": 10}
@@ -266,13 +268,14 @@ def build(uni: pd.DataFrame, root: Path) -> dict:
             directory = root / "results" / sub if sub else root / "results"
             recs = read_records(directory, sub, model)
             if model in ("S", "D-state"):
-                if model == "D-state":
-                    d_kiyo[bb] = {p["run_id"]: int(p["spec"]["seed"]) for p in recs
-                                  if p["spec"].get("split") == "kiyohara"}
                 recs = select_end_to_end(recs)
             for p in recs:
                 recs_by_id[p["run_id"]] = p
                 rows.append(run_row(p, bb, sub or "results"))
+        kd = KIYOHARA_D[bb]
+        d_kiyo[bb] = {p["run_id"]: int(p["spec"]["seed"])
+                      for p in read_records(root / "results" / kd if kd else root / "results", kd, "D-state")
+                      if p["spec"].get("split") == "kiyohara"}
     runs = pd.DataFrame(rows)
     check_unique_cells(runs)
     counts = check_counts(runs)
