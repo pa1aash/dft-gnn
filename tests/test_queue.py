@@ -186,3 +186,46 @@ def test_c0_pilot_jobs():
     ab = ST.build_c0_pilot("c", "g", load_config(), ablate="vacancy_flag")
     assert {j["run_id"] for j in jobs}.isdisjoint(j["run_id"] for j in ab)
     assert all(j["stage"] == "c0_ablate" for j in ab)
+
+
+def test_requeue_stale_tolerates_a_vanishing_heartbeat(tmp_path, monkeypatch):
+    """A worker's finish() unlinks running/<id>.hb (and the job) between another process's listing and its stat."""
+    root = Q.init(tmp_path)
+    for rid in ("gone", "hb_only_gone", "stale"):
+        Q.enqueue(root, _job(rid))
+        Q.claim(root, "w")
+    old = time.time() - 11 * 60
+    for rid in ("hb_only_gone", "stale"):
+        os.utime(root / "running" / f"{rid}.json", (old, old))
+        os.utime(root / "running" / f"{rid}.hb", (old, old))
+    real_stat = Q.Path.stat
+
+    def racy_stat(self, *a, **kw):
+        if self.name in ("gone.hb", "gone.json", "hb_only_gone.hb"):     # vanished after the listing
+            raise FileNotFoundError(self)
+        return real_stat(self, *a, **kw)
+
+    monkeypatch.setattr(Q.Path, "stat", racy_stat)
+    assert Q.requeue_stale(root) == ["hb_only_gone", "stale"]       # falls back to the claim time
+    monkeypatch.setattr(Q.Path, "stat", real_stat)
+    assert (root / "running" / "gone.json").exists()
+
+
+def test_worker_claim_loop_survives_a_vanishing_heartbeat(tmp_path, monkeypatch):
+    root = Q.init(tmp_path)
+    Q.enqueue(root, _job("other"))
+    Q.claim(root, "w0")                                              # held by another worker
+    Q.enqueue(root, _job("mine"))
+    real_stat = Q.Path.stat
+
+    def racy_stat(self, *a, **kw):
+        if self.name == "other.hb":
+            (root / "running" / "other.json").unlink(missing_ok=True)   # the other worker finished meanwhile
+            raise FileNotFoundError(self)
+        return real_stat(self, *a, **kw)
+
+    monkeypatch.setattr(Q.Path, "stat", racy_stat)
+    ran = []
+    assert Q.run_worker(root, "w1", lambda job: ran.append(job["run_id"]) or {}, poll=0.01, log=lambda m: None) == 1
+    assert ran == ["mine"] and (root / "done" / "mine.json").exists()
+
