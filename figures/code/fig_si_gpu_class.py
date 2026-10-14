@@ -50,10 +50,11 @@ def main() -> Path:
             m = [p[1]["A"] for p in pts]
             lo = [p[1]["ci95_descriptive"][0] for p in pts]
             hi = [p[1]["ci95_descriptive"][1] for p in pts]
-            ax.errorbar(x, m, yerr=[[mm - ll for mm, ll in zip(m, lo)], [hh - mm for mm, hh in zip(m, hi)]],
-                        fmt=sp.EXT_MARKERS[kind], ms=sp.EXT_MARKER_SIZE, color=sp.COLORS["A"], ecolor=sp.COLORS["A"],
-                        elinewidth=sp.REF_W, capsize=0, mew=0.8, ls="none", zorder=5,
-                        mfc=sp.COLORS["A"] if sp.BACKBONE_FILLED[arm] else "white", mec=sp.COLORS["A"])
+            eb = ax.errorbar(x, m, yerr=[[mm - ll for mm, ll in zip(m, lo)], [hh - mm for mm, hh in zip(m, hi)]],
+                             fmt=sp.EXT_MARKERS[kind], ms=sp.EXT_MARKER_SIZE, color=sp.COLORS["A"],
+                             ecolor=sp.COLORS["A"], elinewidth=sp.REF_W, capsize=0, mew=0.8, ls="none", zorder=5,
+                             mfc=sp.COLORS["A"] if sp.BACKBONE_FILLED[arm] else "white", mec=sp.COLORS["A"])
+            eb[2][0].set_linestyle(sp.BACKBONE_LS[arm])
             ys += lo + hi
         ax.set_xticks(range(len(present)))
         ax.set_xticklabels([TICK[c] for c in present])
@@ -63,9 +64,7 @@ def main() -> Path:
         ax.set_ylabel(r"$A$ (eV)")
         ax.set_xlabel("GPU class")
 
-    from matplotlib.lines import Line2D
-    handles = [Line2D([], [], color="#000000", ls="none", marker="o", ms=sp.MARKER_SIZE, mfc=f, mec="#000000",
-                      mew=0.8, label=sp.BACKBONE_LABELS[v]) for v, f in (("v2", "#000000"), ("v1", "white"))]
+    handles = [sp.backbone_handle(v) for v in sp.BACKBONES]
     handles += [sp.reference_handle(r"margin $\delta$", "delta"), sp.reference_handle("zero", "zero"),
                 sp.ext_handle("precision"), sp.ext_handle("cv")]
     sp.legend_handles(fig, handles, ncol=3)
@@ -78,18 +77,23 @@ def main() -> Path:
 CAPTION = """
 **Figure S (GPU class). The advantage A by GPU class of the training runs (EXTENSION, descriptive, no test).**
 A = MAE_S − MAE_D (eV) of single runs, averaged over the paired cells in which the S run and the D run of the same
-resample or fold, budget and seed both ran on the same GPU class. (**a**) Precision extension, B = 400.
-(**b**) Precision extension, B = 654. (**c**) Grouped K-fold CV, K = 10. (**d**) Grouped K-fold CV, K = 20.
-Classes: NVIDIA A10, GeForce RTX 3090, L4 and GeForce RTX 4090 of the cluster pool, and "sweep", the original
-sweep runs of resamples 0 to 9, seeds 0 to 2 (precision only). RTX 4090 was not part of the N1 repeatability runs.
-GPU class was not randomised with respect to resample, fold or seed, so differences between classes are not
-separable from them and are not read as hardware effects. Values: `results/precision_a_b400_b654.json` and
-`results/cv_extended_budget.json`, key `payload.descriptive.gpu_class.<design|point>` (`A_paired_cells.A`,
-`ci95_descriptive`, `n_paired_cells`, `n_runs`); classes without a paired cell are not drawn. Bars: descriptive
-95% percentile intervals from a bootstrap over the paired cells (`bootstrap_seed`). Filled markers: primary
-backbone (v2), adopted after diagnostics of the originally registered backbone; open markers: originally
-registered backbone (v1). Diamonds: precision extension; triangles: grouped K-fold CV. Dashed line: the margin δ;
-dotted line: zero. Rule: `docs/deviations.md`, row of 2026-10-14, item e1. Script:
+resample or fold, budget and seed both ran on the same GPU class. (**a**, **b**) Precision extension, design points
+`precision|400` and `precision|654` of `results/precision_a_b400_b654.json`; (**c**, **d**) grouped K-fold CV,
+design points `cv|10` and `cv|20` of `results/cv_extended_budget.json`; each under the key
+`payload.descriptive.gpu_class`, with the budget or fold count of a row in `point`. The classes on the x axis are
+the values of `gpu_class` in those rows: the GPU models of the cluster pool, read from `payload.hardware.gpu_model`
+of the run records, and "sweep" (value `original sweep`), the registered sweep runs of the original resamples and
+seeds (precision only). Which cluster class was absent from the cross-node repeatability runs, and the size of the
+class shifts, are stated in `docs/freeze_notes.md` (caveat on GPU classes; rows `N1-*` of
+`results/freeze_table.json`). GPU class was not randomised with respect to resample, fold or seed, so differences
+between classes are not separable from them and are not read as hardware effects. Plotted values per row:
+`A_paired_cells.A` (marker) and `A_paired_cells.ci95_descriptive` (bar), a descriptive percentile interval from a
+bootstrap over the paired cells (`A_paired_cells.bootstrap_seed`); cell and run counts in `n_paired_cells` and
+`n_runs`; classes without a paired cell are not drawn. Filled markers and solid bars: primary backbone (v2),
+adopted after diagnostics of the originally registered backbone; open markers and dashed bars: originally
+registered backbone (v1). Diamonds: precision extension; triangles: grouped K-fold CV. Dashed line: the margin δ
+(`payload.delta_eV`); dotted line: zero. Labels and rules: `payload.label` and `payload.rules` of both records (the
+descriptive extras of the precision and CV implementation row of `docs/deviations.md`, by GPU class). Script:
 `figures/code/fig_si_gpu_class.py`.
 """
 
