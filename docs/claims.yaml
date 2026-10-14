@@ -10,12 +10,16 @@ claims:
   # the formula-grouped-protocol half is measured in the sweep, so the status stays planned.
   # S10 (results/g1_primary.json): S at B = 654 on the formula-grouped protocol, seed-ensemble MAE 0.273 eV
   # [0.252, 0.300] against the published 0.29 eV (and 0.283 eV for the official C0 on Kiyohara's split).
+  # A6 (results freeze, 2026-10-14; docs/freeze_notes.md): both halves are measured (Kiyohara split: results/c0_official.json,
+  # gate passed; formula-grouped protocol: results/g1_primary.json per_budget.654.MAE_S), so the status moves from planned
+  # to measured. The comments above are kept as written; no value or label changes. No v2 C0 on Kiyohara's split exists
+  # as a named record; the v2 formula-grouped value is POST HOC (results/c1c2_v2.json mae.654.S).
   - id: C0
     statement: "A structure-only MEGNet on pristine host supercells with a marked vacancy site reproduces the published structure-only accuracy for neutral oxygen vacancies (0.29 eV; Kiyohara et al., Phys. Rev. Lett. 135, 246101, 2025), on both our formula-grouped protocol and Kiyohara's released host split."
     tested_by: M3
     figure: Fig2 reference line; SI parity
     falsifiable_how: "MAE on Kiyohara's split materially worse than 0.29 eV triggers debugging before any further claim."
-    status: planned
+    status: measured
     result_ref: results/c0_official.json
   # Collaborator NRP branch (merged 2026-10-11): results/c1c2_v1.json, same estimand and inputs as
   # results/g1_primary.json, identical point values (docs/ingest_report.md rows 4-7). POST HOC (v2):
@@ -70,6 +74,8 @@ claims:
     result_ref: results/staging_v2.json
   # POST HOC (v2), collaborator NRP branch: results/mlip_eval_v2.json (S-v2, D-v2, P-v2 on 802 relaxed hosts,
   # results/mlip/). No v1 geometry evaluation exists; status stays planned (docs/ingest_gaps.md).
+  # [Superseded by A3, comment kept as written (note added at the A6 freeze): the v1 geometry evaluation now exists,
+  # see the A3 comment below this row.]
   - id: C3b
     statement: "Under MACE-MP-0 relaxed host geometry, staged and end-to-end models degrade differently; degradation is decomposed into volumetric strain and internal displacement."
     tested_by: M7
@@ -133,12 +139,16 @@ claims:
     result_ref: results/probe_c4_v1.json
   # Collaborator NRP branch: results/screening_c5.json; mae_S 0.294 eV from the pre-registered S at B = 654
   # (v1), mae_S_v2 0.420 eV POST HOC (v2). Status stays planned.
+  # A6 (results freeze, 2026-10-14; docs/freeze_notes.md): the demonstration is complete (Fig7 and row SD1), so the status
+  # moves to measured and result_ref names the registered screening record. v1 (mae_S) PRE-REGISTERED, v2 (mae_S_v2)
+  # POST HOC, as in docs/provenance_labels.md #10 and #11; the comment above is kept as written.
   - id: C5
     statement: "Screening demonstration on named oxide crystals."
     tested_by: M10
     figure: Fig7
     falsifiable_how: "Demonstration, not a claim."
-    status: planned
+    status: measured
+    result_ref: results/screening_c5.json
   # EXTENSION (M9; docs/deviations.md row of 2026-10-11 "Within-host breakdown", logged before any number;
   # docs/within_host_physics.md). New analysis of existing B = 654 test predictions of both backbones; v2 columns
   # are POST HOC by backbone. All hosts: zero-skill 0.184 eV; within-host residual MAE S-v2 0.146, D-v2 0.146,
