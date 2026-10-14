@@ -78,12 +78,18 @@ claims:
     status: planned
   # POST HOC (v2), collaborator NRP branch: results/probe_v2_sweep.json (60 S-v2 checkpoints; fails the
   # untrained-encoder control). No v1 probe exists; status stays planned (docs/ingest_gaps.md).
+  # A4 (2026-10-14; docs/deviations.md row of 2026-10-14 §10, logged before any v1 probe number; docs/a4_notes.md).
+  # REGISTERED probe on the originally registered backbone (v1; 60 seed-0 S checkpoints): results/probe_c4_v1.json.
+  # Trend holds (rho 0.916 host, 0.945 site; intervals exclude 0); shuffled-label control exceeded at B = 200, 400,
+  # 654; random-init control (init0) not exceeded at any of them (below it at 200). Under the §10 rule C4 moves to
+  # the SI (figures/si/fig6_probe.pdf). The S-v2 probe (POST HOC) is row C4-v2.
   - id: C4
     statement: "Linear-probe recovery of electronic descriptors from the structure-only model's embeddings increases with training budget and exceeds shuffled-label and random-encoder controls."
     tested_by: M8
     figure: Fig6
     falsifiable_how: "Flat trend or failure to beat both controls moves C4 to SI."
-    status: planned
+    status: moved_to_si
+    result_ref: results/probe_c4_v1.json
   # Collaborator NRP branch: results/screening_c5.json; mae_S 0.294 eV from the pre-registered S at B = 654
   # (v1), mae_S_v2 0.420 eV POST HOC (v2). Status stays planned.
   - id: C5
@@ -171,3 +177,22 @@ claims:
     falsifiable_how: "A twin-version one-sided upper bound at B = 654 at or above delta would make the 654 statement cap-sensitive for v1."
     status: measured
     result_ref: results/sens_capped_post_hoc.json
+  # POST HOC (A4; docs/deviations.md row of 2026-10-14 §10; docs/a4_notes.md). The collaborator's probe on the S-v2
+  # checkpoints (results/probe_v2_sweep.json), recomputed from his stored per-descriptor R² (class means equal his
+  # stored values exactly); v2 is the primary backbone and POST HOC, never pre-registered; descriptive.
+  - id: C4-v2
+    statement: "POST HOC, descriptive. On the primary backbone (v2), the collaborator's linear probe of the S-v2 readout input shows the same pattern as v1 under the A4 application of the §10 rule: the class-mean test R² rises with budget (Spearman rho 0.964 host-electronic, 0.978 site-electronic; intervals exclude 0) and exceeds the shuffled-label control at B = 200, 400 and 654, but does not exceed the random-init control at B >= 200 except site-electronic at 654; C4 would not hold on v2 either."
+    tested_by: "analysis/probe_stats.py (tests: analysis/tests/test_probe.py) on results/probe_v2_sweep.json; resample bootstrap shared with the v1 rule"
+    figure: "none (quantities in results/probe_descriptive.json, payload.s_v2)"
+    falsifiable_how: "A recomputed class mean that differed from the stored per-descriptor R² of results/probe_v2_sweep.json, or a rule component that differed from the record, refutes the row."
+    status: measured
+    result_ref: results/probe_descriptive.json
+  # DESCRIPTIVE (A4; fixed in docs/deviations.md row of 2026-10-14 §10 item e before any v1 probe number). Originally
+  # registered backbone (v1). Not part of the C4 rule.
+  - id: PRB-WH
+    statement: "DESCRIPTIVE. Within test hosts (target and prediction mean-removed per host, hosts with >= 2 test sites), the linear probe of the trained v1 S readout input recovers almost none of the site-electronic descriptor variation: the class-mean within-host R² lies between -0.041 and +0.001 at every budget and does not exceed the shuffled-label control at any budget; per descriptor at B = 654 it is positive only for o2p_center_from_vbm, nn_ave_bader_charge, bader_volume and the two nn_min descriptors."
+    tested_by: "analysis/probe_fit.py and analysis/probe_stats.py (tests: analysis/tests/test_probe.py)"
+    figure: "none (results/probe_descriptive.json, payload.within_host_site)"
+    falsifiable_how: "Descriptive; values that differed from the stored per-cell fits in results/probe_fit_v1.json would invalidate the row."
+    status: measured
+    result_ref: results/probe_descriptive.json
