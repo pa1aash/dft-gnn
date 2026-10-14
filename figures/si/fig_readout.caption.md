@@ -1,4 +1,4 @@
-**Figure S3. Readout of the structure-only model S and the D-state injection points.** The inputs are the
+**Figure S1. Readout of the structure-only model S and the D-state injection points.** The inputs are the
 initial features of the vacancy node $\mathbf{x}_\mathrm{v}^{(0)}$ and of the other nodes $\mathbf{x}_i^{(0)}$,
 the edge features $\mathbf{e}_{ij}^{(0)}$ and the global state $u^{(0)}$; $n$ MEGNet blocks update them. The
 readout concatenates three vectors: the final embedding of the vacancy node $\mathbf{h}_\mathrm{v}$, a pooling of

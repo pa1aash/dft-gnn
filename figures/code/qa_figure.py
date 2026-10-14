@@ -13,7 +13,7 @@ Checks (first page):
                 violation. Tick labels, axis labels and panel letters sit outside the axes by construction,
                 so the rule "nothing but those" reduces to "nothing inside".
 
-    python figures/code/qa_figure.py figures/main/fig_g1_learning_curves.pdf [--width-mm 138.6] [--json]
+    python figures/code/qa_figure.py figures/si/fig_g1_learning_curves.pdf [--width-mm 138.6] [--json]
 
 Exit code 0 when every check passes, 1 otherwise.
 """

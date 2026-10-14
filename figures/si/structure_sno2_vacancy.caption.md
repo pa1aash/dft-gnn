@@ -1,4 +1,4 @@
-**Structure render, rutile SnO2 (test of the render library).** Pristine SnO2 supercell of the Kumagai et
+**Figure S8. Structure render, rutile SnO2 (test of the render library).** Pristine SnO2 supercell of the Kumagai et
 al. database (host mp-856, 72 atoms, Sn24O48) with oxygen atom 24 (site O1) removed: the translucent amber
 sphere marks the vacancy site and its three nearest Sn neighbours (2.069, 2.073 and 2.073 Å; the planar
 three-fold coordination of O in rutile) are drawn enlarged and joined into a translucent triangle with dark

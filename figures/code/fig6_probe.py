@@ -1,4 +1,4 @@
-"""Figure 6: latent probe (C4) on the originally registered backbone (v1).
+"""Figure S7: latent probe (C4) on the originally registered backbone (v1).
 
 Inputs: results/probe_c4_v1.json (the §10 rule and the class-mean curves) and results/probe_descriptive.json (the
 per-descriptor R^2), written by analysis/probe_stats.py under the rules of the docs/deviations.md row of 2026-10-14
@@ -145,7 +145,7 @@ def caption(holds: bool) -> str:
              "The rule does not hold (`results/probe_c4_v1.json`, `payload.C4_holds` false; `payload.outcome`), so "
              "C4 moves to the Supplementary Information and this figure is placed there (`figures/si/`).")
     return f"""
-**Figure 6. Latent probe: linear recovery of the DFT electronic descriptors from the structure-only model's readout
+**Figure S7. Latent probe: linear recovery of the DFT electronic descriptors from the structure-only model's readout
 input.** For every resample r and budget B, a ridge regression maps the readout input vector of the seed-0 S
 checkpoint ([vacancy-node embedding, pooled node embeddings, global state]) to each descriptor given to D, with
 the regularisation chosen by cross-validation grouped by host on the training sites, and is scored by

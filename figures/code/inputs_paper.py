@@ -144,7 +144,8 @@ def drawn_note(found: dict) -> str:
             "(v2) evaluated on them is not); diamonds, the precision extension (EXTENSION), the pooled estimate "
             "over the resamples and seeds named in `payload.design`, drawn just left of its budget; triangles, "
             "grouped K-fold CV (EXTENSION), placed at the mean fold training size `payload.x_training_hosts`. "
-            "The extension series are unconnected points with two-sided interval bars and are not "
+            "The extension series are unconnected points with two-sided interval bars (primary backbone (v2): "
+            "solid bars, filled markers; originally registered backbone (v1): dashed bars, open markers) and are not "
             "pre-registered (label `payload.label` of each record; analysis rules in `docs/deviations.md`, cited "
             "under `payload.rules` of the source records). "
             "Records: " + "; ".join(parts) + ", each with its source analysis in `payload.source_record`.")

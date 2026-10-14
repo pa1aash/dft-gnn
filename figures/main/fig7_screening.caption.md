@@ -14,4 +14,4 @@ out in one resample has no bar. Values for every marker: `figures/main/data/scre
 (v1) and `results/v2_sweep/` (v2); the screening MAE of each backbone with its host-cluster interval is in
 `payload.summary.<v1|v2>.{mae_eV, mae_ci}` of that file. The candidate oxides absent from the release or removed by the
 perturbed-host-state filter are listed in `results/screening_absence.json`, key `payload.candidates`. Structure render of
-an SnO$_2$ site: `figures/si/structure_sno2_vacancy.png`. Script: `figures/code/fig7_screening.py`.
+an SnO$_2$ site: Figure S8, `figures/si/structure_sno2_vacancy.png`. Script: `figures/code/fig7_screening.py`.
