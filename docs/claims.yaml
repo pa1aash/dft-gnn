@@ -45,12 +45,29 @@ claims:
     result_ref: results/g1_primary.json
   # POST HOC (v2), collaborator NRP branch: results/c3a_v2.json (P1-v2 and P-v2, 183 each; TOST rule of
   # docs/deviations.md 2026-10-09). No v1 staging result exists; status stays planned (docs/ingest_gaps.md).
+  # [Superseded by A2, comment kept as written: the v1 staging result now exists, see below.]
+  # A2 (2026-10-14; docs/deviations.md row of 2026-10-14 §8, logged before any number; docs/a2_notes.md). REGISTERED
+  # staging analysis on the originally registered backbone (v1): results/staging_v1.json (183 P, 183 P1; pairing of
+  # 2026-10-10). Outcomes by the TOST rule of 2026-10-09, ratified 2026-10-11, POST HOC (it withdraws the null
+  # sentence of falsifiable_how below): P worse than S at all six budgets, non-inferiority at none, D - P below zero
+  # at every budget. The v2 staging (POST HOC) is row C3a-v2.
   - id: C3a
     statement: "A staged model P, which predicts the pristine-host electronic descriptors (host-level and pristine-site Bader) from structure and passes the predictions to the trained oracle D, is compared with end-to-end S and oracle D at matched budgets; the D-minus-P gap is the cost of predicting rather than knowing the descriptors."
     tested_by: M6
     figure: Fig4
     falsifiable_how: "P minus S indistinguishable from zero is reported as a null."
-    status: planned
+    status: measured
+    result_ref: results/staging_v1.json
+  # POST HOC (A2; docs/deviations.md row of 2026-10-14 §8; docs/a2_notes.md). v2 is the primary backbone and POST HOC,
+  # never pre-registered; the TOST rule is POST HOC (ratified 2026-10-11). Point values reproduce results/c3a_v2.json
+  # (collaborator) to 1e-16; the v2 true-descriptor swap-in check was not run (checkpoints on cluster storage only).
+  - id: C3a-v2
+    statement: "POST HOC. On the primary backbone (v2), the staged model P-v2 (P1-v2 then D-v2 of the same resample, budget and seed) is compared with S-v2 and D-v2 at the six budgets with the four-outcome TOST rule (delta_P = 0.05 eV): no budget has P better than S; P is worse at 50, 100 and 200 hosts, equivalent at 400, worse but within the equivalence margin at 654 and inconclusive at 25; the one-sided 95% upper bound on P minus S is below delta_P at 400 and 654 only; D minus P is below zero at 100 to 654 hosts."
+    tested_by: "analysis/staging_analysis.py on analysis/staging_eval_table.py (tests: analysis/tests/test_staging.py); sanity: S minus D reproduces results/c1c2_v2.json, the staging points reproduce results/c3a_v2.json"
+    figure: "Fig4 (figures/main/fig4_staging.pdf), solid series"
+    falsifiable_how: "An outcome category or non-inferiority decision that differs from the record under the frozen rule, or a point value that differs from the stored predictions, refutes the row."
+    status: measured
+    result_ref: results/staging_v2.json
   # POST HOC (v2), collaborator NRP branch: results/mlip_eval_v2.json (S-v2, D-v2, P-v2 on 802 relaxed hosts,
   # results/mlip/). No v1 geometry evaluation exists; status stays planned (docs/ingest_gaps.md).
   - id: C3b
