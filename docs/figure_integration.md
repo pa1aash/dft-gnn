@@ -42,7 +42,10 @@ The readout schematic (`schematics/fig_readout.pdf`, the former main-text Figure
 not included anywhere in `paper/` at `9e91760`. Its role moves to the SI: `figures/si/fig_readout.pdf` (the
 same vector PDF centred on a 138.6 mm page) with `figures/si/fig_readout.caption.md` (Figure S3; S1 and S2 are
 the filter cascade and the split schematic in `docs/schematics.md`). When the SI document exists, include it
-with `\figph{fig_readout}`; `\graphicspath` already lists `figures/si/`. Methods text that describes the readout
+with `\figph{fig_readout}`; `\graphicspath` already lists `figures/si/`. Since F1b, Figures S1 and S2 also exist as
+`figures/si/fig_cascade.pdf` and `figures/si/fig_splits.pdf` (the schematics centred on a 138.6 mm page, caption
+files beside them; `figures/code/fig_si_schematics.py`), included with `\figph{fig_cascade}` and
+`\figph{fig_splits}`. The final placement of every figure is in `docs/figure_inventory.md`. Methods text that describes the readout
 (Section `sec:backbones`) may cite it as Figure S3.
 
 ## 3. Results figures (results.tex)
