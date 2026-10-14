@@ -51,6 +51,8 @@ NESTED_MULTIKEY_LISTS = {
 PATH_MULTIKEY_LISTS = {
     "sens_capped_post_hoc": {("descriptive_runs", "groups"): ("kind", "model", "B")},
     "sens_high_moment_v1": {("excluded_per_resample",): ("r",)},
+    # A4 probe sanity checks: one item per (r, B) cell
+    "probe_fit_v1": {("sanity",): ("r", "B")},
 }
 # protocol constants (not results): file, macro prefix, top-level keys to read (None = all)
 PROTOCOL_SOURCES = (
