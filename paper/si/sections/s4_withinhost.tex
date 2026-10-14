@@ -1,0 +1,92 @@
+\section{Site resolution within a host, by chemistry and site}
+\label{si:withinhost}
+
+This section asks whether the ability of the networks to order the oxygen sites of one host depends on the
+chemistry of the host or on the site (extension, not registered; both networks at \numWithinHostBreakdownBudget{}
+training hosts). The rules (groups, thresholds, metrics and bootstrap) were logged in \texttt{docs/deviations.md}
+before any number was computed, and the analysis reads the existing test predictions without training anything
+(\texttt{results/within\_host\_breakdown.json}; \texttt{docs/within\_host\_physics.md}). The measure is the
+within-host residual error: for a host with at least two tested sites, the prediction and the DFT energy of each
+site are taken relative to their host means, and the mean absolute difference of these relative values is the
+error that remains once every host-level offset is removed. Its reference is the zero-skill value, the mean
+absolute deviation of the DFT energies from their host mean, which is the within-host error of any predictor that
+is constant within a host, such as the physics floor B0 or a network blind to the site. A network has
+within-host skill in a group when its within-host error lies below the zero-skill value.
+
+Each site's prediction is the seed ensemble averaged over the resamples in which its host was tested, so the
+breakdown covers \numWithinHostBreakdownGroupsPooledAllNHosts{} hosts and \numWithinHostBreakdownGroupsPooledAllNSites{}
+sites. This averaging differs from the registered estimator, which averages errors per resample: it lowers the
+pooled site MAE of the originally registered network by
+\numWithinHostBreakdownSanityISiteMaeVOneSiteAveragedMinusRecordS{}~eV for S and
+\numWithinHostBreakdownSanityISiteMaeVOneSiteAveragedMinusRecordD{}~eV for D, so the values of this section are
+comparable with each other but not with the registered learning curves.
+
+Over all hosts, both networks resolve sites within a host, with within-host errors of
+\numWithinHostBreakdownGroupsPooledAllVTwoSWithinHostMaePoint{}~eV (S) and
+\numWithinHostBreakdownGroupsPooledAllVTwoDWithinHostMaePoint{}~eV (D) on the primary network (v2, post hoc)
+against a zero-skill value of \numWithinHostBreakdownGroupsPooledAllVTwoSZeroSkillMaePoint{}~eV
+(Table~\ref{tab:withinhost}). On v2 the descriptors leave the within-host error unchanged, S $-$ D =
+\numWithinHostBreakdownGroupsPooledAllDifferencesSMinusDVTwoWithinHostMaePoint{}~eV
+\ci{\numWithinHostBreakdownGroupsPooledAllDifferencesSMinusDVTwoWithinHostMaeCiNinetyFiveItemOne{}}{\numWithinHostBreakdownGroupsPooledAllDifferencesSMinusDVTwoWithinHostMaeCiNinetyFiveItemTwo{}};
+on the originally registered network (v1) D has the larger within-host error, S $-$ D =
+\numWithinHostBreakdownGroupsPooledAllDifferencesSMinusDVOneWithinHostMaePoint{}~eV
+\ci{\numWithinHostBreakdownGroupsPooledAllDifferencesSMinusDVOneWithinHostMaeCiNinetyFiveItemOne{}}{\numWithinHostBreakdownGroupsPooledAllDifferencesSMinusDVOneWithinHostMaeCiNinetyFiveItemTwo{}},
+so on v1 the network given the descriptors orders the sites of a host less well than the structure-only network.
+The chemistry enters mainly through the spread of the target itself. Hosts whose cations have an empty $d$ shell
+(\dzero{}) have a smaller site-to-site spread than hosts with a filled $d$ shell (\dten{}), with zero-skill values of
+\numWithinHostBreakdownGroupsDClassDZeroVTwoSZeroSkillMaePoint{} and
+\numWithinHostBreakdownGroupsDClassDTenVTwoSZeroSkillMaePoint{}~eV, and both networks keep within-host skill in both
+classes. The v1 penalty of the descriptors is concentrated in the \dten{} hosts
+(S $-$ D = \numWithinHostBreakdownGroupsDClassDTenDifferencesSMinusDVOneWithinHostMaePoint{}~eV
+\ci{\numWithinHostBreakdownGroupsDClassDTenDifferencesSMinusDVOneWithinHostMaeCiNinetyFiveItemOne{}}{\numWithinHostBreakdownGroupsDClassDTenDifferencesSMinusDVOneWithinHostMaeCiNinetyFiveItemTwo{}})
+and in the hosts that contain a cation with a high perturbed-host-state rate (Nb, W, Ti, V, Ta or Mo;
+\numWithinHostBreakdownGroupsPhsPronePhsProneDifferencesSMinusDVOneWithinHostMaePoint{}~eV
+\ci{\numWithinHostBreakdownGroupsPhsPronePhsProneDifferencesSMinusDVOneWithinHostMaeCiNinetyFiveItemOne{}}{\numWithinHostBreakdownGroupsPhsPronePhsProneDifferencesSMinusDVOneWithinHostMaeCiNinetyFiveItemTwo{}}).
+Across the thirds of host stability the within-host error barely changes, while the site error of S on v2 rises
+from \numWithinHostBreakdownGroupsStabilityTercileLowerVTwoSMaePoint{}~eV in the most stable third to
+\numWithinHostBreakdownGroupsStabilityTercileUpperVTwoSMaePoint{}~eV in the least stable third. This pattern is
+consistent with an error in the host-level offset rather than in the ordering of sites, a reading that is not
+tested here. Among the thirds of the band gap, the smallest-gap third has the largest within-host errors of both
+networks, and the errors at the most and least negative Bader charges of the vacancy oxygen within a host are
+close to each other (Figure~\ref{fig:withinhost}).
+
+These are descriptive comparisons. The breakdown reports an interval for every group, model, network and metric
+without correction for multiplicity, so some intervals exclude zero by chance alone, and an isolated interval that
+excludes zero is weak evidence; groups with fewer hosts than the small-group threshold carry no interval. The
+cation groups overlap, because a host with several cations is counted under each, and they are confounded with
+each other and with structure type. Every group summary describes the filtered universe, that is, deep or
+localised neutral vacancies only. Physical readings of these patterns are hypotheses
+(\texttt{docs/within\_host\_physics.md}) and are not tested here.
+
+\begin{table}[htbp]
+\caption{Within-host residual MAE (eV) at \numWithinHostBreakdownBudget{} training hosts by group (extension;
+both networks; v2 post hoc). Hosts and sites: those with at least two tested sites, on which the within-host error
+is defined. Zero skill: the within-host error of any predictor constant within a host. Point values; the
+two-sided intervals of the host-cluster bootstrap, and the per-cation groups of Figure~\ref{fig:withinhost}a, are
+in \texttt{results/within\_host\_breakdown.json} (\texttt{payload.groups}). The unassigned $d$ class is below the
+small-group threshold and is descriptive only.}
+\label{tab:withinhost}
+\centering\small
+\input{sections/tab_withinhost}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\sifig{fig_si_withinhost_groups}
+\caption{Site resolution within a host, by chemistry and site (extension). Within-host residual MAE of S
+(structure only, blue) and D (structure plus the DFT descriptors of the pristine host and site, green) at the
+largest training budget, for groups of test hosts or sites; lower is better. The grey tick in each row is the
+zero-skill value, the within-host residual MAE of any predictor that is constant within each host; a model point
+at or right of it has no within-host skill in that group. Circles: point values; horizontal bars: two-sided
+percentile intervals of the host-cluster bootstrap, paired across models and networks; no bar where too few hosts
+contribute. Filled circles and solid bars: primary network (v2), adopted after diagnostics of the originally
+registered network; open circles and dashed bars: originally registered network (v1). (\textbf{a}) Cation element,
+each host under every cation it contains; (\textbf{b}) $d$-electron class of the host, with all tested hosts as the
+top row; (\textbf{c}) hosts containing at least one of the cations with the highest perturbed-host-state rates,
+against the rest; (\textbf{d}) thirds of host stability (formation energy per atom); (\textbf{e}) thirds of the
+PBEsol(+$U$) band gap; (\textbf{f}) sites at the most negative, intermediate and least negative Bader charge of the
+vacancy oxygen within their host. Each site's prediction is the seed ensemble averaged over the registered
+resamples in which its host was tested. Values: \texttt{results/within\_host\_breakdown.json}.}
+\label{fig:withinhost}
+\end{figure}
+\FloatBarrier

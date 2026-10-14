@@ -1,0 +1,71 @@
+\section{Sensitivity analyses}
+\label{si:sensitivities}
+
+Three choices fixed by the registered design could, in principle, move the bound on the advantage of the electronic
+descriptors, $A = \mathrm{MAE}_\mathrm{S} - \mathrm{MAE}_\mathrm{D}$, at the largest training set: the inclusion of
+vacancies that leave a magnetic moment on the cell, the cap on training length and the choice of architecture
+(Figure~\ref{fig:sens}; \texttt{docs/a5\_notes.md}). All three were run for the originally registered network
+(v1) only; no v2 sensitivity runs exist, so the v2 statement rests on its primary result alone (an upper bound of
+\numSensCappedPostHocVTwoPrimarySixHundredFiftyFourPrimaryAUpperOneSided{}~eV at \numCfgBudgetsHostsItemSix{}
+hosts, post hoc).
+
+The database treats every host as non-magnetic, but a few neutral vacancies leave a moment of more than
+\numSensHighMomentVOneThresholdMuB{}~$\mu_\mathrm{B}$ on the cell, as two electrons localised on reducible cations
+would; such polaron-like configurations are the ones that a non-magnetic target describes least well. Retraining S
+and D with these entries removed from training and test (extension) changes $A$ on the common test sites from
+\numSensHighMomentVOnePrimaryCommonSitesAMean{} to \numSensHighMomentVOneHighMomentAMean{}~eV, a paired change of
+\numSensHighMomentVOneChangeHighMomentMinusPrimaryAMean{}~eV
+\ci{\numSensHighMomentVOneChangeHighMomentMinusPrimaryACiLo{}}{\numSensHighMomentVOneChangeHighMomentMinusPrimaryACiHi{}},
+and the one-sided upper bound moves from \numSensHighMomentVOnePrimaryCommonSitesAUpperOneSided{} to
+\numSensHighMomentVOneHighMomentAUpperOneSided{}~eV, below the tolerance in both cases. The excluded entries are
+rare in any test set, so the exclusion cannot move the pooled bound by much, and it does not.
+
+Every primary run that stopped at the cap of \numCfgTrainingMaxEpochs{} passes was rerun with a cap of
+\numCfgSensitivityEpochCapMaxEpochs{} passes, and the capped run was replaced by its twin (post hoc, rule logged
+before the reruns). At \numCfgBudgetsHostsItemSix{} hosts $A$ moves from
+\numSensCappedPostHocPerBudgetSixHundredFiftyFourPrimaryAMean{} to
+\numSensCappedPostHocPerBudgetSixHundredFiftyFourCappedTwinsAMean{}~eV (paired change
+\numSensCappedPostHocPerBudgetSixHundredFiftyFourChangeTwinMinusPrimaryAMean{}~eV
+\ci{\numSensCappedPostHocPerBudgetSixHundredFiftyFourChangeTwinMinusPrimaryACiLo{}}{\numSensCappedPostHocPerBudgetSixHundredFiftyFourChangeTwinMinusPrimaryACiHi{}}),
+and its upper bound from \numSensCappedPostHocPerBudgetSixHundredFiftyFourPrimaryAUpperOneSided{} to
+\numSensCappedPostHocPerBudgetSixHundredFiftyFourCappedTwinsAUpperOneSided{}~eV, still below the tolerance. At
+\numCfgBudgetsHostsItemFive{} hosts the bound stays above it under both versions
+(\numSensCappedPostHocPerBudgetFourHundredPrimaryAUpperOneSided{} and
+\numSensCappedPostHocPerBudgetFourHundredCappedTwinsAUpperOneSided{}~eV), so the smallest budget at which the
+descriptors are bounded below the tolerance remains \numCfgBudgetsHostsItemSix{}. The twins cover only the runs of
+the registered sweep; the capped runs of the extensions (Table~\ref{tab:capped}) were not rerun.
+
+The architecture check trained an untuned CGCNN \citep{Xie2018crystal}, with fixed optimiser settings, on one outer
+resample at three budgets (extension, descriptive). Its advantage falls with the number of training hosts as that of
+both MEGNet networks does, from \numSensCgcnnTableCgcnnFiftyAPoint{}~eV at \numCfgBudgetsHostsItemTwo{} hosts to
+\numSensCgcnnTableCgcnnSixHundredFiftyFourAPoint{}~eV
+\ci{\numSensCgcnnTableCgcnnSixHundredFiftyFourACiNinetyFiveItemOne{}}{\numSensCgcnnTableCgcnnSixHundredFiftyFourACiNinetyFiveItemTwo{}}
+at \numCfgBudgetsHostsItemSix{}, against \numSensCgcnnTableMegnetVOneSixHundredFiftyFourAPoint{}~eV for MEGNet v1
+and \numSensCgcnnTableMegnetVTwoSixHundredFiftyFourAPoint{}~eV for MEGNet v2 on the same draws. CGCNN has
+\numSensCgcnnParameterCountsCgcnnCgcnnSSixHundredFiftyFour{} trainable parameters in S, fewer than any of the tuned MEGNets
+(\numSensCgcnnParameterCountsMegnetVTwoSTwoHundred{} to \numSensCgcnnParameterCountsMegnetVOneSTwoHundred{}). With one resample, the intervals reflect only the sampling of its test hosts, not split or retraining
+variation, so the check shows that the fall of $A$ with training data is not peculiar to MEGNet; it does not
+establish a bound for other architectures.
+
+\begin{figure}[htbp]
+\centering
+\sifig{fig_si_sensitivities}
+\caption{The advantage $A$ under the high-moment exclusion and the longer training cap, and an untuned CGCNN beside
+the MEGNet networks. (\textbf{a}) $A = \mathrm{MAE}_\mathrm{S} - \mathrm{MAE}_\mathrm{D}$ (eV; positive when the DFT
+descriptors lower the site error) at the largest training budget, from the seed-ensemble site MAE averaged over the
+registered outer resamples. ``Primary'': the primary result of each network. ``High moment'' (extension): S and D
+retrained with the entries whose defect magnetic moment exceeds the registered threshold removed from training and
+test sites, compared on the common test sites. ``Capped twins'' (post hoc): every primary run that stopped at the
+training cap replaced by its rerun with the longer cap. Both sensitivities exist for the originally registered
+network only. Markers: point estimates; bars: two-sided intervals of the hierarchical bootstrap of the primary
+analysis; short horizontal bars: one-sided upper bounds; dashed line: the tolerance $\delta$; dotted line: zero.
+(\textbf{b}) Seed-ensemble test MAE (eV) of S (blue) and D (green) on a single outer resample at three budgets, for the
+MEGNet networks (lines with bands) and for CGCNN with fixed, untuned optimiser settings (crosses, drawn just right of
+their budget). Bands and bars in (b) are two-sided intervals of a host-cluster bootstrap over the test hosts of that
+resample; with one resample they reflect test-host sampling only, and no test is made. Filled markers and solid
+lines: primary network (v2), adopted after diagnostics of the originally registered network; open markers and
+dashed lines: originally registered network (v1). Records: \texttt{results/sens\_high\_moment\_v1.json},
+\texttt{results/sens\_capped\_post\_hoc.json}, \texttt{results/sens\_cgcnn.json}.}
+\label{fig:sens}
+\end{figure}
+\FloatBarrier
