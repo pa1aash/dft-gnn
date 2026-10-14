@@ -77,6 +77,9 @@ RENDER_KEYS = ("n_atoms", "vacancy_atom_index", "first_shell", "cation_O_bond_cu
 # W3: tuned values printed to three significant figures (suffix "Sig"), beside the three-decimal macros of
 # PROTOCOL_SOURCES, so that learning rates and weight decays keep their leading digits in the SI tables
 SIG_SOURCES = (("configs/tuned_v1.yaml", "TunedVOne"), ("configs/tuned_v2.yaml", "TunedVTwo"))
+# F3: leaves under these keys count training hosts; the cross-validation values are mean fold sizes (736.2),
+# printed as the nearest whole number of hosts
+HOST_COUNT_KEYS = ("x_training_hosts",)
 
 ONES = ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
         "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen",
@@ -232,7 +235,10 @@ def main(argv: list[str] | None = None) -> int:
             if name in macros and macros[name][2] != src:
                 clashes.append((name, macros[name][2], src))
                 continue
-            macros[name] = (fmt(val), repr(val), src)
+            if any(c in HOST_COUNT_KEYS for c in path):
+                macros[name] = (fmt(round(val)), repr(val), src + " (nearest integer)")
+            else:
+                macros[name] = (fmt(val), repr(val), src)
 
     # the top-level records come first, so a later source never displaces one of their names
     files = named_records(a.results)

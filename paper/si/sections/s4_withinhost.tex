@@ -48,7 +48,7 @@ from \numWithinHostBreakdownGroupsStabilityTercileLowerVTwoSMaePoint{}~eV in the
 consistent with an error in the host-level offset rather than in the ordering of sites, a reading that is not
 tested here. Among the thirds of the band gap, the smallest-gap third has the largest within-host errors of both
 networks, and the errors at the most and least negative Bader charges of the vacancy oxygen within a host are
-close to each other (Figure~\ref{fig:withinhost}).
+close to each other (Figure~\ref{fig:si_withinhost_groups}).
 
 These are descriptive comparisons. The breakdown reports an interval for every group, model, network and metric
 without correction for multiplicity, so some intervals exclude zero by chance alone, and an isolated interval that
@@ -62,7 +62,7 @@ localised neutral vacancies only. Physical readings of these patterns are hypoth
 \caption{Within-host residual MAE (eV) at \numWithinHostBreakdownBudget{} training hosts by group (extension;
 both networks; v2 post hoc). Hosts and sites: those with at least two tested sites, on which the within-host error
 is defined. Zero skill: the within-host error of any predictor constant within a host. Point values; the
-two-sided intervals of the host-cluster bootstrap, and the per-cation groups of Figure~\ref{fig:withinhost}a, are
+two-sided intervals of the host-cluster bootstrap, and the per-cation groups of Figure~\ref{fig:si_withinhost_groups}a, are
 in \texttt{results/within\_host\_breakdown.json} (\texttt{payload.groups}). The unassigned $d$ class is below the
 small-group threshold and is descriptive only.}
 \label{tab:withinhost}
@@ -79,6 +79,6 @@ thirds, (\textbf{e}) band-gap thirds and (\textbf{f}) vacancy-oxygen Bader-charg
 bars are two-sided host-cluster bootstrap intervals, filled circles and solid bars show the primary network (v2,
 post hoc) and open circles and dashed bars the originally registered network (v1). Data:
 \texttt{results/within\_host\_breakdown.json}.}
-\label{fig:withinhost}
+\label{fig:si_withinhost_groups}
 \end{figure}
 \FloatBarrier

@@ -4,7 +4,8 @@ A caption describes its figure only: what is plotted (sentence 1), how to read i
 where the data come from (sentence 3). This script parses every printed figure caption, that is every \\caption{...}
 inside a figure environment of paper/sections/*.tex and paper/si/sections/*.tex, and fails on
 
-- more than 3 sentences or more than 70 words;
+- more than 3 sentences, or more than 70 words (85 for the labels in LONG_CAPTIONS, which carry several
+  networks, extensions or reference lines and are printed in every run of the check);
 - an interpretation or comparison phrase (FORBIDDEN);
 - a semicolon, or a colon outside a leading provenance label ("Data:", "Source:", ...), the two ways of chaining
   several sentences into one;
@@ -35,6 +36,8 @@ SOURCES = ("paper/sections", "paper/si/sections")
 FIGURE_FILES = ("figures/main", "figures/si", "schematics")
 MAX_SENTENCES = 3
 MAX_WORDS = 70
+LONG_CAPTIONS = ("fig:learning_curves", "fig:screening", "fig:sens", "fig:probe")
+MAX_WORDS_LONG = 85
 FORBIDDEN = ("shows that", "show that", "showing that", "indicates", "indicate", "indicating",
              "consistent with", "suggests", "suggest", "suggesting", "demonstrates", "demonstrate", "reveals",
              "reveal", "confirms", "confirm", "implies", "imply", "means that", "better", "worse",
@@ -115,6 +118,10 @@ def words(text: str) -> int:
     return sum(1 for t in s.split() if re.search(r"[A-Za-z0-9]", t))
 
 
+def max_words(label: str) -> int:
+    return MAX_WORDS_LONG if label in LONG_CAPTIONS else MAX_WORDS
+
+
 def problems(cap: dict, typed_rule) -> list[str]:
     prose, digit = typed_rule
     text, out = cap["text"], []
@@ -122,8 +129,8 @@ def problems(cap: dict, typed_rule) -> list[str]:
     n_words = words(text)
     if len(sents) > MAX_SENTENCES:
         out.append(f"{len(sents)} sentences (max {MAX_SENTENCES})")
-    if n_words > MAX_WORDS:
-        out.append(f"{n_words} words (max {MAX_WORDS})")
+    if n_words > max_words(cap["label"]):
+        out.append(f"{n_words} words (max {max_words(cap['label'])})")
     low = plain(text).lower()
     for phrase in FORBIDDEN:
         if re.search(rf"\b{re.escape(phrase)}\b", low):
@@ -161,17 +168,20 @@ def main(argv: list[str] | None = None) -> int:
         found = problems(cap, typed_rule)
         rec = {"source": str(cap["source"].relative_to(root)), "line": cap["line"], "label": cap["label"],
                "sentences": len(sentences(cap["text"])), "words": words(cap["text"]),
-               "enforced": enforced, "problems": found}
+               "max_words": max_words(cap["label"]), "enforced": enforced, "problems": found}
         records.append(rec)
         if enforced and found:
             failures += 1
         if a.json:
             continue
         status = ("FAIL" if found else "ok") if enforced else "info"
+        cap_note = f"/{max_words(cap['label'])}" if enforced else ""
         print(f"{status:4} {rec['source']}:{rec['line']} {rec['label']}: {rec['sentences']} sentences, "
-              f"{rec['words']} words" + (f" ({'; '.join(found)})" if found else ""))
+              f"{rec['words']}{cap_note} words" + (f" ({'; '.join(found)})" if found else ""))
     if a.json:
         print(json.dumps(records, indent=1))
+    print(f"check_captions: word cap {MAX_WORDS}, {MAX_WORDS_LONG} for the allowlist {', '.join(LONG_CAPTIONS)}",
+          file=sys.stderr)
     print(f"check_captions: {len(caps)} printed figure captions, {failures} failures", file=sys.stderr)
     return 1 if failures else 0
 

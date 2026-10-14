@@ -442,3 +442,23 @@ Before (152 words, 5 sentences):
 After (61 words, 3 sentences):
 
 > Pristine supercell of rutile SnO$_2$ from the database (host \mpsnotwo{}, \numRenderSnOTwoNAtoms{} atoms), with the oxygen to be removed (site O1) and its three nearest Sn neighbours (Table~\ref{tab:shell}) joined into a triangle. The amber sphere marks the removed oxygen, Sn is grey-blue and O red, and Sn--O bonds shorter than \numRenderSnOTwoCationOBondCutoffASn{}~\AA{} are drawn except across the cell boundary. Data: \texttt{figures/si/structure\_sno2\_vacancy.render.json}.
+
+## 5. F3: word allowlist and restored encodings
+
+`scripts/check_captions.py` keeps the 3-sentence cap for every caption and the 70-word cap by default. Four
+captions that carry several networks, extensions or reference lines have an explicit allowlist (`LONG_CAPTIONS`)
+with an 85-word cap: `fig:learning_curves`, `fig:screening`, `fig:sens` and `fig:probe`. The checker prints the
+allowlist on every run and the cap of each caption beside its count (`70/85 words`).
+
+Four class-d deletions of section 3 were restored, each inside the existing sentences; the other class-d drops stand.
+
+| Figure | Label | Restored encoding | Sentences before | Sentences after | Words before | Words after |
+|---|---|---|---|---|---|---|
+| 2 | `fig:learning_curves` | bands and bars "clipped at the axes", the wording of Figures 3 and 4 | 3 | 3 | 69 | 73 |
+| 7 | `fig:screening` | "with no bar for a site held out only once" | 3 | 3 | 70 | 80 |
+| S6 | `fig:sens` | "with the tolerance $\delta$ (dashed line) and zero (dotted line)" in (a) | 3 | 3 | 70 | 80 |
+| S7 | `fig:probe` | "zero \Rsq{} dotted, host-electronic descriptors above and site-electronic below the grey rule in (c)" | 3 | 3 | 70 | 84 |
+
+The label of Supplementary Figure S4 is now `fig:si_withinhost_groups` (was `fig:withinhost`), matching its figure
+file. Its two `\ref` sites are in `paper/si/sections/s4_withinhost.tex`; the article cites the figure as typed
+"Supplementary Figure~S4" and has no `\ref` to it. Section 1.1 and the tables above keep the F2 label as recorded.
