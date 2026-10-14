@@ -1,0 +1,79 @@
+\section{Latent probe: does training teach the structure-only network the electronic structure?}
+\label{si:probe}
+
+If learning formation energies from structure alone made the network learn the electronic structure of the host,
+a linear map from its learned description of the vacancy site and its host to the DFT descriptors should improve as
+the network sees more training oxides, and should do better than the same map applied to an untrained network
+reading the same geometry. This is claim C4, registered on the originally registered network (v1;
+\texttt{docs/a4\_notes.md}). For every resample and budget, the readout input of the seed-0 S checkpoint (the
+vacancy-site vector, the pooled host vector and the global state) was mapped by a ridge regression, fitted on the
+training sites with its regularisation chosen by cross-validation grouped by host, to each descriptor given to D,
+and scored by the coefficient of determination \Rsq{} on the test sites. The class means of the host-electronic and
+the site-electronic descriptors are the quantities of the rule.
+
+The registered rule (\texttt{docs/deviations.md}, the latent-probe row of step A4, committed before any v1 probe
+number existed) has two conditions for each class. The trend condition asks that the recovered fraction of
+descriptor variance rise with the number of training hosts: the Spearman correlation between the logarithm of the
+budget and the class-mean \Rsq{} over all \numProbeCFourVOneRuleHostTrendNCells{} resample-budget cells must have an
+interval above zero. The control condition asks that, at every budget from \numCfgProbePassRuleBeatsControlsMinBudget{}
+hosts on, the trained probe exceed both the same probe fitted to descriptor rows permuted among the training
+hosts (shuffled labels) and the probe on an untrained network of the same architecture (the registered
+random-initialisation control), each difference with an interval above zero.
+
+The trend condition holds for both classes, with Spearman correlations of \numProbeCFourVOneRuleHostTrendRho{}
+\ci{\numProbeCFourVOneRuleHostTrendCiNinetyFiveItemOne{}}{\numProbeCFourVOneRuleHostTrendCiNinetyFiveItemTwo{}}
+(host-electronic) and \numProbeCFourVOneRuleSiteTrendRho{}
+\ci{\numProbeCFourVOneRuleSiteTrendCiNinetyFiveItemOne{}}{\numProbeCFourVOneRuleSiteTrendCiNinetyFiveItemTwo{}}
+(site-electronic). The trained probe exceeds the shuffled-label control at every budget the rule names, by
+\numProbeCFourVOneRuleHostControlsSixHundredFiftyFourShuffledMean{}
+\ci{\numProbeCFourVOneRuleHostControlsSixHundredFiftyFourShuffledCiNinetyFiveItemOne{}}{\numProbeCFourVOneRuleHostControlsSixHundredFiftyFourShuffledCiNinetyFiveItemTwo{}}
+for the host class at \numCfgBudgetsHostsItemSix{} hosts. It does not exceed the untrained network at any of them.
+At \numCfgBudgetsHostsItemFour{} hosts it lies below it (host-electronic
+\numProbeCFourVOneRuleHostControlsTwoHundredInitZeroMean{}
+\ci{\numProbeCFourVOneRuleHostControlsTwoHundredInitZeroCiNinetyFiveItemOne{}}{\numProbeCFourVOneRuleHostControlsTwoHundredInitZeroCiNinetyFiveItemTwo{}},
+site-electronic \numProbeCFourVOneRuleSiteControlsTwoHundredInitZeroMean{}
+\ci{\numProbeCFourVOneRuleSiteControlsTwoHundredInitZeroCiNinetyFiveItemOne{}}{\numProbeCFourVOneRuleSiteControlsTwoHundredInitZeroCiNinetyFiveItemTwo{}}),
+and at \numCfgBudgetsHostsItemSix{} hosts the differences are
+\numProbeCFourVOneRuleHostControlsSixHundredFiftyFourInitZeroMean{}
+\ci{\numProbeCFourVOneRuleHostControlsSixHundredFiftyFourInitZeroCiNinetyFiveItemOne{}}{\numProbeCFourVOneRuleHostControlsSixHundredFiftyFourInitZeroCiNinetyFiveItemTwo{}}
+and \numProbeCFourVOneRuleSiteControlsSixHundredFiftyFourInitZeroMean{}
+\ci{\numProbeCFourVOneRuleSiteControlsSixHundredFiftyFourInitZeroCiNinetyFiveItemOne{}}{\numProbeCFourVOneRuleSiteControlsSixHundredFiftyFourInitZeroCiNinetyFiveItemTwo{}},
+intervals that include zero. C4 therefore does not hold, and under the registered rule the probe is reported here
+rather than in the article (Figure~\ref{fig:probe}). The collaborator's probe on the primary network (v2, post hoc,
+descriptive) shows the same pattern, with trend correlations of \numProbeDescriptiveSVTwoHostRuleTrendRho{} and
+\numProbeDescriptiveSVTwoSiteRuleTrendRho{}, and C4 would not hold on v2 either. What is not established is that
+training on formation energies adds linearly recoverable electronic information beyond what an untrained encoder of
+the same structure already exposes. One reading, not tested here, is that the host-electronic descriptors are
+largely functions of composition and structure, which an untrained encoder with element embeddings and distance
+expansions already represents.
+
+A sanity check confirms that the probe reads the vector that the network's final step reads. Applying the stored
+readout of the checkpoint to the stored vectors reproduces the network's own test predictions to within
+\numProbeFitVOneSanityZeroSixHundredFiftyFourHeadReplayMaxAbsDiffEV{}~eV at \numCfgBudgetsHostsItemSix{} hosts, the
+level of single-precision arithmetic. A linear map from the same vectors to the network's own prediction, however,
+recovers only part of it out of fold (\Rsq{} = \numProbeFitVOneSanityZeroSixHundredFiftyFourProbeToOwnPredictionRTwoOutOfFold{}
+at \numCfgBudgetsHostsItemSix{} hosts, against \numProbeFitVOneSanityZeroTwentyFiveProbeToOwnPredictionRTwoOutOfFold{}
+at \numCfgBudgetsHostsItemOne{}), because the readout is a nonlinear multilayer network and a linear probe need not
+reproduce it. The probe therefore measures linear recoverability, a lower bound on what the vector encodes; this was
+recorded as found and not adjusted (\texttt{results/probe\_fit\_v1.json}, key \texttt{payload.sanity}).
+
+\begin{figure}[htbp]
+\centering
+\sifig{fig6_probe}
+\caption{Latent probe: linear recovery of the DFT electronic descriptors from the learned description of the vacancy
+site and its host in the structure-only network (registered analysis on the originally registered network, v1). A
+linear map, fitted on the training hosts of each resample and budget, asks how well the learned vectors that the
+network's final step reads (vacancy site, pooled host, global state) predict each descriptor given to D, scored by
+\Rsq{} on the test sites. Trained probe: dashed line, open markers and hatched band (dashed bars in (c)). Controls in
+grey: the same probe with descriptor rows permuted among training hosts (shuffled labels; squares) and the probe on
+an untrained network of the same architecture (the registered random-initialisation control; triangles); two further
+untrained networks (light grey, dotted, no band) show the spread of that control and are descriptive.
+(\textbf{a}) Host-electronic and (\textbf{b}) site-electronic class-mean test \Rsq{} against training hosts on a
+logarithmic axis: means over the resamples with two-sided intervals of the resample bootstrap; the dotted line is
+zero. (\textbf{c}) Test \Rsq{} per descriptor at the largest budget, host-electronic descriptors above the grey rule
+and site-electronic below. The registered rule does not hold, so the probe is placed in the Supplementary Materials.
+The collaborator's probe on the primary network (v2) is post hoc and is not drawn. Records:
+\texttt{results/probe\_c4\_v1.json}, \texttt{results/probe\_descriptive.json}.}
+\label{fig:probe}
+\end{figure}
+\FloatBarrier

@@ -1,0 +1,63 @@
+\section{Data: filter cascade, descriptor classes and integrity exclusions}
+\label{si:data}
+
+The universe of this work is the set of neutral oxygen vacancies, $V_\mathrm{O}^{\times}$, of the release of
+Kumagai et al.\ \citep{Kumagai2021insights} that survive a fixed cascade of filters (Table~\ref{tab:cascade}; the
+cascade is drawn as Figure~\ref{fig:cascade} in Section~\ref{si:splits}). The release holds
+\numFilterCascadeStepsReleaseSites{} completed neutral calculations in \numFilterCascadeStepsReleaseHosts{} host
+oxides. Kumagai et al.\ built from them a neutral machine-learning subset of \numFilterCascadeStepsMlSubsetSites{}
+vacancies in \numFilterCascadeStepsMlSubsetHosts{} hosts, from which they had already removed the
+perturbed-host-state entries (\numScreeningAbsenceReleaseNeutralCompletedPhs{} of the completed neutral entries),
+the entries whose band edges could not be determined and the dynamically unstable hosts. A perturbed-host-state
+entry is a vacancy whose two donor electrons do not stay in a localised in-gap state but delocalise into the host
+conduction band, so the subset, and every result of this work, describes deep, localised neutral vacancies in
+non-magnetic ordered oxides. Our three further filters, D1 to D3, remove what the data audit
+(\texttt{docs/data\_audit.md}) found inconsistent in that subset; they leave \numFilterCascadeStepsFinalSites{}
+oxygen sites in \numFilterCascadeStepsFinalHosts{} hosts, one host per formula. The site counts after each
+step are read from \texttt{results/filter\_cascade.json}.
+
+\begin{table}[htbp]
+\caption{Filter cascade of universe v1, with the oxygen sites, hosts and formulas left after each step
+(\texttt{results/filter\_cascade.json}; the same table as \arttabcascade{} of the article).}
+\label{tab:cascade}
+\centering\small
+\begin{adjustbox}{max width=\linewidth}
+\input{../tables/filter_cascade}
+\end{adjustbox}
+\end{table}
+
+The three exclusions concern the integrity of the labels, not the chemistry of the hosts. D1 removes the
+\numFilterCascadeStepsDOneNRemoved{} entries of the subset that the release itself flags as a split vacancy, an
+unknown defect type, or a relaxed configuration that is not the configuration of the initial vacancy. Each of
+them also carries the last flag, so the stored energy of these entries may not belong to a single vacancy on the
+labelled site, which is the structure that a model reads. The subset had kept these entries although the release
+flags them. D2 removes the
+\numFilterCascadeStepsDTwoNRemoved{} sites of Sr$_2$Zr$_7$O$_{16}$, whose site labels in the machine-learning
+tables do not match the targets of the release; the release gives no criterion that explains the mismatch, so the
+host is excluded rather than repaired. D3 concerns the two hosts whose cell metadata are inconsistent with their
+supercells, Ba$_4$Nb$_2$WO$_{12}$ and Sr$_2$SnO$_4$ (the Sr$_2$SnO$_4$ supercell of
+\numStructureAuditAnomalousHostsSrTwoSnOFourNAtomsSc{} atoms has \numStructureAuditAnomalousHostsSrTwoSnOFourVolumeRatio{}
+of the expected volume, because it was built from the primitive cell). An entry of these hosts is kept only if
+its labelled vacancy site maps to an oxygen atom of the supercell whose first cation shell matches that of the
+unit-cell site within \numFilterCascadeDThreeSrTwoSnOFourSitesOOneToleranceA{}~\AA{}; every entry passed, and D3
+removed \numFilterCascadeStepsDThreeNRemoved{} sites. Every site of the universe lies in the published split of
+Kiyohara et al.\ \citep{Kiyohara2025machinelearning} (\numFilterCascadeKiyoharaSplitSitesAbsent{} sites absent),
+which is used for the comparison with the published accuracy (Section~\ref{si:splits}).
+
+The descriptors of the release fall into three classes (Table~\ref{tab:taxonomy}). The host-electronic class
+holds properties of the pristine host from its DFT electronic structure: the band gap of the PBEsol(+$U$)
+calculation, the electronic and ionic dielectric constants and the orbital character of the band edges, together
+with the formation energy of the host oxide, which measures how strongly oxygen is bound. The site-electronic class
+describes the oxygen atom to be removed in the pristine host: its Bader charge and volume, its Born effective
+charge, the same quantities averaged over and extremal among its Voronoi neighbours, and the centre of its
+O-2$p$ band below the valence-band maximum. The structural and compositional class holds the fractions of the
+solid angle of the oxygen Voronoi cell that face each element and the electronegativities of the neighbours. D
+receives the two electronic classes, \numRfElectronicNFeatures{} descriptors; RF-Kumagai uses all
+\numRfKumagaiNFeatures{} descriptors, RF-electronic the \numRfElectronicNFeatures{} electronic ones and
+RF-structural the \numRfStructuralNFeatures{} structural and compositional ones. Every descriptor is computed on
+the pristine host, so none of them contains the relaxed defect geometry or the defect energy. The host formation
+energy is named \texttt{formation\_energy} in the release and is not the vacancy formation energy that the models
+predict.
+
+{\footnotesize\tighttabs
+\input{tables/descriptor_taxonomy}}

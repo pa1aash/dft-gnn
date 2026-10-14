@@ -1,0 +1,171 @@
+\section{Models and training}
+\label{si:training}
+
+\subsection{Readout of the structure-only network}
+
+The structure-only network S maps the pristine supercell, with the oxygen atom to be removed marked, to the
+formation energy of the neutral vacancy (Figure~\ref{fig:readout}). Successive MEGNet blocks
+\citep{Chen2019graph} aggregate information over growing coordination shells around every atom, starting from the
+learned element embeddings, the vacancy flag, a Gaussian expansion of each interatomic distance and a global state
+of the cell. The final step joins three learned vectors: the description of the vacancy site, a pooled description
+of all atoms of the host (Set2Set or the mean, a tuned choice) and the final global state; a small multilayer
+network maps them to one energy. The split follows the variance of the target. The pooled host vector and the
+global state carry the host-level thermodynamic term, the cost of releasing an oxygen atom from that oxide, and
+the vacancy-site vector carries the local environment that separates the sites of one host. In D (the D-state
+injection), the host-electronic descriptors enter the initial global state and the site-electronic descriptors the
+initial description of the vacancy site, each standardised with training-set statistics, so that each class enters
+where its physics acts; the readout itself is unchanged. The readout is the same for both networks, the
+originally registered network (v1) and the primary network (v2).
+
+\begin{figure}[htbp]
+\centering
+\sifig{fig_readout}
+\caption{Readout of the structure-only network S and the points where D receives the DFT descriptors. The inputs
+are the initial features of the vacancy site \xvzero{} and of the other atoms
+\xizero{}, the bond features \eijzero{} and the global state of the cell \uzero{};
+$n$ MEGNet blocks update them, each widening the coordination shell that informs every atom. The readout joins
+the final description of the vacancy site $\mathbf{h}_\mathrm{v}$, a pooled description of all atoms
+$\bar{\mathbf{h}}$ (Set2Set or mean, a tuned choice) and the final global state $u$, and a multilayer perceptron
+maps them to the formation energy $E_\mathrm{f}$ of the neutral vacancy. The host-level thermodynamic term is
+carried by $\bar{\mathbf{h}}$ and $u$, the local environment of the site by $\mathbf{h}_\mathrm{v}$. In D
+(D-state), the host-electronic descriptors are appended to \uzero{} and the site-electronic descriptors to
+\xvzero{} (green arrows), standardised with training-set statistics; the readout is
+unchanged and is the same for both networks.}
+\label{fig:readout}
+\end{figure}
+
+\subsection{Training protocol, search space and tuned values}
+
+Every network was trained on the standardised formation energy with an absolute-error loss and the AdamW
+optimiser; the learning rate was halved (factor \numCfgTrainingSchedulerFactor{}) when the validation error had
+not improved for \numCfgTrainingSchedulerPatience{} passes over the training hosts. The validation hosts that
+decide early stopping are carved out of the training hosts of each budget (a fraction of
+\numCfgTrainingValidationFrac{}, at least \numCfgTrainingValidationMinHosts{} hosts), so a budget counts every
+host whose DFT label a model consumes. Training stops when the validation error has not improved for
+\numCfgTrainingEarlyStoppingPatience{} passes, or at the cap of \numCfgTrainingMaxEpochs{} passes, and the weights
+of the best pass are restored.
+
+The settings of each network were tuned once, before any test host was evaluated, on the nested training sets of
+resample \numCfgTuningAnchorResample{} at three anchor budgets, \numCfgTuningAnchorsItemOne{},
+\numCfgTuningAnchorsItemTwo{} and \numCfgTuningAnchorsItemThree{} hosts (\texttt{docs/tuning.md}). Each model and
+anchor had one study of \numCfgTuningOptunaTrialsPerModelPerAnchor{} complete trials with a tree-structured
+Parzen sampler, scored by the best validation error; at the largest anchor, \numTuningSummaryStudiesSASixHundredFiftyFourValidationNTrainHosts{}
+hosts were fitted and \numTuningSummaryStudiesSASixHundredFiftyFourValidationNValHosts{} validated. The search
+space was the same for every model (Table~\ref{tab:space}). A training budget uses the values of its anchor: the
+budgets \numCfgBudgetsHostsItemOne{} and \numCfgBudgetsHostsItemTwo{} those of anchor
+\numCfgTuningBudgetToAnchorTwentyFive{}, the budgets \numCfgBudgetsHostsItemThree{} and
+\numCfgBudgetsHostsItemFour{} those of anchor \numCfgTuningBudgetToAnchorOneHundred{}, and the budgets
+\numCfgBudgetsHostsItemFive{} and \numCfgBudgetsHostsItemSix{} those of anchor
+\numCfgTuningBudgetToAnchorFourHundred{}.
+
+\begin{table}[htbp]
+\caption{Search space of the tuning, identical for S, both injection routes of D and P1
+(\texttt{configs/config.yaml}, \texttt{tuning.search\_space}).}
+\label{tab:space}
+\centering\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+Setting & Distribution & Range or choices \\
+\midrule
+Learning rate & log-uniform & \numCfgTuningSearchSpaceLearningRateLow{} to \numCfgTuningSearchSpaceLearningRateHigh{} \\
+Weight decay & log-uniform & \numCfgTuningSearchSpaceWeightDecayLow{} to \numCfgTuningSearchSpaceWeightDecayHigh{} \\
+Hidden width & categorical & \numCfgTuningSearchSpaceHiddenWidthChoicesItemOne{}, \numCfgTuningSearchSpaceHiddenWidthChoicesItemTwo{} \\
+MEGNet blocks & categorical & \numCfgTuningSearchSpaceMegnetBlocksChoicesItemOne{}, \numCfgTuningSearchSpaceMegnetBlocksChoicesItemTwo{}, \numCfgTuningSearchSpaceMegnetBlocksChoicesItemThree{} \\
+Dropout & uniform & \numCfgTuningSearchSpaceDropoutLow{} to \numCfgTuningSearchSpaceDropoutHigh{} \\
+Batch size (sites) & categorical & \numCfgTuningSearchSpaceBatchSizeChoicesItemOne{}, \numCfgTuningSearchSpaceBatchSizeChoicesItemTwo{}, \numCfgTuningSearchSpaceBatchSizeChoicesItemThree{} \\
+Readout width & categorical & \numCfgTuningSearchSpaceReadoutMlpWidthChoicesItemOne{}, \numCfgTuningSearchSpaceReadoutMlpWidthChoicesItemTwo{} \\
+Pooling of the atoms & categorical & Set2Set, mean \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The originally registered network (v1) was tuned under the frozen plan, and its values are those of the tag
+\tagtuned{} (Table~\ref{tab:tuned_v1}). The two injection routes of D were tuned separately, and the rule logged
+before tuning kept the route with the lower mean, over the anchors, of the best validation error: D-state, with
+\numTuningSummaryDecisionMeansEVDState{}~eV against \numTuningSummaryDecisionMeansEVDLate{}~eV for D-late, a
+difference of \numTuningSummaryDecisionDifferenceEV{}~eV. The two routes are indistinguishable on this objective,
+and the selection is not evidence that one route encodes the electronic structure better. The primary network
+(v2) differs from v1 only in its initial weights (He-uniform initialisation and zero biases); it was adopted after
+test-set diagnostics of v1 and is post hoc. S and D of v2 were retuned with the same protocol, and test hosts were
+never loaded in its design screen or its tuning (Table~\ref{tab:tuned_v2}). The descriptor predictor of v2, P1-v2,
+was not retuned: it uses the v1 values of P1 with the v2 initialisation. Across both tables, the settings chosen at
+the smallest anchor rest on very few validation hosts and should be read as one reasonable setting rather than
+an optimum.
+
+\begin{table}[htbp]
+\caption{Tuned values of the originally registered network (v1; \texttt{configs/tuned\_v1.yaml}, tag \tagtuned{}),
+with the best validation MAE (eV for S and D; the mean absolute error over the standardised descriptors,
+dimensionless, for P1) of each study (\texttt{results/tuning\_summary.json}). D is the selected D-state route;
+D-late is reported for completeness.}
+\label{tab:tuned_v1}
+\centering\scriptsize\tighttabsb
+\begin{adjustbox}{max width=\linewidth}
+\input{sections/tab_tuned_v1}
+\end{adjustbox}
+\end{table}
+
+\begin{table}[htbp]
+\caption{Tuned values of the primary network (v2, post hoc; \texttt{configs/tuned\_v2.yaml}). Same protocol and
+search space as Table~\ref{tab:tuned_v1}; P1-v2 reuses the P1 values of Table~\ref{tab:tuned_v1}.}
+\label{tab:tuned_v2}
+\centering\scriptsize\tighttabsb
+\begin{adjustbox}{max width=\linewidth}
+\input{sections/tab_tuned_v2}
+\end{adjustbox}
+\end{table}
+
+\subsection{The cap on training length and its measured effects}
+
+The cap of \numCfgTrainingMaxEpochs{} passes over the training hosts and the patience of
+\numCfgTrainingEarlyStoppingPatience{} passes were set by a rule logged before the calibration pilot ran: the cap
+is a round number of passes above the slowest convergence seen in the pilot, with a safety factor, and the
+patience follows from the cap (\texttt{docs/deviations.md}, the \sessioncap{} rows; \texttt{docs/methods\_notes.md}). The
+registered check of the cap retrained S and D with a cap of \numGOneCapSensitivityCapsItemTwo{} passes at
+\numGOneCapSensitivityBudget{} hosts on \numGOneCapSensitivityBootstrapNResamples{} resamples and all seeds. All
+\numGOneDiagnosticsEpochCapPairsNPairs{} pairs stopped at the same pass and gave identical predictions
+(\numGOneDiagnosticsEpochCapPairsNIdentical{} of \numGOneDiagnosticsEpochCapPairsNPairs{}), so the advantage of the
+descriptors was \numGOneCapSensitivityATwoHundredMean{}~eV under both caps
+\ci{\numGOneCapSensitivityATwoHundredCiLo{}}{\numGOneCapSensitivityATwoHundredCiHi{}} and the primary result was
+cap-insensitive by the registered criterion (registered v1; \texttt{results/g1\_cap\_sensitivity.json}).
+
+The extensions show that the cap binds more often than those runs suggested, and mostly for the structure-only
+network (Table~\ref{tab:capped}). Among the precision runs of v1 at \numCfgBudgetsHostsItemSix{} hosts,
+\numPrecisionABFourHundredBSixHundredFiftyFourDescriptiveCappedPrecisionSixHundredFiftyFourVOneSNCapped{} of
+\numPrecisionABFourHundredBSixHundredFiftyFourDescriptiveCappedPrecisionSixHundredFiftyFourVOneSNRuns{} S runs
+reached the cap, against
+\numPrecisionABFourHundredBSixHundredFiftyFourDescriptiveCappedPrecisionSixHundredFiftyFourVOneDNCapped{} D runs;
+for v2 the counts were
+\numPrecisionABFourHundredBSixHundredFiftyFourDescriptiveCappedPrecisionSixHundredFiftyFourVTwoSNCapped{} and
+\numPrecisionABFourHundredBSixHundredFiftyFourDescriptiveCappedPrecisionSixHundredFiftyFourVTwoDNCapped{}. In every
+group of S runs with capped members, the capped runs had the lower mean error, so the structure-only network may
+still have been improving when it was stopped at the largest training sets. Because capped and uncapped runs differ
+in resample and fold as well, Table~\ref{tab:capped} is descriptive and carries no test. The post hoc rerun of every
+capped primary run with a longer cap is reported in Section~\ref{si:sensitivities}: it changes the advantage at
+\numCfgBudgetsHostsItemSix{} hosts by
+\numSensCappedPostHocPerBudgetSixHundredFiftyFourChangeTwinMinusPrimaryAMean{}~eV on v1, and no such reruns exist
+for v2.
+
+\begin{table}[htbp]
+\caption{Runs that stopped at the cap of \numCfgTrainingMaxEpochs{} passes (extension, descriptive, no test), and
+the mean single-run site MAE (eV) of capped and uncapped runs. Precision: the pooled runs at the two largest
+budgets; grouped CV: all folds at each $K$. Records: \recprecision{} and \reccv{}, key
+\texttt{payload.descriptive.capped}.}
+\label{tab:capped}
+\centering\scriptsize
+\input{sections/tab_capped}
+\end{table}
+
+\subsection{Hardware}
+
+The registered tuning and the registered sweep of the originally registered network (v1) ran on one
+\gpulfortys{}, with several training processes sharing the card; a process started only when the memory of the
+running jobs left a fixed margin (\texttt{docs/methods\_notes.md}). These settings change wall time only, not any
+setting, split, seed or stopping rule. The run records of the original sweep, and those of the collaborator's v2
+tuning and production, name a CUDA device but not the GPU model. The extension training runs (precision, grouped
+cross-validation, high-moment, CGCNN and capped twins) ran on the GPUs of the National Research Platform, one
+training process per GPU, with PyTorch \vertorch{} and matgl \vermatgl{}; their records name the GPU model:
+\gpuaten{}, \gputhreeoh{}, \gpulfour{} and \gpufourty{}. The inference stages of the latent probe and the geometry
+evaluation also used an \gputitan{} (\texttt{docs/nrp/n3\_ingest.md}). Training on a GPU is not bitwise
+reproducible across GPU models, because the summation order of the aggregation over neighbours differs;
+Section~\ref{si:hardware} gives the repeatability study and the size of the effect on the predicted formation
+energies.

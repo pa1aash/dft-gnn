@@ -111,5 +111,13 @@
   \draw[flow] (hB0.south) -- (xB0);
   \draw[flow] (xB0) -- (mB0);
   \draw[flow] (mB0) -- (yB0);
+
+  % ---------------- key: backbone convention of every results figure ----------------
+  % v2 (primary): solid, filled box in front; v1 (originally registered): dashed, open outline behind.
+  \node[box, draw=cRef, fill=black!14, line width=0.8pt, minimum width=5mm, minimum height=3mm, inner sep=0pt]
+    (kv2) at (8.95,-5.50) {};
+  \node[anchor=west] at (kv2.east) {primary network (v2)};
+  \draw[v1=cRef] (8.70,-6.10) rectangle (9.20,-5.80);
+  \node[anchor=west] at (9.20,-5.95) {originally registered network (v1)};
 \end{tikzpicture}
 \end{document}

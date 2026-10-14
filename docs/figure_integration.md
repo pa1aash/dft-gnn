@@ -136,3 +136,19 @@ For the paper session:
 - Supplementary figures are cited in the text as "Supplementary Figure S4" to "S8" (no SI LaTeX document exists
   yet, so these are plain text, not references).
 
+
+## 9. W3: Supplementary Materials and the Figure 1 convention (2026-10-14)
+
+- Section 5, first item, is resolved. `schematics/fig_pipeline.tex` draws v2 as the solid, filled box and v1 as the
+  dashed, open outline behind it, with a key outside the data area (lower right); `schematics/fig_pipeline.pdf` and
+  `figures/main/fig1_overview.pdf` were rebuilt and both caption files say v2 solid, v1 dashed
+  (`docs/figure_style.md`, W3 paragraph of the QA section). The paper caption in `methods.tex` already said so.
+- The SI document exists: `paper/si/si.tex` (`make -C paper/si PYTHON=python`, output `paper/si/si.pdf`, untracked),
+  sections S1 to S9, Figures S1 to S8 in the numbering of `docs/figure_numbering.md`, Tables S1 to S12. Each SI
+  figure is included with `\sifig{<stem>}` from `figures/si/` (PDF, or PNG for the SnO2 render) and its caption is
+  the caption file reworded into the register of `docs/prose_style.md`, with numbers as macros and without file
+  keys (the caption files keep the record keys).
+- The article cites the SI as plain text; the check of every citation is `docs/si_crossrefs.md`. The Methods and
+  Data sentences that say "in the Supplementary Materials" for the readout, the cascade and the split designs can
+  now cite Supplementary Figures S1, S2 and S3 by number (not edited in W3: main-text sections were out of scope).
+- `paper/main.tex` carries the MDPI Supplementary Materials statement (one line).

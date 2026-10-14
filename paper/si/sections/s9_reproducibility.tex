@@ -1,0 +1,77 @@
+\section{Reproducibility: code, records, deposit and provenance}
+\label{si:repro}
+
+\subsection{Code release and run records}
+
+The code is released at \url{https://github.com/pa1aash/dft-gnn} under the MIT licence. Annotated tags mark the
+states of the repository that the results depend on (Table~\ref{tab:tags}); the results reported in the article are
+frozen at \tagresults{}, and the final code tag of the release is \texttt{[FINAL-TAG-TBD]}, to be set when the
+deposit is minted.
+
+\begin{table}[htbp]
+\caption{Annotated tags of the code repository and what each marks (\texttt{git tag -n1}).}
+\label{tab:tags}
+\centering\small
+\input{tables/release_tags}
+\end{table}
+
+Every training or analysis run writes one JSON record through a single function, \texttt{write\_result}, from a
+clean working tree; the record holds the full configuration, the commit of the code, the package versions, the
+seeds, the device (and, for the cluster runs, the GPU model) and the time, and the record of a training run names the hash of its per-site prediction table
+(since \tagnrpthree{} it also stores the matgl version). A training run is named by its run id, a prefix of the
+\shatwo{} digest of a canonical description of the run: model, hyperparameters, split, resample, budget, seed, code
+reference and the hash of the graph-store manifest, plus any non-default option such as an epoch override, a
+descriptor ablation or the component runs of the staged model (\texttt{src/dftgnn/train/\_\_init\_\_.py},
+\texttt{run\_id}). The same description therefore always gives the same id, and two runs with the same id are the
+same computation. For the cluster stages the code reference in the id is the tag \tagnrpone{} instead of the
+generating commit, so the ids computed on the cluster and on the workstation agree; a worker runs such a job only if
+the tag is an ancestor of its checkout and the code, configuration, split and job-specification directories are
+unchanged since the tag. The bug-fix tag \tagnrptwo{} keeps the run ids of \tagnrpone{}. Named analysis records
+(for example \texttt{results/g1\_primary.json}) are read by \texttt{paper/tools/make\_numbers.py}, which turns every
+number of the article and of these Supplementary Materials into a macro with its source pointer; no number in
+either document is typed by hand.
+
+\subsection{Deposit and data availability}
+
+The data and models are deposited in Zenodo under \ccby{} (DOI \texttt{[ZENODO-DOI-TBD]}, to be minted at
+submission; \texttt{deposit/README.md}). The record holds the processed site table of the universe, the graph store
+of the pristine supercells with its manifest, the release supercells of the hosts as released, the unit cells and
+supercell tiling used for the machine-learned relaxations, all splits, the job specifications of the cluster stages,
+the per-site prediction table and the record of every run, the checkpoints trained before the cluster stages, the
+MACE-MP-0 weights used for the relaxations, and a \shatwo{} manifest of every file. Checkpoints, relaxed structures and
+embeddings of the cluster runs are too large for the record; they are listed by \shatwo{} and are available from the
+corresponding author on request. All formation energies, descriptors and structures derive from the oxygen-vacancy
+database of Kumagai et al.\ \citep{Kumagai2021insights}, used at commit \releasecommit{} under \ccby{}; no new DFT
+calculation was made.
+
+\subsection{Provenance labels}
+
+Each result group carries one of three labels, assigned by chronology rather than by outcome
+(Table~\ref{tab:provenance}). The originally registered network (v1) and its rules were fixed in the analysis plan
+at \tagprereg{} (\dateprereg{}) and its tuned values at \tagtuned{} (\datetunedvone{}). The primary network (v2) was
+proposed after test-set diagnostics of v1 (design rule \datevtwoprotocol{}), selected on validation data only
+(\datevtwoselect{}), retuned and frozen (\datevtwofreeze{}), and designated primary by author decision on
+\dateauthordecision{}; every v2 result is post hoc and none is described as registered.
+
+{\small
+\input{tables/provenance_labels}}
+
+\subsection{Deviations from the registered plan}
+
+Every departure from the analysis plan is logged in \texttt{docs/deviations.md} before the run or analysis it
+affects, with the plan section, the reason and the impact, and no row is edited after it is written; results
+generated before a deviation are kept and reported. The rows fall into six kinds. Clarifications fix what the plan
+left open without changing a registered decision: the early-stopping threshold, the seed rules, the tuning protocol,
+the bootstrap and the rule for the smallest qualifying budget, the definitions of the geometry, probe and
+leave-one-chemistry-out analyses, and operational details of the job queue. Deviations add an arm or an analysis
+without removing one: the unselected injection route as a sensitivity, and the v2 network with its design screen,
+selection rule and use in the staging, geometry and probe analyses. Extensions add compute or analysis beyond the
+plan, each logged before its first result: the precision resamples, the grouped cross-validation, the within-host
+breakdown, the rerun of the relaxations with an extended tiling rule, the repeatability study and the analyses of
+the results freeze. One correction restricts the statement that the training cap never binds to the registered
+check of the cap, because runs of the registered sweep did stop at the cap. One post hoc ratification records the
+author sign-off, missing from the repository, of three collaborator rows: the equivalence rule and four-outcome
+classification of the staging and geometry comparisons, the reporting rules for the smallest qualifying budget, and
+the use of v2 for the staging, geometry and probe analyses; all three stay post hoc. Two author decisions designate v2 as the primary network and freeze the results at \tagresults{}; after the
+freeze no experiment, run or analysis was added. The full log, with the commit time of every row, is part of the
+code release.
