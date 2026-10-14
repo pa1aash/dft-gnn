@@ -148,12 +148,15 @@ def ext_x(x, kind: str, version: str) -> list[float]:
 
 
 def ext_points(ax, x, mean, lo, hi, key: str, kind: str, version: str) -> None:
-    """Extension estimates (``kind`` "precision" or "cv") as unconnected points with 95% interval bars."""
+    """Extension estimates (``kind`` "precision" or "cv") as unconnected points with 95% interval bars, styled by
+    backbone ``version`` like the curves: the primary backbone solid and filled, the originally registered backbone
+    with dashed bars and open markers."""
     c = COLORS[key]
     yerr = [[m - a for m, a in zip(mean, lo)], [b - m for m, b in zip(mean, hi)]]
-    ax.errorbar(ext_x(x, kind, version), mean, yerr=yerr, fmt=EXT_MARKERS[kind], ms=EXT_MARKER_SIZE, color=c, ecolor=c,
-                elinewidth=REF_W, capsize=0, mfc=c if BACKBONE_FILLED[version] else "white", mec=c, mew=0.8,
-                ls="none", zorder=5)
+    eb = ax.errorbar(ext_x(x, kind, version), mean, yerr=yerr, fmt=EXT_MARKERS[kind], ms=EXT_MARKER_SIZE, color=c,
+                     ecolor=c, elinewidth=REF_W, capsize=0, mfc=c if BACKBONE_FILLED[version] else "white", mec=c,
+                     mew=0.8, ls="none", zorder=5)
+    eb[2][0].set_linestyle(BACKBONE_LS[version])
 
 
 def reference_line(ax, y: float, label: str, kind: str = "published", color: str | None = None) -> None:
