@@ -116,8 +116,9 @@ def main() -> Path:
         err = [[v["mean"] - v["ci95"][0] for v in vals], [v["ci95"][1] - v["mean"] for v in vals]]
         yy = [v + offsets[key] for v in y]
         if key == "trained":
-            ax_c.errorbar(mean, yy, xerr=err, fmt=sp.MARKER, ms=sp.MARKER_SIZE, color=TRAINED, ecolor=TRAINED,
-                          elinewidth=sp.REF_W, capsize=0, mfc="white", mec=TRAINED, mew=0.8, zorder=4)
+            eb = ax_c.errorbar(mean, yy, xerr=err, fmt=sp.MARKER, ms=sp.MARKER_SIZE, color=TRAINED, ecolor=TRAINED,
+                               elinewidth=sp.REF_W, capsize=0, mfc="white", mec=TRAINED, mew=0.8, zorder=4)
+            eb[2][0].set_linestyle(sp.BACKBONE_LS[VERSION])
         else:
             st = CONTROL_STYLE[key]
             ax_c.errorbar(mean, yy, xerr=err, fmt=st["marker"], ms=sp.MARKER_SIZE * 0.85, color=st["color"],
@@ -150,7 +151,7 @@ checkpoint ([vacancy-node embedding, pooled node embeddings, global state]) to e
 the regularisation chosen by cross-validation grouped by host on the training sites, and is scored by
 test R² on the test sites (implementation and rule: `docs/deviations.md`, the latent-probe row of the A4 step;
 `docs/ANALYSIS_PLAN.md`, latent-probe section). Originally registered backbone (v1), the registered analysis:
-dashed line, open markers and hatched band for the trained probe. Controls in grey: the same probe with descriptor
+dashed line, open markers and hatched band for the trained probe (dashed bars in (**c**)). Controls in grey: the same probe with descriptor
 rows permuted among training hosts (shuffled labels; squares) and the probe on an untrained encoder of the same
 architecture (init0, the registered random-init control; triangles); the encoders init1 and init2 (light grey,
 dotted, no band) show the spread of the random-init control and are descriptive. (**a**)
