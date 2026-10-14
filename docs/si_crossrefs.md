@@ -44,3 +44,19 @@ identical. All other SI numbers are macros of the same records the article uses.
 
 W2 edits the Discussion, Conclusions and Abstract in parallel. At the W3 merge these files contained no SI
 citation; any later citation of a Supplementary Figure, Table or Section must be checked against the table above.
+
+## W2 recheck (Discussion, Conclusions, Abstract)
+
+Session W2, 2026-10-14. The Discussion cites every Supplementary Figure once; the Conclusions and Abstract cite none.
+Numbers checked against `paper/si/si.aux` of the SI built in the W2 worktree (`make -C paper/si`, 22 pages).
+
+| Article location | Citation as written | What the sentence needs | SI label (compiled number, page) | Status |
+|---|---|---|---|---|
+| Section 4.2 (`sec:disc_site`), second paragraph | Supplementary Figure S1 | the step that reads the vacancy-site vector into the energy | `fig:readout` (S1, p. 4) | match |
+| Section 4.3 (`sec:disc_domain`), first paragraph | Supplementary Figure S2 | the filter cascade, including the perturbed-host-state step | `fig:cascade` (S2, p. 6) | match |
+| Section 4.6 (`sec:disc_limitations`) | Supplementary Figure S3 | the split designs, for the cross-validation test population | `fig:splits` (S3, p. 7) | match |
+| Section 4.2, third paragraph | Supplementary Figure S4 | within-host spread by d-electron class and cation | `fig:withinhost` (S4, p. 10) | match |
+| Section 4.6 | Supplementary Figure S5 | GPU class | `fig:gpu` (S5, p. 12) | match |
+| Section 4.6 | Supplementary Figure S6 | training-length limit (capped twins) | `fig:sens` (S6, p. 14) | match |
+| Section 4.4 (`sec:disc_pipeline`), third paragraph | Supplementary Figure S7 | the latent probe | `fig:probe` (S7, p. 16) | match |
+| Section 4.3, third paragraph | Supplementary Figure S8 | the SnO2 site render | `fig:sno2` (S8, p. 18) | match |
