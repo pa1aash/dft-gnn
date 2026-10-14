@@ -75,7 +75,48 @@ claims:
     tested_by: M7
     figure: Fig5
     falsifiable_how: "Statistically indistinguishable degradation slopes, or negligible geometry change, are reported as a null."
-    status: planned
+    status: measured
+    result_ref: results/geometry_c3b.json
+  # A3 (2026-10-14; docs/deviations.md row of 2026-10-14 §9 step A3; docs/a3_notes.md). The comment above predates A3:
+  # the registered v1 geometry evaluation on our 818 relaxations now exists. Registered outcome at B = 654: null rule
+  # of ANALYSIS_PLAN §9 not met, neither condition holds (median internal RMSD 0.024 A > 0.01 A; the S intervals under
+  # MLIP and rescaled geometry exclude 0, those of D and P include 0). "Measured" covers the registered quantities
+  # (Delta-MAE, null rule, per-host regression). That staged and end-to-end models "degrade differently" is NOT
+  # established: the plan registers no test of the S-versus-P difference, and the POST HOC TOST (row C3b-tost) gives
+  # equivalent (MLIP) and P better within the margin (rescaled).
+  - id: C3b-nc
+    statement: "Sensitivity of C3b (registered in the relaxation clarification of 2026-10-10): with the 7 hosts whose MACE-MP-0 relaxation did not converge removed from every test set, Delta-MAE at B = 654 is S +0.0041 eV [+0.0007, +0.0076] (MLIP) and +0.0079 eV [+0.0034, +0.0131] (rescaled), D and P intervals include 0; the null-rule outcome is unchanged (not met, neither condition holds; median internal RMSD 0.024 A over the 811 converged hosts)."
+    tested_by: "analysis/geometry_analysis.py (item f of the 2026-10-14 A3 row; tests: analysis/tests/test_geometry.py)"
+    figure: "none (docs/a3_notes.md table)"
+    falsifiable_how: "A change of the null-rule outcome or of which Delta-MAE intervals exclude 0 when the non-converged hosts are removed would make the primary C3b outcome depend on them."
+    status: measured
+    result_ref: results/geometry_c3b.json
+  # DESCRIPTIVE EXTRA (row of 2026-10-10 §9, MLIP budgets): inference only at B = 200, not pre-registered, no test.
+  - id: C3b-200
+    statement: "DESCRIPTIVE EXTRA, not pre-registered. At B = 200 on the originally registered backbone (v1), every Delta-MAE interval of S, D and P under MLIP and rescaled MLIP geometry includes 0; the largest |Delta-MAE| is 0.0002 eV (P, rescaled)."
+    tested_by: "analysis/geometry_analysis.py (item b of the 2026-10-14 A3 row; tests: analysis/tests/test_geometry.py)"
+    figure: "none (docs/a3_notes.md table; key payload.budgets.200 of results/geometry_c3b.json)"
+    falsifiable_how: "Descriptive; reported, not tested."
+    status: measured
+    result_ref: results/geometry_c3b.json
+  # POST HOC (ratified collaborator rule of 2026-10-09, ratified 2026-10-11): TOST of Delta-MAE_P - Delta-MAE_S and
+  # the per-component slope comparison, applied to the v1 geometry evaluation (item i of the 2026-10-14 A3 row).
+  - id: C3b-tost
+    statement: "POST HOC. On the v1 geometry evaluation at B = 654, Delta-MAE_P - Delta-MAE_S (delta = 0.05 eV, four-outcome TOST) is equivalent under MLIP geometry (-0.0030 eV, 95% [-0.0083, +0.0026]) and P better, different but within the equivalence margin, under rescaled MLIP geometry (-0.0068 eV, 95% [-0.0121, -0.0021]); the joint-fit slope differences P - S per IQR of each geometry component are equivalent for all three components. At B = 200 (descriptive extra) both conditions are equivalent; the eps_v slope difference is P worse within the margin."
+    tested_by: "analysis/geometry_analysis.py (item i of the 2026-10-14 A3 row; tests: analysis/tests/test_geometry.py)"
+    figure: "none (docs/a3_notes.md table; keys payload.post_hoc_tost and payload.post_hoc_slopes)"
+    falsifiable_how: "An outcome category that differs from the record under the ratified rule refutes the row."
+    status: measured
+    result_ref: results/geometry_c3b.json
+  # POST HOC descriptive cross-check (relax row of 2026-10-11): the collaborator's 809 relaxations and his v2
+  # evaluation never enter C3b and are never pre-registered.
+  - id: C3b-809
+    statement: "POST HOC, descriptive. On 800 of the 809 hosts relaxed by the collaborator (9 fail the cell-comparability rule), his three geometry components, recomputed against our DFT unit cells, agree with ours (Spearman >= 0.9999, median absolute difference below 1e-14); his v2 evaluation quotes a largest |dMAE| of 0.0033 eV (P-v2, B = 654, MLIP geometry), against our largest |Delta-MAE| of 0.0073 eV (S, v1, B = 654, rescaled). No v2 geometry evaluation on our 818 relaxations exists."
+    tested_by: "analysis/geometry_analysis.py (item h of the 2026-10-14 A3 row)"
+    figure: "none (docs/a3_notes.md table)"
+    falsifiable_how: "Descriptive cross-check; reported, not tested."
+    status: measured
+    result_ref: results/geometry_descriptive.json
   # POST HOC (v2), collaborator NRP branch: results/probe_v2_sweep.json (60 S-v2 checkpoints; fails the
   # untrained-encoder control). No v1 probe exists; status stays planned (docs/ingest_gaps.md).
   # A4 (2026-10-14; docs/deviations.md row of 2026-10-14 §10, logged before any v1 probe number; docs/a4_notes.md).
