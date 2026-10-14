@@ -50,22 +50,12 @@ establish a bound for other architectures.
 \begin{figure}[htbp]
 \centering
 \sifig{fig_si_sensitivities}
-\caption{The advantage $A$ under the high-moment exclusion and the longer training cap, and an untuned CGCNN beside
-the MEGNet networks. (\textbf{a}) $A = \mathrm{MAE}_\mathrm{S} - \mathrm{MAE}_\mathrm{D}$ (eV; positive when the DFT
-descriptors lower the site error) at the largest training budget, from the seed-ensemble site MAE averaged over the
-registered outer resamples. ``Primary'': the primary result of each network. ``High moment'' (extension): S and D
-retrained with the entries whose defect magnetic moment exceeds the registered threshold removed from training and
-test sites, compared on the common test sites. ``Capped twins'' (post hoc): every primary run that stopped at the
-training cap replaced by its rerun with the longer cap. Both sensitivities exist for the originally registered
-network only. Markers: point estimates; bars: two-sided intervals of the hierarchical bootstrap of the primary
-analysis; short horizontal bars: one-sided upper bounds; dashed line: the tolerance $\delta$; dotted line: zero.
-(\textbf{b}) Seed-ensemble test MAE (eV) of S (blue) and D (green) on a single outer resample at three budgets, for the
-MEGNet networks (lines with bands) and for CGCNN with fixed, untuned optimiser settings (crosses, drawn just right of
-their budget). Bands and bars in (b) are two-sided intervals of a host-cluster bootstrap over the test hosts of that
-resample; with one resample they reflect test-host sampling only, and no test is made. Filled markers and solid
-lines: primary network (v2), adopted after diagnostics of the originally registered network; open markers and
-dashed lines: originally registered network (v1). Records: \texttt{results/sens\_high\_moment\_v1.json},
-\texttt{results/sens\_capped\_post\_hoc.json}, \texttt{results/sens\_cgcnn.json}.}
+\caption{(\textbf{a}) Advantage $A$ at the largest budget for the primary result, the high-moment exclusion (extension) and
+capped twins (post hoc), and (\textbf{b}) test MAE of S (blue) and D (green) for MEGNet and CGCNN (crosses). Bars
+are two-sided bootstrap intervals, horizontal bars one-sided upper bounds, filled markers and solid lines the
+primary network (v2) and open markers and dashed lines the originally registered network (v1). Data:
+\texttt{results/sens\_high\_moment\_v1.json}, \texttt{results/sens\_capped\_post\_hoc.json} and
+\texttt{results/sens\_cgcnn.json}.}
 \label{fig:sens}
 \end{figure}
 \FloatBarrier

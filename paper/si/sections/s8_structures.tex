@@ -15,6 +15,12 @@ geometry that the network reads is that of the pristine host: in the release's r
 no atom lies more than \numStructureAuditZnoPristineVsRelaxedDisplacementAMaxOfMatchedAtoms{}~\AA{} from its pristine
 position, and that relaxation is an output of the defect calculation that the models are meant to replace.
 
+Both renders use the same camera conventions, lights and materials. The SnO$_2$ render was made with Blender
+Cycles on the CPU with \numRenderSnOTwoSamples{} samples and denoising, at \numRenderSnOTwoDpi{} dpi over the text
+width. Its cell is shifted by lattice translations only, so that the vacancy lies near the faces closest to the
+viewer, and the planar three-fold site is seen nearly edge-on; Figure~\ref{fig:sno2} draws the three Sn neighbours
+enlarged (parameters in \texttt{figures/si/structure\_sno2\_vacancy.render.json}).
+
 \begin{table}[htbp]
 \caption{First cation shell of the removed oxygen in the two rendered hosts (pristine PBEsol(+$U$) supercells of
 the release). Atoms: atoms of the supercell; vacancy atom: index of the removed oxygen in the supercell; bond
@@ -29,16 +35,11 @@ cutoff: the cation--oxygen distance below which a bond is drawn in the renders. 
 \begin{figure}[htbp]
 \centering
 \sifig{structure_sno2_vacancy}
-\caption{Structure render of rutile SnO$_2$ as it enters the data set. The pristine SnO$_2$ supercell of the
-database (host \mpsnotwo{}, \numRenderSnOTwoNAtoms{} atoms) with the oxygen atom to be removed (site O1) marked
-by the translucent amber sphere; its three nearest Sn neighbours (Table~\ref{tab:shell}), the planar three-fold
-coordination of oxygen in rutile, are drawn enlarged and joined into a translucent triangle with dark edges, seen
-here nearly edge-on. Sn grey-blue, O red; Sn--O bonds shorter than \numRenderSnOTwoCationOBondCutoffASn{}~\AA{}
-are drawn and bonds that cross the cell boundary are omitted; the cell is shifted by lattice translations only, so
-that the vacancy lies near the faces closest to the viewer. The structure is the pristine host, not the relaxed
-defect cell. Same camera conventions, lights and materials as \artfigoverview{}b of the article; Blender Cycles on the CPU
-with \numRenderSnOTwoSamples{} samples and denoising, rendered at \numRenderSnOTwoDpi{} dpi over the text width
-(parameters in \texttt{figures/si/structure\_sno2\_vacancy.render.json}).}
+\caption{Pristine supercell of rutile SnO$_2$ from the database (host \mpsnotwo{}, \numRenderSnOTwoNAtoms{} atoms), with the
+oxygen to be removed (site O1) and its three nearest Sn neighbours (Table~\ref{tab:shell}) joined into a triangle.
+The amber sphere marks the removed oxygen, Sn is grey-blue and O red, and Sn--O bonds shorter than
+\numRenderSnOTwoCationOBondCutoffASn{}~\AA{} are drawn except across the cell boundary. Data:
+\texttt{figures/si/structure\_sno2\_vacancy.render.json}.}
 \label{fig:sno2}
 \end{figure}
 \FloatBarrier

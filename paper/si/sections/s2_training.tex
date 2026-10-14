@@ -20,17 +20,11 @@ originally registered network (v1) and the primary network (v2).
 \begin{figure}[htbp]
 \centering
 \sifig{fig_readout}
-\caption{Readout of the structure-only network S and the points where D receives the DFT descriptors. The inputs
-are the initial features of the vacancy site \xvzero{} and of the other atoms
-\xizero{}, the bond features \eijzero{} and the global state of the cell \uzero{};
-$n$ MEGNet blocks update them, each widening the coordination shell that informs every atom. The readout joins
-the final description of the vacancy site $\mathbf{h}_\mathrm{v}$, a pooled description of all atoms
-$\bar{\mathbf{h}}$ (Set2Set or mean, a tuned choice) and the final global state $u$, and a multilayer perceptron
-maps them to the formation energy $E_\mathrm{f}$ of the neutral vacancy. The host-level thermodynamic term is
-carried by $\bar{\mathbf{h}}$ and $u$, the local environment of the site by $\mathbf{h}_\mathrm{v}$. In D
-(D-state), the host-electronic descriptors are appended to \uzero{} and the site-electronic descriptors to
-\xvzero{} (green arrows), standardised with training-set statistics; the readout is
-unchanged and is the same for both networks.}
+\caption{Readout of the structure-only network S, from the initial features of the vacancy site \xvzero{}, the other atoms
+\xizero{}, the bonds \eijzero{} and the cell \uzero{}, through $n$ MEGNet blocks, to the vacancy-site vector
+$\mathbf{h}_\mathrm{v}$, the pooled vector $\bar{\mathbf{h}}$ and the global state $u$ that a multilayer perceptron
+maps to $E_\mathrm{f}$. Green arrows mark where D (D-state) receives the host-electronic descriptors, at \uzero{},
+and the site-electronic descriptors, at \xvzero{}.}
 \label{fig:readout}
 \end{figure}
 

@@ -3,7 +3,7 @@
 
 This section asks whether the ability of the networks to order the oxygen sites of one host depends on the
 chemistry of the host or on the site (extension, not registered; both networks at \numWithinHostBreakdownBudget{}
-training hosts). The rules (groups, thresholds, metrics and bootstrap) were logged in \texttt{docs/deviations.md}
+training hosts). The rules (groups, thresholds, metrics and a host-cluster bootstrap paired across models and networks) were logged in \texttt{docs/deviations.md}
 before any number was computed, and the analysis reads the existing test predictions without training anything
 (\texttt{results/within\_host\_breakdown.json}; \texttt{docs/within\_host\_physics.md}). The measure is the
 within-host residual error: for a host with at least two tested sites, the prediction and the DFT energy of each
@@ -73,20 +73,12 @@ small-group threshold and is descriptive only.}
 \begin{figure}[htbp]
 \centering
 \sifig{fig_si_withinhost_groups}
-\caption{Site resolution within a host, by chemistry and site (extension). Within-host residual MAE of S
-(structure only, blue) and D (structure plus the DFT descriptors of the pristine host and site, green) at the
-largest training budget, for groups of test hosts or sites; lower is better. The grey tick in each row is the
-zero-skill value, the within-host residual MAE of any predictor that is constant within each host; a model point
-at or right of it has no within-host skill in that group. Circles: point values; horizontal bars: two-sided
-percentile intervals of the host-cluster bootstrap, paired across models and networks; no bar where too few hosts
-contribute. Filled circles and solid bars: primary network (v2), adopted after diagnostics of the originally
-registered network; open circles and dashed bars: originally registered network (v1). (\textbf{a}) Cation element,
-each host under every cation it contains; (\textbf{b}) $d$-electron class of the host, with all tested hosts as the
-top row; (\textbf{c}) hosts containing at least one of the cations with the highest perturbed-host-state rates,
-against the rest; (\textbf{d}) thirds of host stability (formation energy per atom); (\textbf{e}) thirds of the
-PBEsol(+$U$) band gap; (\textbf{f}) sites at the most negative, intermediate and least negative Bader charge of the
-vacancy oxygen within their host. Each site's prediction is the seed ensemble averaged over the registered
-resamples in which its host was tested. Values: \texttt{results/within\_host\_breakdown.json}.}
+\caption{Within-host residual MAE of S (blue) and D (green) at the largest budget (extension) by (\textbf{a}) cation,
+(\textbf{b}) $d$-electron class, (\textbf{c}) perturbed-host-state-prone cations, (\textbf{d}) formation-energy
+thirds, (\textbf{e}) band-gap thirds and (\textbf{f}) vacancy-oxygen Bader-charge rank. Grey ticks mark zero skill,
+bars are two-sided host-cluster bootstrap intervals, filled circles and solid bars show the primary network (v2,
+post hoc) and open circles and dashed bars the originally registered network (v1). Data:
+\texttt{results/within\_host\_breakdown.json}.}
 \label{fig:withinhost}
 \end{figure}
 \FloatBarrier

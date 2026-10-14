@@ -9,14 +9,9 @@ Table~\ref{tab:cascade}), and the four designs are drawn in Figure~\ref{fig:spli
 \begin{figure}[htbp]
 \centering
 \sifig{fig_cascade}
-\caption{Filter cascade that defines universe v1. From the completed neutral oxygen-vacancy entries of the
-release of Kumagai et al., the cascade keeps their neutral machine-learning subset, which already excludes the
-perturbed-host-state entries, the entries with undetermined band edges and the dynamically unstable hosts. Three
-filters follow in order: D1 removes the entries flagged as a split vacancy, an unknown defect type or a
-configuration different from the initial one; D2 removes the host Sr$_2$Zr$_7$O$_{16}$, whose site labels do not
-match the targets of the release; D3 keeps an entry of the two hosts with inconsistent cell metadata only if its
-vacancy site maps to an oxygen atom with a matching first cation shell, and removes nothing. Dashed boxes are the
-entries excluded at each step. Site and host counts after every step are in Table~\ref{tab:cascade}.}
+\caption{Filter cascade that defines universe v1, from the completed neutral oxygen-vacancy entries of the release of
+Kumagai et al.\ through its neutral machine-learning subset and the filters D1 to D3 of this work. Dashed boxes are
+the entries excluded at each step, and Table~\ref{tab:cascade} gives the site and host counts after every step.}
 \label{fig:cascade}
 \end{figure}
 
@@ -62,17 +57,10 @@ design and leaves the choice to the author. The runs of the primary network are 
 \begin{figure}[htbp]
 \centering
 \sifig{fig_splits}
-\caption{Split designs, drawn as sets of hosts (dark: test; light: training; mid-grey: validation). Every split
-keeps all sites of a host on one side. Widths are schematic, not to scale. (\textbf{a}) Primary protocol: each
-outer resample holds out \numSplitMetaNTestHosts{} test hosts, stratified by host-mean $E_\mathrm{f}$, and orders
-the remaining pool so that the training set at budget $B$ is the first $B$ hosts; budgets are nested, and the
-learning curves are drawn against $B$. Validation hosts are carved out of each training set. (\textbf{b}) The
-published split of Kiyohara et al.: the networks train on its training hosts, stop early on its validation hosts
-and are tested on its test hosts. (\textbf{c}) Grouped $K$-fold cross-validation ($K = \numSplitCvKsItemOne{}$ and
-$\numSplitCvKsItemTwo{}$; extension): every host is tested exactly once, with training sets larger than the largest
-budget of (a). (\textbf{d}) Leave-one-chemistry-out: hosts are grouped into chemistry families (the set of
-periodic-table groups of the cations), and \numSplitLocoNFolds{} folds, each holding out whole families, test
-transfer to chemistries absent from training.}
+\caption{Split designs drawn as sets of hosts, with (\textbf{a}) the primary grouped hold-out with nested training budgets
+$B$, (\textbf{b}) the published split of Kiyohara et al., (\textbf{c}) grouped $K$-fold cross-validation
+(extension) and (\textbf{d}) leave-one-chemistry-out folds. Dark, light and mid-grey sets are test, training and
+validation hosts, and widths are schematic.}
 \label{fig:splits}
 \end{figure}
 \FloatBarrier
