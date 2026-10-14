@@ -4,6 +4,16 @@ State on 2026-10-11: code and specs are pinned at `nrp-code-v1` (commit ffd86ce)
 `docs/nrp_runbook.md`. All analysis rules for the new stages are logged in `docs/deviations.md` (rows of
 2026-10-11).
 
+## Status at the results freeze (A6, 2026-10-14, tag `results-v1`)
+
+Every cluster stage, ingest and Mac analysis item below is done or closed; the Status columns were updated at the
+freeze (`docs/deviations.md`, AUTHOR DECISION / FREEZE row of 2026-10-14). No new experiment runs after the tag;
+the items marked "closed by the freeze" will not be run for this manuscript. The frozen headline numbers are in
+`results/freeze_table.json` and `paper/tables/freeze_table.tex`; the claim-by-claim status is in
+`docs/freeze_notes.md`. Of the open decisions at the end of this file, 1 to 4 and 6 concerned runs that are now
+complete; 5 (retention of the cluster-only checkpoints and embeddings) remains open. The text below is kept as
+written on 2026-10-11 and 2026-10-14.
+
 ## Update of 2026-10-14: rerun of relax, geomeval and embed at `nrp-code-v2`
 
 The cluster finished moment, cgcnn, capped, cv, cv_v2, precision and precision_v2 (1,431 training runs) and peval
@@ -13,10 +23,10 @@ spec files and completed results are unchanged; the 5 relax records written by t
 
 | ID | What runs | Where | Spec file and count | Depends on | Status |
 |---|---|---|---|---|---|
-| R-1 | relax: MACE-MP-0 relaxation + tiling | cluster, checkout of `nrp-code-v2` | `relax.jsonl` 818 | inputs-v1 bundles | ready to rerun |
-| R-2 | embed: S readout embeddings | cluster, checkout of `nrp-code-v2` | `embed.jsonl` 240 | S09 checkpoints | ready to rerun |
-| R-3 | geomeval: S, D, P under DFT, MLIP, rescaled geometry | cluster, checkout of `nrp-code-v2` | `geomeval.jsonl` 180 | R-1 (relax of its test hosts) | waits on R-1 |
-| R-4 | Ingest `nrp/relax`, `nrp/embed`, `nrp/geomeval` | Mac | per stage | R-1 to R-3 | waiting |
+| R-1 | relax: MACE-MP-0 relaxation + tiling | cluster, checkout of `nrp-code-v2` | `relax.jsonl` 818 | inputs-v1 bundles | done: 818 relaxations in `results/mlip_v1/` (`docs/nrp/n3_ingest.md`) |
+| R-2 | embed: S readout embeddings | cluster, checkout of `nrp-code-v2` | `embed.jsonl` 240 | S09 checkpoints | done: 240 in `results/embeddings_v1/` (`docs/nrp/n3_ingest.md`) |
+| R-3 | geomeval: S, D, P under DFT, MLIP, rescaled geometry | cluster, checkout of `nrp-code-v2` | `geomeval.jsonl` 180 | R-1 (relax of its test hosts) | done: 180 in `results/geomeval/` (`docs/nrp/n3_ingest.md`) |
+| R-4 | Ingest `nrp/relax`, `nrp/embed`, `nrp/geomeval` | Mac | per stage | R-1 to R-3 | done (`docs/nrp/n3_ingest.md`, `docs/nrp/n3_artefacts_local.md`) |
 
 Commands (full text and checks in `docs/nrp_runbook.md`, section 9). `N` is the number of GPU pods; pod `i` uses
 the queue `/workspace/dft-gnn-v2/jobs_s<i>`, because admission is queue-wide (runbook section 4).
@@ -66,37 +76,37 @@ for s in relax embed geomeval; do
 
 | ID | What runs | Where | Spec file and count | Depends on | Status | Estimated hours (card-h, or session-h on the Mac) | Purpose |
 |---|---|---|---|---|---|---|---|
-| D0 | Build and place the input bundles (inputs, checkpoints, mace) in the shared folder | Mac, then shared folder | - | tag nrp-code-v1 | ready | 0.5 session-h | Inputs for every cluster stage |
-| D1 | Volume setup, bundle verification, spec `--check` on the cluster | cluster | all 11 files | D0 | waiting | about 0.5 card-h (setup pod) | Proves the clone computes the same run ids |
-| N2a-1 | relax: MACE-MP-0 relaxation + tiling (one-operation rule) | cluster | `relax.jsonl` 818 | D1 | waiting | 1.8–30.1 card-h (assumption) | Geometry inputs of C3b |
-| N2a-2 | peval: P = P1 then D | cluster | `peval.jsonl` 183 | D1 (S09 checkpoints) | waiting | 6.0–12.7 card-h (assumption) | C3a staging |
-| N2a-3 | embed: S readout embeddings | cluster | `embed.jsonl` 240 | D1 (S09 checkpoints) | waiting | 9.7–20.6 card-h (assumption) | C4 latent probe |
-| N2a-4 | geomeval: S, D, P under DFT, MLIP, rescaled geometry | cluster | `geomeval.jsonl` 180 | N2a-1 (relax of its test hosts) | waiting | 11.8–25.1 card-h (assumption) | C3b geometry robustness |
-| N2b-1 | moment: high-moment exclusion | cluster | `moment.jsonl` 60 | D1 | waiting | 14.1–22.6 card-h | SI sensitivity (a) |
-| N2b-2 | cgcnn: CGCNN cross-check | cluster | `cgcnn.jsonl` 18 | D1 | waiting | 1.8–2.8 card-h (MEGNet times; assumption for CGCNN) | SI sensitivity (c) |
-| N2b-3 | capped: 600-epoch twins | cluster | `capped.jsonl` 33 | D1 | waiting | 5.9–23.0 card-h | POST HOC capped rule |
-| N3-1 | cv v1: S and D, K in {10, 20}, seeds 0-2 | cluster | `cv.jsonl` 180 | D1 | waiting | 49.3–79.2 card-h | Extended-budget statement at 736 and 777 hosts; every host tested |
-| N3-2 | cv v2: the same with the v2 backbone | cluster | `cv_v2.jsonl` 180 | D1 | waiting | 49.3–79.2 card-h (v2 = v1 assumed) | v1 vs v2, descriptive |
-| N4-1 | precision v1: 30 resamples x 5 seeds at B = 400, 654 | cluster | `precision.jsonl` 480 | D1 | waiting | 90.8–145.8 card-h | Non-inferiority bound at 654 with 30 x 5 |
-| N4-2 | precision v2: the same with the v2 backbone (tuned-v2 has the a654 set, used at both budgets) | cluster | `precision_v2.jsonl` 480 | D1 | waiting | 90.8–145.8 card-h (v2 = v1 assumed) | v1 vs v2, descriptive |
-| I-1 | Ingest each `nrp/<stage>` branch (`ingest_batch.sh`), merge, push | Mac | per stage | each cluster stage | waiting | 0.25 session-h per branch (about 3 h total) | Verified results on main |
-| A-1 | v1 staging C3a (D − P, P − S; TOST of the ratified rule) | Mac | - | N2a-2, I-1 | waiting | 2 session-h | Claim C3a |
-| A-2 | v1 geometry C3b (MLIP and rescaled conditions, d-bin strata, non-converged sensitivity) | Mac | - | N2a-1, N2a-4, I-1 | waiting | 3 session-h | Claim C3b |
-| A-3 | Latent probe C4 (ridge, controls, trend rule) | Mac | - | N2a-3, I-1 | waiting | 3 session-h | Claim C4 |
-| A-4 | High-moment and CGCNN SI | Mac | - | N2b-1, N2b-2, I-1 | waiting | 1.5 session-h | SI sensitivities (a), (c) |
-| A-5 | Capped post-hoc rule (A at 400 and 654 with 600-epoch twins) | Mac | - | N2b-3, I-1 | waiting | 1 session-h | POST HOC sensitivity |
-| A-6 | Grouped CV analysis with the fixed rule (pooled OOF MAE, host bootstrap, fold SD, within-host) | Mac | - | N3-1 (N3-2 for the v2 column), I-1 | waiting | 2 session-h | Extended-budget statement |
-| A-7 | Precision analysis with the fixed rule (30 x 5 beside 10 x 3, 10 x 5, 30 x 3; within-host) | Mac | - | N4-1 (N4-2 for v2), I-1 | waiting | 2 session-h | Non-inferiority at 654 |
-| A-8 | Within-host breakdowns by d-bin, element and PHS-prone chemistry | Mac | - | sweep predictions (now); cv OOF (N3-1) for the all-host version | can start now | 2 session-h | Where site resolution fails, physically |
-| A-9 | LOCO adoption analysis (collaborator runs, our estimator, A_LOCO and families) | Mac | - | none (runs merged) | can start now | 1 session-h | Chemistry transfer (M9) |
-| A-10 | v1 vs v2 comparison table (sweep, LOCO now; cv and precision later) | Mac | - | v2 sweep (now); N3-2, N4-2 | partly now | 1.5 session-h | Descriptive backbone comparison |
-| A-11 | Screening reconciliation (B = 654 resamples; CV OOF gives every host) | Mac | - | sweep (now); N3-1 | partly now | 1.5 session-h | Screening demonstration C5 |
-| W-1 | Figure style (rcParams, palette, no in-plot text) | Mac | - | none | can start now | 2 session-h | Consistent figures |
-| W-2 | Blender ZnO render (vacancy site) | Mac | - | none | can start now | 3 session-h | Graphical abstract or Fig. 1 |
-| W-3 | TikZ schematics (models S, D, P; pipeline) | Mac | - | none | can start now | 3 session-h | Methods figures |
-| W-4 | Manuscript skeleton (Crystals template) with the AI-disclosure hook | Mac | - | none | can start now | 2 session-h | Writing frame |
-| W-5 | Methods and data prose (universe, splits, training, extensions, hardware policy) | Mac | - | none | can start now | 4 session-h | Methods section |
-| W-6 | Claims table rows and number macros (generated from results JSONs) | Mac | - | none for the existing claims; each A-item adds rows | can start now | 2 session-h | No claim without a claims row |
+| D0 | Build and place the input bundles (inputs, checkpoints, mace) in the shared folder | Mac, then shared folder | - | tag nrp-code-v1 | done | 0.5 session-h | Inputs for every cluster stage |
+| D1 | Volume setup, bundle verification, spec `--check` on the cluster | cluster | all 11 files | D0 | done | about 0.5 card-h (setup pod) | Proves the clone computes the same run ids |
+| N2a-1 | relax: MACE-MP-0 relaxation + tiling (one-operation rule) | cluster | `relax.jsonl` 818 | D1 | done (as R-1, at `nrp-code-v2`) | 1.8–30.1 card-h (assumption) | Geometry inputs of C3b |
+| N2a-2 | peval: P = P1 then D | cluster | `peval.jsonl` 183 | D1 (S09 checkpoints) | done: 183 in `results/peval/` (`docs/nrp/n2_ingest.md`) | 6.0–12.7 card-h (assumption) | C3a staging |
+| N2a-3 | embed: S readout embeddings | cluster | `embed.jsonl` 240 | D1 (S09 checkpoints) | done (as R-2, at `nrp-code-v2`) | 9.7–20.6 card-h (assumption) | C4 latent probe |
+| N2a-4 | geomeval: S, D, P under DFT, MLIP, rescaled geometry | cluster | `geomeval.jsonl` 180 | N2a-1 (relax of its test hosts) | done (as R-3, at `nrp-code-v2`) | 11.8–25.1 card-h (assumption) | C3b geometry robustness |
+| N2b-1 | moment: high-moment exclusion | cluster | `moment.jsonl` 60 | D1 | done: 60 in `results/moment/` | 14.1–22.6 card-h | SI sensitivity (a) |
+| N2b-2 | cgcnn: CGCNN cross-check | cluster | `cgcnn.jsonl` 18 | D1 | done: 18 in `results/cgcnn/` | 1.8–2.8 card-h (MEGNet times; assumption for CGCNN) | SI sensitivity (c) |
+| N2b-3 | capped: 600-epoch twins | cluster | `capped.jsonl` 33 | D1 | done: 33 in `results/capped_rerun_v1/` | 5.9–23.0 card-h | POST HOC capped rule |
+| N3-1 | cv v1: S and D, K in {10, 20}, seeds 0-2 | cluster | `cv.jsonl` 180 | D1 | done: 180 in `results/cv/` | 49.3–79.2 card-h | Extended-budget statement at 736 and 777 hosts; every host tested |
+| N3-2 | cv v2: the same with the v2 backbone | cluster | `cv_v2.jsonl` 180 | D1 | done: 180 in `results/cv_v2/` | 49.3–79.2 card-h (v2 = v1 assumed) | v1 vs v2, descriptive |
+| N4-1 | precision v1: 30 resamples x 5 seeds at B = 400, 654 | cluster | `precision.jsonl` 480 | D1 | done: 480 in `results/precision/` | 90.8–145.8 card-h | Non-inferiority bound at 654 with 30 x 5 |
+| N4-2 | precision v2: the same with the v2 backbone (tuned-v2 has the a654 set, used at both budgets) | cluster | `precision_v2.jsonl` 480 | D1 | done: 480 in `results/precision_v2/` | 90.8–145.8 card-h (v2 = v1 assumed) | v1 vs v2, descriptive |
+| I-1 | Ingest each `nrp/<stage>` branch (`ingest_batch.sh`), merge, push | Mac | per stage | each cluster stage | done (`docs/nrp/n2_ingest.md`, `docs/nrp/n3_ingest.md`) | 0.25 session-h per branch (about 3 h total) | Verified results on main |
+| A-1 | v1 staging C3a (D − P, P − S; TOST of the ratified rule) | Mac | - | N2a-2, I-1 | done (A2): `results/staging_v1.json`, `results/staging_v2.json`, `docs/a2_notes.md` | 2 session-h | Claim C3a |
+| A-2 | v1 geometry C3b (MLIP and rescaled conditions, d-bin strata, non-converged sensitivity) | Mac | - | N2a-1, N2a-4, I-1 | done (A3): `results/geometry_c3b.json`, `docs/a3_notes.md` | 3 session-h | Claim C3b |
+| A-3 | Latent probe C4 (ridge, controls, trend rule) | Mac | - | N2a-3, I-1 | done (A4): `results/probe_c4_v1.json`, `docs/a4_notes.md` | 3 session-h | Claim C4 |
+| A-4 | High-moment and CGCNN SI | Mac | - | N2b-1, N2b-2, I-1 | done (A5): `results/sens_high_moment_v1.json`, `results/sens_cgcnn.json`, `docs/a5_notes.md` | 1.5 session-h | SI sensitivities (a), (c) |
+| A-5 | Capped post-hoc rule (A at 400 and 654 with 600-epoch twins) | Mac | - | N2b-3, I-1 | done (A5): `results/sens_capped_post_hoc.json` | 1 session-h | POST HOC sensitivity |
+| A-6 | Grouped CV analysis with the fixed rule (pooled OOF MAE, host bootstrap, fold SD, within-host) | Mac | - | N3-1 (N3-2 for the v2 column), I-1 | done (A1): `results/cv_extended_budget.json`, `docs/a1_notes.md` | 2 session-h | Extended-budget statement |
+| A-7 | Precision analysis with the fixed rule (30 x 5 beside 10 x 3, 10 x 5, 30 x 3; within-host) | Mac | - | N4-1 (N4-2 for v2), I-1 | done (A1): `results/precision_a_b400_b654.json`, `docs/a1_notes.md` | 2 session-h | Non-inferiority at 654 |
+| A-8 | Within-host breakdowns by d-bin, element and PHS-prone chemistry | Mac | - | sweep predictions (now); cv OOF (N3-1) for the all-host version | done at B = 654 (M9): `results/within_host_breakdown.json`; the all-host version on CV out-of-fold predictions was not run and is closed by the freeze | 2 session-h | Where site resolution fails, physically |
+| A-9 | LOCO adoption analysis (collaborator runs, our estimator, A_LOCO and families) | Mac | - | none (runs merged) | closed by the freeze without a separate analysis: LOCO A of the adopted runs is in `results/ingest_m1_recompute.json` (G1 estimator) and `results/c1c2_v1.json`, `results/c1c2_v2.json` (collaborator estimator); no family breakdown | 1 session-h | Chemistry transfer (M9) |
+| A-10 | v1 vs v2 comparison table (sweep, LOCO now; cv and precision later) | Mac | - | v2 sweep (now); N3-2, N4-2 | closed by the freeze: both backbones side by side in `results/freeze_table.json`; no separate record | 1.5 session-h | Descriptive backbone comparison |
+| A-11 | Screening reconciliation (B = 654 resamples; CV OOF gives every host) | Mac | - | sweep (now); N3-1 | done for the B = 654 resamples (M8): `figures/main/data/screening_demo.json`; the CV out-of-fold part was not run and is closed by the freeze | 1.5 session-h | Screening demonstration C5 |
+| W-1 | Figure style (rcParams, palette, no in-plot text) | Mac | - | none | done (`docs/figure_style.md`) | 2 session-h | Consistent figures |
+| W-2 | Blender ZnO render (vacancy site) | Mac | - | none | done (`figures/main/fig1_zno_vacancy.png`) | 3 session-h | Graphical abstract or Fig. 1 |
+| W-3 | TikZ schematics (models S, D, P; pipeline) | Mac | - | none | done (`schematics/`) | 3 session-h | Methods figures |
+| W-4 | Manuscript skeleton (Crystals template) with the AI-disclosure hook | Mac | - | none | done (`paper/main.tex`) | 2 session-h | Writing frame |
+| W-5 | Methods and data prose (universe, splits, training, extensions, hardware policy) | Mac | - | none | done (`paper/sections/`) | 4 session-h | Methods section |
+| W-6 | Claims table rows and number macros (generated from results JSONs) | Mac | - | none for the existing claims; each A-item adds rows | done (`docs/claims.yaml`, `paper/tools/make_numbers.py`) | 2 session-h | No claim without a claims row |
 
 ## Cluster wall time by stage (card-h / n concurrent GPUs)
 
