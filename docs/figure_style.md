@@ -95,7 +95,7 @@ now under `si/`, same outcome).
 
 | Figure | Placement | vector | fonts | one_family | width (mm) | height (mm) | no_text_in_axes | Result |
 |---|---|---|---|---|---|---|---|---|
-| `main/fig1_overview.pdf` | Figure 1 | FAIL (1 raster: the ZnO render, by design) | ok | ok (TeX Gyre Heros) | 138.6 | 142.0 | FAIL (no axes: schematic and render, nothing to check) | accepted with reason (documented exception) |
+| `main/fig1_overview.pdf` (W3: rebuilt with the keyed schematic) | Figure 1 | FAIL (1 raster: the ZnO render, by design) | ok | ok (TeX Gyre Heros) | 138.6 | 142.9 | FAIL (no axes: schematic and render, nothing to check) | accepted with reason (documented exception) |
 | `main/fig2_learning_curves.pdf` (F1c: dashed v1 extension bars) | Figure 2 | ok | ok | ok (Arial) | 138.6 | 84.0 | ok | PASS |
 | `main/fig3_advantage.pdf` (F1c: dashed v1 extension bars) | Figure 3 | ok | ok | ok (Arial) | 138.6 | 72.0 | ok | PASS |
 | `main/fig4_staging.pdf` | Figure 4 | ok | ok | ok (Arial) | 138.6 | 84.0 | ok | PASS |
@@ -114,6 +114,21 @@ now under `si/`, same outcome).
 
 Totals: 12 PASS, 4 documented exceptions (Figure 1 and the three SI schematics), as in F1b. Figure S8, the SnO2
 render, is a PNG and is outside the PDF check.
+
+W3 (2026-10-14), Figure 1 backbone convention. `schematics/fig_pipeline.tex` had been relabelled on 2026-10-11
+(`829ffc9`: the dashed outline style renamed from `v2` to `v1`, caption of record changed to "v2 solid, v1
+dashed"), but `schematics/fig_pipeline.pdf` and `figures/main/fig1_overview.pdf` were not rebuilt and the figure
+carried no key, so the convention lived only in the captions, and `figures/main/fig1_overview.caption.md` still
+said that the dashed outline marked v2. W3 drew the convention into the schematic: the solid, filled box in
+front of each graph network is the primary backbone (v2), the dashed, open outline behind it the originally
+registered backbone (v1), and a key outside the data area (lower right, beside P's output) reads "primary network
+(v2)" (solid, filled swatch) and "originally registered network (v1)" (dashed, open swatch), in the neutral
+reference grey because it applies to every model colour. The schematic stays 137.5 mm wide (height 81.5 to 82.4
+mm). Rebuilt with `sh schematics/render.sh fig_pipeline` (latexmk) and `python figures/code/fig1_overview.py`;
+`qa_figure.py figures/main/fig1_overview.pdf` gives the same outcome as before: vector FAIL (the ZnO render, by
+design) and no_text_in_axes FAIL (no axes), fonts, one family (TeX Gyre Heros) and width (138.6 mm) ok, so Figure
+1 keeps its documented exceptions. Both caption files now say v2 solid, v1 dashed and name the key; the paper
+caption in `paper/sections/methods.tex` already said so and was not edited.
 
 The structure renders (`figures/main/fig1_zno_vacancy.png`, `figures/si/structure_sno2_vacancy.png`) are PNG by
 design and are outside the PDF check (see Structure renders).

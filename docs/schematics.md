@@ -7,7 +7,7 @@ explanatory text, only model, stage and quantity names and panel letters.
 
 | File | Placement | Content | Size (mm) |
 |---|---|---|---|
-| `fig_pipeline.tex` | Figure 1 | Supercell, 5.0 Å radius graph and MEGNet backbone; S, D, P side by side with RF and B0 | 137.5 x 81.5 |
+| `fig_pipeline.tex` | Figure 1 | Supercell, 5.0 Å radius graph and MEGNet backbone; S, D, P side by side with RF and B0; key for v2 (solid) and v1 (dashed) | 137.5 x 82.4 |
 | `fig_readout.tex` | Figure S1 (Figure 2 when written; SI since M3b) | Readout [h_v ‖ pooled h ‖ u] to MLP to E_f for S; D-state injection points | 133.4 x 53.9 |
 | `fig_cascade.tex` | Figure S2 (S1 when written) | Filter cascade, step names only (counts stay in Table 1) | 137.4 x 22.2 |
 | `fig_splits.tex` | Figure S3 (S2 when written) | Grouped hold-out with nested budgets, Kiyohara split, K-fold CV, leave-one-chemistry-out | 136.3 x 65.2 |
@@ -32,8 +32,10 @@ extended with two entries that style.py does not yet have:
 | `cP` | P and P1 (new) | CC79A7 |
 | `cO` | flagged vacancy O site (new, not a model) | D55E00 |
 
-v2 is not a colour: a v2 model is drawn as a dashed outline (`v2=<colour>` style) in its model's colour.
-If the results figures later show P or v2, `style.py` should take the same values (CC79A7; dashed lines).
+A backbone is not a colour. Since 2026-10-11 (`829ffc9`) the solid, filled box of a graph network is the primary
+backbone (v2) and a dashed, open outline offset behind it (`v1=<colour>` style) is the originally registered
+backbone (v1), as in every results figure (v2 solid, v1 dashed). Since W3 (2026-10-14) `fig_pipeline.tex` also
+draws a key for this convention outside the data area (lower right), in the reference grey `cRef`.
 
 ## Build
 
