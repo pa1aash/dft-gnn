@@ -97,6 +97,7 @@ inputs; `python figures/code/qa_figure.py figures/main/*.pdf figures/si/*.pdf`):
 | `main/fig1_overview.pdf` | FAIL (1 raster: the ZnO render, by design) | ok | ok (TeX Gyre Heros) | 138.6 | 142.0 | FAIL (no axes: schematic and render, nothing to check) | accepted with reason (documented exception) |
 | `si/fig_si_gpu_class.pdf` | ok | ok | ok (Arial) | 138.6 | 118.0 | ok | PASS |
 | `si/fig_si_withinhost_groups.pdf` | ok | ok | ok (Arial) | 138.6 | 205.0 | ok | PASS |
+| `si/fig_si_sensitivities.pdf` (A5, added 2026-10-14) | ok | ok | ok (Arial) | 138.6 | 82.0 | ok | PASS |
 | `si/fig_readout.pdf` | ok | ok | ok (TeX Gyre Heros; the CMSY8 math glyph was removed from `schematics/fig_readout.tex`) | 138.6 | 53.9 | FAIL (no axes: schematic, nothing to check) | accepted with reason (documented exception): vector, fonts, one family and width pass; the axes rule has no axes to test |
 
 F2 rebuilt Figure 2, Figure 3, G1, within-host and the SI GPU-class figure (CV marker change) with all four
