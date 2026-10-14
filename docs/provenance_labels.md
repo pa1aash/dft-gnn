@@ -58,6 +58,37 @@ above stands as written; v2 stays POST HOC and is never described as pre-registe
 For every group, the rows of his that set its design were committed before its first run record. The
 v2 arm's design screen, selection rule, tuning and freeze each preceded the next step.
 
+## Groups added at the results freeze (A6, 2026-10-14)
+
+Main-side analyses of steps A1 to A5, run after the table above was written. Same three labels and the same rule:
+the label records chronology, and every label is the one stated in the step's notes and in `docs/claims.yaml`; none
+of rows #1 to #19 is changed. Rule times are the UTC commit times of the `docs/deviations.md` rows (rows dated
+2026-10-14 in the file were committed late on 2026-10-13 UTC); first result = first `timestamp_utc` of the group's
+run records, then of its analysis record.
+
+| # | group | records | backbone | rule (row or plan section) and commit time | first result | label |
+|---|---|---|---|---|---|---|
+| 20 | staging (C3a), registered analysis, step A2 | `results/peval/` (183 P runs), `results/staging_v1.json`, `results/staging_eval_table.json`, `results/staging_swapin_check.json` | v1 | ANALYSIS_PLAN §8 in `prereg-v1`; pairing clarification row of 2026-10-10 (§8), before any P result; implementation row 2026-10-14 (§8, A2), committed 2026-10-13 22:48 | P runs 2026-10-11 21:32; analysis 2026-10-13 23:11 | PRE-REGISTERED; the four-outcome TOST rule that decides its outcome is the collaborator rule of 2026-10-09, ratified 2026-10-11, POST HOC (as in #6) |
+| 21 | staging (C3a-v2), re-analysis of #6 with the G1 estimator, step A2 | `results/staging_v2.json` | v2 | same rows as #20; v2 point values already in `results/c3a_v2.json` (#6), disclosed in the A2 row | 2026-10-13 23:11 | POST HOC |
+| 22 | geometry evaluation (C3b) on our 818 relaxations at B = 654, with the non-converged sensitivity, step A3 | `results/mlip_v1/` (818), `results/geomeval/` (180), `results/geometry_c3b.json` (`budgets.654`, `null_rule`, `regression`, `nonconverged_sensitivity`), `results/geometry_eval_table.json` | v1 | ANALYSIS_PLAN §9 in `prereg-v1`; geometry, relaxation and MLIP-budget clarification rows of 2026-10-10 (§9); implementation row 2026-10-14 (§9, A3), committed 2026-10-14 06:36 | relaxations 2026-10-14 00:13; geomeval 01:41; analysis 06:43 | PRE-REGISTERED |
+| 23 | geometry at B = 200 | `results/geometry_c3b.json` (`budgets.200`) | v1 | MLIP-budget row of 2026-10-10 (§9) | 2026-10-14 06:43 | DESCRIPTIVE EXTRA, not pre-registered (label of `docs/a3_notes.md`, kept) |
+| 24 | geometry: TOST of ΔMAE_P − ΔMAE_S and slope differences | `results/geometry_c3b.json` (`post_hoc_tost`, `post_hoc_slopes`) | v1 | collaborator rule of 2026-10-09 (§9), ratified 2026-10-11; item i of the A3 row | 2026-10-14 06:43 | POST HOC |
+| 25 | geometry: cross-check against the collaborator's 809 relaxations and his v2 evaluation | `results/geometry_descriptive.json` (`cross_check_809`) | his v2 (`results/mlip_eval_v2.json`, #7) | item h of the A3 row | 2026-10-14 06:44 | POST HOC (descriptive) |
+| 26 | latent probe (C4), registered analysis, step A4 | `results/embeddings_v1/` (240), `results/probe_fit_v1.json`, `results/probe_c4_v1.json` | v1 (60 seed-0 S checkpoints of the sweep) | ANALYSIS_PLAN §10 in `prereg-v1`; implementation row 2026-10-14 (§10, A4), committed 2026-10-14 06:36, before any v1 probe number | embeddings 2026-10-14 00:07; fit 06:41; rule 06:42 | PRE-REGISTERED |
+| 27 | probe: within-host R² and per-descriptor values (PRB-WH) | `results/probe_descriptive.json` (`within_host_site`, `per_descriptor_r2`) | v1 | item e of the A4 row, fixed before any v1 probe number | 2026-10-14 06:42 | DESCRIPTIVE (not part of the C4 rule; label of `docs/claims.yaml`, kept) |
+| 28 | probe on S-v2 (C4-v2), recomputed from #9 | `results/probe_descriptive.json` (`s_v2`) | v2 | A4 row (the §10 rule applied to his stored values) | 2026-10-14 06:42 | POST HOC (descriptive) |
+| 29 | precision extension (N4), step A1 | `results/precision/` (480), `results/precision_a_b400_b654.json` (`v1`), `results/precision_g1_v1.json` | v1 | rule row of 2026-10-11 (§7, §11, N4), before any precision result; implementation row 2026-10-14 (§7, §11, A1), committed 2026-10-13 20:45 | runs 2026-10-11 19:41; analysis 2026-10-13 20:51 | EXTENSION |
+| 30 | precision extension (N4), v2 | `results/precision_v2/` (480), `results/precision_a_b400_b654.json` (`v2`), `results/precision_g1_v2.json` | v2 | same rows as #29 | runs 2026-10-11 20:16; analysis 2026-10-13 20:51 | POST HOC (v2 backbone); EXTENSION in compute |
+| 31 | grouped K-fold CV (N3), step A1 | `results/cv/` (180), `results/cv_extended_budget.json` (`v1`), `results/cv_g1_v1.json` | v1 | rule row of 2026-10-11 (§7, §11, N3); implementation row as #29 | runs 2026-10-11 20:26; analysis 2026-10-13 20:52 | EXTENSION |
+| 32 | grouped K-fold CV (N3), v2 | `results/cv_v2/` (180), `results/cv_extended_budget.json` (`v2`), `results/cv_g1_v2.json` | v2 | same rows as #31 | runs 2026-10-11 21:03; analysis 2026-10-13 20:52 | POST HOC (v2 backbone); EXTENSION in compute |
+| 33 | high-moment sensitivity (SENS1), step A5 | `results/moment/` (60), `results/sens_high_moment_v1.json` | v1 | exclusion list and design: row of 2026-10-10 (§12, sensitivity a), before any run; estimators: row 2026-10-14 (§5, §12, A5), committed 2026-10-13 22:49 | runs 2026-10-11 20:55; analysis 2026-10-13 22:54 | EXTENSION |
+| 34 | CGCNN cross-check (SENS2), untuned, descriptive, step A5 | `results/cgcnn/` (18), `results/sens_cgcnn.json` | its own architecture; MEGNet v1 and v2 beside it | row of 2026-10-10 (§12, sensitivity c); A5 row as #33 | runs 2026-10-12 04:03; analysis 2026-10-13 22:54 | EXTENSION |
+| 35 | capped 600-epoch twins (SENS3), step A5 | `results/capped_rerun_v1/` (33) + 3 capsens twins, `results/sens_capped_post_hoc.json` | v1 | post-hoc capped rule rows of 2026-10-08 (§5) and 2026-10-10 (§5); A5 row as #33 | runs 2026-10-12 04:26; analysis 2026-10-13 22:54 | POST HOC |
+
+Counts over #20 to #35: PRE-REGISTERED 3 (#20, #22, #26); POST HOC 7 (#21, #24, #25, #28, #30, #32, #35), plus
+the outcome rule of #20; EXTENSION 4 (#29, #31, #33, #34); labelled descriptive in their own step 2 (#23, #27). The v2
+groups (#21, #25, #28, #30, #32) are POST HOC by backbone; v2 is never described as pre-registered.
+
 ## Why v2 is POST HOC at the level of model choice
 
 The v2 deviation row (committed 2026-10-08 16:55) gives its reason as "the review of 2026-10-07 found that
