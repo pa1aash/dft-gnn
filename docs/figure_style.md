@@ -66,16 +66,18 @@ For precision, the payload's top-level estimates are the pooled 30 x 5 values. T
 against synthetic records of this schema (not committed): all four build and pass QA with three of the four
 extensions present.
 
-## Pending results: Figures 4 to 7
+## Figures 4 to 6 (built in A2 to A4)
 
-Not built in M3b. Each is drawn only when its registered v1 result exists; the v2 records listed beside it
-are POST HOC and are drawn as the primary backbone only once the v1 result they accompany is in.
+Not built in M3b; each was drawn once its registered v1 result existed (steps A2, A3 and A4 of 2026-10-14). The v2
+records beside them are POST HOC and are drawn as the primary backbone only where a v2 result on the same inputs
+exists. Status at the results freeze (tag `results-v1`, `docs/freeze_notes.md`): all three built, captions name
+their records, QA below.
 
-| Figure | Claim | Result files it will read | Status |
-|---|---|---|---|
-| Figure 4, staging | C3a | v1: `results/peval/` (183 P runs, stage N2a-2) and the analysis record of item A-1 (`docs/remaining_work.md`); v2: `results/c3a_v2.json`, `results/p1_v2/`, `results/p_v2/` | pending: v1 staging not run |
-| Figure 5, geometry | C3b | v1: `results/mlip_v1/` (our 818 relaxations, stage N2a-1), `results/geomeval/` (stage N2a-4) and the analysis record of item A-2 | pending: v1 geometry evaluation not run. The collaborator's 809-host evaluation (`results/mlip/`, `results/mlip_eval_v2.json`) is excluded from C3b by the `docs/deviations.md` row of 2026-10-11 (§9) and is not drawn |
-| Figure 6, latent probe | C4 | v1: `results/embeddings_v1/` (stage N2a-3) and the analysis record of item A-3; v2: `results/probe_v2_sweep.json` | pending: v1 probe not run |
+| Figure | Claim | Output | Script | Result records | Status |
+|---|---|---|---|---|---|
+| Figure 4, staging | C3a, C3a-v2 | `figures/main/fig4_staging.pdf` | `figures/code/fig4_staging.py` | `results/staging_v1.json` (registered staging analysis, v1), `results/staging_v2.json` (POST HOC, v2) | built (A2) |
+| Figure 5, geometry | C3b | `figures/main/fig5_geometry.pdf` | `figures/code/fig5_geometry.py` | `results/geometry_c3b.json` (v1, our 818 relaxations), `results/geometry_descriptive.json`, `results/analysis/geometry_host_change.parquet` | built (A3); v1 only: no v2 geometry evaluation on our relaxations exists. The collaborator's 809-host evaluation (`results/mlip/`, `results/mlip_eval_v2.json`) is excluded from C3b by the `docs/deviations.md` row of 2026-10-11 (§9) and is not drawn. The caption names the keys of `results/geometry_c3b.json` but not its file name (open point for a figure session) |
+| Figure 6, latent probe | C4, C4-v2 | `figures/si/fig6_probe.pdf` (moved to the SI under the §10 rule) | `figures/code/fig6_probe.py` | `results/probe_c4_v1.json` (v1), `results/probe_descriptive.json` (`payload.s_v2`, POST HOC) | built (A4), SI |
 
 ## QA
 
@@ -85,7 +87,8 @@ inside an axes (axes found from the clip rectangles matplotlib writes for data a
 axes fails this check, because the rule needs at least one). Exit status 0 only if all checks pass.
 
 Status of every PDF in `figures/main/` and `figures/si/` on 2026-10-14 (F2, after the rebuild with the extension
-inputs; `python figures/code/qa_figure.py figures/main/*.pdf figures/si/*.pdf`):
+inputs; `python figures/code/qa_figure.py figures/main/*.pdf figures/si/*.pdf`); rows for Figures 4 to 6 added at the results freeze, A6, from the same command; the full table is
+repeated in `results/freeze_table.json`, `payload.checks.figures`):
 
 | Figure | vector | fonts | one_family | width (mm) | height (mm) | no_text_in_axes | Result |
 |---|---|---|---|---|---|---|---|
@@ -98,6 +101,9 @@ inputs; `python figures/code/qa_figure.py figures/main/*.pdf figures/si/*.pdf`):
 | `si/fig_si_gpu_class.pdf` | ok | ok | ok (Arial) | 138.6 | 118.0 | ok | PASS |
 | `si/fig_si_withinhost_groups.pdf` | ok | ok | ok (Arial) | 138.6 | 205.0 | ok | PASS |
 | `si/fig_si_sensitivities.pdf` (A5, added 2026-10-14) | ok | ok | ok (Arial) | 138.6 | 82.0 | ok | PASS |
+| `main/fig4_staging.pdf` (A2, added at the freeze) | ok | ok | ok (Arial) | 138.6 | 84.0 | ok | PASS |
+| `main/fig5_geometry.pdf` (A3, added at the freeze) | ok | ok | ok (Arial) | 138.6 | 128.0 | ok | PASS |
+| `si/fig6_probe.pdf` (A4, added at the freeze) | ok | ok | ok (Arial) | 138.6 | 172.0 | ok | PASS |
 | `si/fig_readout.pdf` | ok | ok | ok (TeX Gyre Heros; the CMSY8 math glyph was removed from `schematics/fig_readout.tex`) | 138.6 | 53.9 | FAIL (no axes: schematic, nothing to check) | accepted with reason (documented exception): vector, fonts, one family and width pass; the axes rule has no axes to test |
 
 F2 rebuilt Figure 2, Figure 3, G1, within-host and the SI GPU-class figure (CV marker change) with all four
