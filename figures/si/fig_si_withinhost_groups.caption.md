@@ -1,4 +1,4 @@
-**Figure. Site resolution within a host, by chemistry and site (EXTENSION).** Within-host residual MAE of S
+**Figure S4. Site resolution within a host, by chemistry and site (EXTENSION).** Within-host residual MAE of S
 (structure only, blue) and D (structure plus the DFT descriptors of the pristine host and site, green) at the
 largest training budget, for groups of test hosts or sites; lower is better. The grey tick in each row is the
 zero-skill value, the within-host residual MAE of any predictor that is constant within each host (the mean

@@ -1,4 +1,4 @@
-**Figure S (GPU class). The advantage A by GPU class of the training runs (EXTENSION, descriptive, no test).**
+**Figure S5. The advantage A by GPU class of the training runs (EXTENSION, descriptive, no test).**
 A = MAE_S − MAE_D (eV) of single runs, averaged over the paired cells in which the S run and the D run of the same
 resample or fold, budget and seed both ran on the same GPU class. (**a**, **b**) Precision extension, design points
 `precision|400` and `precision|654` of `results/precision_a_b400_b654.json`; (**c**, **d**) grouped K-fold CV,

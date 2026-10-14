@@ -1,4 +1,4 @@
-"""Within-host figure (M3b): can the networks tell the oxygen sites of one host apart? Both backbones.
+"""Figure 6, within-host (M3b): can the networks tell the oxygen sites of one host apart? Both backbones.
 
 Same records as scripts/make_figures.py (kept unchanged): results/c1c2_v2.json and results/c1c2_v1.json, keys
 ``mae.<B>.<S|D-state>.within_host_skill`` and ``A_within_host``. Optional EXTENSION records
@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import inputs_paper as ip
 import style_paper as sp
 
-STEM = "fig_within_host"
+STEM = "fig6_within_host"
 
 
 def main() -> Path:
@@ -63,7 +63,7 @@ def main() -> Path:
 
 def caption(ext: dict) -> str:
     return f"""
-**Figure. Site resolution within a host.** (**a**) Within-host skill of S (structure only) and D (structure
+**Figure 6. Site resolution within a host.** (**a**) Within-host skill of S (structure only) and D (structure
 plus the DFT descriptors of the pristine host and site) against the number of training hosts (logarithmic
 axis): the within-host residual MAE of a predictor that is constant within each host, minus the model's, on
 the same test hosts with at least two oxygen sites. Zero (dotted) means the model ranks hosts but does not

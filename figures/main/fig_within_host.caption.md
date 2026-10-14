@@ -1,4 +1,4 @@
-**Figure. Site resolution within a host.** (**a**) Within-host skill of S (structure only) and D (structure
+**Figure 6. Site resolution within a host.** (**a**) Within-host skill of S (structure only) and D (structure
 plus the DFT descriptors of the pristine host and site) against the number of training hosts (logarithmic
 axis): the within-host residual MAE of a predictor that is constant within each host, minus the model's, on
 the same test hosts with at least two oxygen sites. Zero (dotted) means the model ranks hosts but does not

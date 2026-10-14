@@ -1,4 +1,4 @@
-**Figure 6. Latent probe: linear recovery of the DFT electronic descriptors from the structure-only model's readout
+**Figure S7. Latent probe: linear recovery of the DFT electronic descriptors from the structure-only model's readout
 input.** For every resample r and budget B, a ridge regression maps the readout input vector of the seed-0 S
 checkpoint ([vacancy-node embedding, pooled node embeddings, global state]) to each descriptor given to D, with
 the regularisation chosen by cross-validation grouped by host on the training sites, and is scored by

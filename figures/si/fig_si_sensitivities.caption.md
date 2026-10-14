@@ -1,4 +1,4 @@
-**Figure S (sensitivities). The advantage A under the high-moment exclusion and the longer epoch cap, and an
+**Figure S6. The advantage A under the high-moment exclusion and the longer epoch cap, and an
 untuned CGCNN beside the MEGNet backbones.** (**a**) A = MAE_S − MAE_D (eV; positive when the DFT descriptors
 help) at the largest training budget, from the seed-ensemble site MAE averaged over the registered outer resamples.
 "primary": the primary result of each backbone (`results/sens_capped_post_hoc.json`, keys

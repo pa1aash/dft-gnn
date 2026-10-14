@@ -4,6 +4,8 @@ Same record as scripts/analysis/fig_g1.py (kept unchanged) for the originally re
 results/g1_primary.json (G1 estimator; ``per_budget`` and ``descriptive_curves``). The primary backbone (v2)
 comes from results/c1c2_v2.json (same estimand and design; point values identical to our recomputation,
 docs/ingest_report.md row 8). Optional EXTENSION records (figures/code/inputs_paper.py) are drawn when present.
+Written to figures/si/ by default: an unnumbered file kept beside the SI, not cited in the text (Figure 2 and
+Figure 3 carry the same series; docs/figure_numbering.md).
 
     (a) site-level test MAE of B0, RF-Kumagai, S and D against training hosts, with the published values
     (b) A = MAE_S - MAE_D with the margin delta and zero
@@ -35,6 +37,7 @@ def _g1(p: dict, get):
 
 def main() -> Path:
     a = ip.cli(__doc__)
+    out_dir = a.out_dir if a.out_dir != ip.ROOT / "figures" / "main" else ip.ROOT / "figures" / "si"
     g1 = ip.require("g1_primary", a.results_root)
     v2 = ip.require("c1c2_v2", a.results_root)
     ext = ip.extensions(a.results_root)
@@ -89,8 +92,8 @@ def main() -> Path:
                *sp.series_handles(k for k, _ in ext)]
     sp.legend_handles(fig, handles, ncol=2)
     sp.panel_letters(fig, (ax1, ax2))
-    pdf = sp.save(fig, Path(a.out_dir) / STEM, png=True)
-    ip.write_caption(a.out_dir, STEM, caption(ext))
+    pdf = sp.save(fig, Path(out_dir) / STEM, png=True)
+    ip.write_caption(out_dir, STEM, caption(ext))
     return pdf
 
 
