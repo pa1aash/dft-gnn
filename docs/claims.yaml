@@ -144,3 +144,30 @@ claims:
     falsifiable_how: "An upper bound at or above delta at any of the three points names that point as failing and refutes the statement for that backbone."
     status: measured
     result_ref: results/cv_extended_budget.json
+  # EXTENSION (A5; docs/deviations.md rows of 2026-10-10 §12 and 2026-10-14 §5, §12; docs/a5_notes.md). Originally
+  # registered backbone (v1) only: the moment stage has no v2 runs (specs/moment.manifest.json).
+  - id: SENS1
+    statement: "EXTENSION. Removing the 10 entries with |defect moment| > 0.5 muB from training and test sites (v1, B = 654, 10 resamples x 3 seeds) changes A on the common test sites from -0.010 to -0.015 eV (paired change -0.005 eV, two-sided 95% interval [-0.025, +0.013]); the one-sided 95% upper bound on A stays below delta = 0.05 eV (+0.012 primary, +0.002 high moment), so the non-inferiority statement at 654 for v1 does not change. No v2 high-moment runs exist."
+    tested_by: "analysis/sensitivity_analysis.py on analysis/sensitivity_eval_tables.py (tests: analysis/tests/test_sensitivity.py); G1 hierarchical bootstrap with the G1 draws; primary side reproduces results/g1_primary.json at B = 654 exactly"
+    figure: "SI Fig. sensitivities, panel a (figures/si/fig_si_sensitivities.pdf)"
+    falsifiable_how: "A one-sided upper bound on the high-moment A at or above delta would change the non-inferiority statement at 654 for v1."
+    status: measured
+    result_ref: results/sens_high_moment_v1.json
+  # EXTENSION, untuned CGCNN (A5; docs/deviations.md rows of 2026-10-10 §12 and 2026-10-14 §5, §12). Descriptive,
+  # one resample, no hypothesis test.
+  - id: SENS2
+    statement: "EXTENSION, untuned, descriptive. On outer resample 0 (seeds 0-2), CGCNN with fixed optimiser settings gives an advantage A = MAE_S - MAE_D of +0.125, +0.027 and +0.003 eV at B = 50, 200 and 654, against +0.241, +0.099 and -0.014 eV for the originally registered MEGNet backbone (v1) and +0.232, +0.036 and +0.031 eV for the primary backbone (v2); in both architectures A shrinks toward zero as the training budget grows. One resample only: the intervals reflect test-host sampling, not resample variation, and no test is made."
+    tested_by: "analysis/sensitivity_analysis.py on analysis/sensitivity_eval_tables.py (tests: analysis/tests/test_sensitivity.py); host-cluster bootstrap over the 164 test hosts of resample 0, shared by every series"
+    figure: "SI Fig. sensitivities, panel b (figures/si/fig_si_sensitivities.pdf)"
+    falsifiable_how: "Descriptive cross-check; an A of CGCNN at B = 654 whose host-cluster interval excluded the MEGNet values on the same draws would contradict the shared trend."
+    status: measured
+    result_ref: results/sens_cgcnn.json
+  # POST HOC (A5; docs/deviations.md rows of 2026-10-08 §5, 2026-10-10 §5 and 2026-10-14 §5, §12). Originally
+  # registered backbone (v1) only; primary result and N* unchanged by rule.
+  - id: SENS3
+    statement: "POST HOC. Replacing every capped original by its 600-epoch twin (36 runs; at B = 400 five S runs, at B = 654 eight S and two D runs) changes A (v1) from +0.040 to +0.042 eV at B = 400 and from -0.012 to -0.008 eV at B = 654 (paired change +0.003 eV, two-sided 95% interval [-0.002, +0.010]); the one-sided 95% upper bound at 654 stays below delta (+0.009 primary, +0.014 twins), so the non-inferiority statement at 654 for v1 does not change, and at 400 it stays above delta. The primary result and N* are unchanged. v2 has no capped twins."
+    tested_by: "analysis/sensitivity_analysis.py on analysis/sensitivity_eval_tables.py (tests: analysis/tests/test_sensitivity.py); G1 hierarchical bootstrap with the G1 draws; primary side reproduces results/g1_primary.json at B = 400 and 654 exactly"
+    figure: "SI Fig. sensitivities, panel a (figures/si/fig_si_sensitivities.pdf)"
+    falsifiable_how: "A twin-version one-sided upper bound at B = 654 at or above delta would make the 654 statement cap-sensitive for v1."
+    status: measured
+    result_ref: results/sens_capped_post_hoc.json

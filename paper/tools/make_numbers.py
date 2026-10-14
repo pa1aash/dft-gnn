@@ -46,6 +46,12 @@ MULTIKEY_LISTS = {"within_host_breakdown": {"groups": ("variable", "group")},
 NESTED_MULTIKEY_LISTS = {
     stem: {("descriptive", "gpu_class"): ("backbone", "gpu_class"), ("descriptive", "capped"): ("backbone", "model")}
     for stem in ("precision_a_b400_b654", "cv_extended_budget")}
+# A5 sensitivity records: lists of objects at a nested payload path, identified by several fields together;
+# record stem -> {payload path: identifying fields}; each item is flattened under the joined field values
+PATH_MULTIKEY_LISTS = {
+    "sens_capped_post_hoc": {("descriptive_runs", "groups"): ("kind", "model", "B")},
+    "sens_high_moment_v1": {("excluded_per_resample",): ("r",)},
+}
 # protocol constants (not results): file, macro prefix, top-level keys to read (None = all)
 PROTOCOL_SOURCES = (
     ("configs/config.yaml", "Cfg", None),
@@ -230,6 +236,16 @@ def main(argv: list[str] | None = None) -> int:
                 node = node.get(k, {}) if isinstance(node, dict) else {}
             keyed = {point: {"_".join(str(v[k]) for k in ids): {k: w for k, w in v.items() if k not in ids}
                              for v in items} for point, items in node.items()}
+            leaves = []
+            flatten(keyed, list(keypath), leaves)
+            add(camel(p.stem), leaves, f"results/{p.name}#/payload/")
+    for p in files:
+        payload = json.loads(p.read_text())["payload"]
+        for keypath, ids in PATH_MULTIKEY_LISTS.get(p.stem, {}).items():
+            node = payload
+            for k in keypath:
+                node = node.get(k, []) if isinstance(node, dict) else []
+            keyed = {"_".join(str(v[k]) for k in ids): {k: w for k, w in v.items() if k not in ids} for v in node}
             leaves = []
             flatten(keyed, list(keypath), leaves)
             add(camel(p.stem), leaves, f"results/{p.name}#/payload/")
