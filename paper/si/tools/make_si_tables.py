@@ -39,11 +39,6 @@ GPU = {"A10": r"\gpushortaten{}", "RTX 3090": r"\gpushortthreeoh{}", "RTX A4000"
        "L4": r"\gpushortlfour{}", "RTX 4090": r"\gpushortfourty{}", "original sweep": "original sweep"}
 
 
-def budget(m: "Macros", b: str) -> str:
-    """Macro of a registered training budget (configs/config.yaml budgets.hosts)."""
-    return m(f"configs/config.yaml#/budgets/hosts/item{1 + BUDGETS.index(b)}")
-
-
 class Macros:
     """JSON pointer (as written in numbers.tsv) -> macro name."""
 
@@ -62,6 +57,11 @@ class Macros:
 
     def get(self, src: str) -> str | None:
         return self.by_src[src] + "{}" if src in self.by_src else None
+
+
+def budget(m: Macros, b: str) -> str:
+    """Macro of a registered training budget (configs/config.yaml budgets.hosts)."""
+    return m(f"configs/config.yaml#/budgets/hosts/item{1 + BUDGETS.index(b)}")
 
 
 def tex_escape(s: str) -> str:
@@ -364,15 +364,15 @@ TAGS = (
     ("prereg-v1", "analysis plan frozen (registration of v1)"),
     ("tuned-v1", "tuned values of the originally registered network frozen"),
     ("g1-v1", "primary analysis of the learning curves (G1)"),
-    ("nrp-code-v1", "pinned code of the cluster stages; the run ids of every cluster spec are computed with "
-                    "this name"),
+    ("nrp-code-v1", ("pinned code of the cluster stages; the run ids of every cluster spec are computed with "
+                     "this name")),
     ("inputs-v1", "same commit as nrp-code-v1; release holding the processed inputs, checkpoints and MACE weights"),
     ("ingest-v1", "collaborator cluster analysis merged"),
     ("nrp-code-v2", "bug-fix tag of nrp-code-v1 for the relax, embed and geomeval reruns; run ids keep nrp-code-v1"),
     ("nrp-code-v3", "result records also store the matgl version (record keeping only; no cluster run uses it)"),
     ("results-v1", "results freeze; headline numbers in results/freeze_table.json"),
-    ("prov-tune-v2, prov-prod-v2, prov-ckpt-diag", "code commits of the collaborator's v2 tuning, v2 production "
-                                                   "and checkpoint-diagnostic records"),
+    ("prov-tune-v2, prov-prod-v2, prov-ckpt-diag", ("code commits of the collaborator's v2 tuning, v2 production "
+                                                    "and checkpoint-diagnostic records")),
 )
 
 
