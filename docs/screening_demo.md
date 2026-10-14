@@ -1,7 +1,8 @@
 # Screening demonstration (M8): Figure 7 and the Results subsection
 
 Claim C5 (`docs/claims.yaml`, ANALYSIS_PLAN section 13) is a demonstration, not a claim; its status stays
-`planned`. The subsection is `paper/sections/screening.tex`, included from `paper/sections/results.tex`.
+`planned`. The subsection is `paper/sections/results_screening.tex` (moved from `paper/sections/screening.tex` in W1),
+included from `paper/sections/results.tex`.
 
 ## Inputs
 
@@ -42,3 +43,16 @@ pair differences. These are new numbers derived from existing records; none is a
   `payload.hosts.TiO2.space_group_number` = 12, C2/m). `docs/limitations_notes.md` does not call it rutile: its
   TiO2 remark gives only the PHS count of the four sites and names no polymorph. `paper/sections/data.tex` names
   no TiO2 polymorph either (corrected in 517043e). `screening.tex` lists the TiO2 host as monoclinic.
+
+## W1 (2026-10-14): moved and condensed
+
+The subsection now lives in `paper/sections/results_screening.tex` (Section 3.8 of Results; `git mv` keeps the
+history). W1 rewrote it in the register of `docs/prose_style.md` and cut it from about 2200 to about 670 words. The
+two tables and the Figure 7 environment are unchanged apart from caption wording. The mechanistic passages labelled
+"Hypothesis" (bond breaking and the energy of the electrons left behind for the two energy groups, TiO2 against bond
+strength, longer bonds against more bonds in ZrO2 and Ga2O3, resolution of host stability against fine site
+differences) were removed from Results because mechanisms belong in the Discussion; the text is at
+`git show d996107:paper/sections/screening.tex` (the base of W1) for the Discussion session. The
+descriptive Spearman correlations of the DFT energy with band gap and host formation energy were dropped from the
+prose; the macros still exist.
+

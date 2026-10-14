@@ -120,3 +120,19 @@ For the paper session:
 - `figures/si/fig_g1_learning_curves.pdf` is kept but not cited and not numbered.
 - Extension points of v1 in Figures 2, 3 and 6 (and G1) now have dashed interval bars; the caption files say so
   in the shared extension sentence. Sizes are unchanged, so no `\figph` width changes.
+
+## 8. W1: applied in `paper/sections/results.tex` (2026-10-14)
+
+- Figure 3 is included as `\figph{fig3_advantage}` at the text width (the section 3 edit; the 0.6 width is gone).
+- The probe is no longer a main-text figure: `\figph{fig6_probe}` and the label `fig:probe` were removed from
+  Results, and the text cites it as Supplementary Figure S7. Figure 6 is `\figph{fig6_within_host}` with label
+  `fig:within_host`.
+- LaTeX numbers floats in order of appearance, and the Results order puts site resolution (Section 3.4) before
+  staging (3.5) and geometry (3.6). To keep the final numbers (4 staging, 5 geometry, 6 within-host), the
+  within-host figure environment sits after the geometry figure, at the end of Section 3.6; Section 3.4 refers to
+  it by label. Whoever reorders the Results subsections must check the float order again.
+- Every caption was rebuilt from its `*.caption.md` in the register of `docs/prose_style.md`, without typed
+  numbers; the screening caption moved with its subsection to `paper/sections/results_screening.tex`.
+- Supplementary figures are cited in the text as "Supplementary Figure S4" to "S8" (no SI LaTeX document exists
+  yet, so these are plain text, not references).
+
