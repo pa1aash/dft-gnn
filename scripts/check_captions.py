@@ -70,7 +70,7 @@ def tex_captions(path: Path) -> list[dict]:
     """Every \\caption{...} inside a figure environment of one .tex file, with its line and label."""
     text = "\n".join(re.sub(r"(?<!\\)%.*", "", ln) for ln in path.read_text().splitlines())
     out = []
-    for env in re.finditer(r"\\begin\{figure\*?\}(.*?)\\end\{figure\*?\}", text, re.S):
+    for env in re.finditer(r"\\begin\{figure\*?\}(.*?)\\end\{figure\*?\}", text, re.DOTALL):
         body_start = env.start(1)
         for m in re.finditer(r"\\caption\{", env.group(1)):
             content, _ = braced(text, body_start + m.end() - 1)
