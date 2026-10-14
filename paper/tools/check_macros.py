@@ -1,4 +1,4 @@
-"""Check the number macros used in paper/sections/*.tex.
+"""Check the number macros used in paper/sections/*.tex (and the Supplementary Materials, paper/si).
 
 1. Lists every \\num<Name> macro used in the section files and fails if any is not defined in
    paper/generated/numbers.tex (run make_numbers.py first).
@@ -7,7 +7,11 @@
    arguments of referencing commands (\\cite, \\ref, \\label, \\input, ...) and blocks between
    "% verbatim-begin" and "% verbatim-end" (text quoted verbatim from a third party) are exempt.
 
-Usage: python paper/tools/check_macros.py [--list]
+The Supplementary Materials (W3) are scanned too: paper/si/*.tex and paper/si/sections/*.tex. Tables that
+paper/si/tables/ holds are \\input and, like paper/tables/, are not scanned. Pass --dir (repeatable, relative to
+paper/) to scan other directories instead of the default set.
+
+Usage: python paper/tools/check_macros.py [--list] [--dir DIR ...]
 """
 
 from __future__ import annotations
@@ -18,6 +22,8 @@ import sys
 from pathlib import Path
 
 PAPER = Path(__file__).resolve().parents[1]
+# directories scanned by default (relative to paper/); the SI entries are skipped while they do not exist
+DEFAULT_DIRS = ("sections", "si", "si/sections")
 USE = re.compile(r"\\(num[A-Z][A-Za-z]*)")
 DEF = re.compile(r"\\newcommand\{\\(num[A-Z][A-Za-z]*)\}")
 # commands whose (first) argument is a key or a path, not prose
@@ -58,6 +64,8 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--list", action="store_true", help="print every macro used and its file")
     ap.add_argument("--numbers", type=Path, default=PAPER / "generated" / "numbers.tex")
+    ap.add_argument("--dir", action="append", dest="dirs", metavar="DIR",
+                    help="directory of .tex files to scan, relative to paper/ (repeatable)")
     a = ap.parse_args(argv)
 
     if not a.numbers.exists():
@@ -67,7 +75,8 @@ def main(argv: list[str] | None = None) -> int:
 
     used: dict[str, set[str]] = {}
     typed = []
-    for f in sorted((PAPER / "sections").glob("*.tex")):
+    files = [f for d in (a.dirs or DEFAULT_DIRS) for f in sorted((PAPER / d).glob("*.tex"))]
+    for f in files:
         text = f.read_text()
         for line in text.splitlines():
             for m in USE.findall(strip_comments(line)):

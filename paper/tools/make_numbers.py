@@ -66,6 +66,18 @@ PROTOCOL_SOURCES = (
     ("splits/resamples_10_29.json", "SplitExt", ("n_test_hosts", "pool_size", "budgets")),
 )
 
+# W3 (Supplementary Materials): render parameters of the structure figures (not results; written by
+# blender/render_host.py beside each PNG): file, macro prefix. The first-shell list is keyed by atom index.
+RENDER_SOURCES = (
+    ("figures/main/fig1_zno_vacancy.render.json", "RenderZnO"),
+    ("figures/si/structure_sno2_vacancy.render.json", "RenderSnOTwo"),
+)
+RENDER_KEYS = ("n_atoms", "vacancy_atom_index", "first_shell", "cation_O_bond_cutoff_A", "dpi", "width_mm",
+               "px", "samples")
+# W3: tuned values printed to three significant figures (suffix "Sig"), beside the three-decimal macros of
+# PROTOCOL_SOURCES, so that learning rates and weight decays keep their leading digits in the SI tables
+SIG_SOURCES = (("configs/tuned_v1.yaml", "TunedVOne"), ("configs/tuned_v2.yaml", "TunedVTwo"))
+
 ONES = ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
         "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen",
         "Nineteen"]
@@ -116,6 +128,26 @@ def fmt(x: float | int) -> str:
         m, e = f"{abs(x):.1e}".split("e")
         s = f"{m}\\times10^{{{int(e)}}}"
     return f"\\ensuremath{{{'-' if x < 0 else ''}{s}}}"
+
+
+def fmt_sig(x: float) -> str:
+    """Three significant figures: plain decimals from 0.01 up, m\\times10^{e} below (W3, tuned values)."""
+    if abs(x) >= 0.01 or x == 0:
+        s = f"{abs(x):.3g}"
+    else:
+        m, e = f"{abs(x):.2e}".split("e")
+        s = f"{m}\\times10^{{{int(e)}}}"
+    return f"\\ensuremath{{{'-' if x < 0 else ''}{s}}}"
+
+
+def render_leaves(path: Path) -> list[tuple[list[str], float]]:
+    """Numeric render parameters of one structure render (RENDER_KEYS; first shell keyed by atom index)."""
+    obj = json.loads(path.read_text())
+    keep = {k: obj[k] for k in RENDER_KEYS if k in obj}
+    keep["first_shell"] = {str(a["index"]): {"distance_A": a["distance_A"]} for a in keep.get("first_shell", [])}
+    leaves: list[tuple[list[str], float]] = []
+    flatten(keep, [], leaves)
+    return leaves
 
 
 def is_num(v) -> bool:
@@ -253,6 +285,17 @@ def main(argv: list[str] | None = None) -> int:
             add(camel(p.stem), leaves, f"results/{p.name}#/payload/")
     for rel, prefix, keys in PROTOCOL_SOURCES:
         add(prefix, protocol_leaves(ROOT / rel, keys), f"{rel}#/")
+    for rel, prefix in RENDER_SOURCES:
+        if (ROOT / rel).exists():
+            add(prefix, render_leaves(ROOT / rel), f"{rel}#/")
+    for rel, prefix in SIG_SOURCES:
+        for path, val in protocol_leaves(ROOT / rel, None):
+            if isinstance(val, float) and not val.is_integer():
+                name = "num" + prefix + "".join(camel(c) for c in path) + "Sig"
+                if name in macros:
+                    clashes.append((name, macros[name][2], f"{rel}#/" + "/".join(path)))
+                    continue
+                macros[name] = (fmt_sig(val), repr(val), f"{rel}#/" + "/".join(path) + " (3 s.f.)")
 
     if clashes:
         for name, s1, s2 in clashes[:20]:
