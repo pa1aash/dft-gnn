@@ -40,13 +40,13 @@ of a backbone" describes the schematic as drawn; see section 5.
 
 The readout schematic (`schematics/fig_readout.pdf`, the former main-text Figure 2 in `docs/schematics.md`) is
 not included anywhere in `paper/` at `9e91760`. Its role moves to the SI: `figures/si/fig_readout.pdf` (the
-same vector PDF centred on a 138.6 mm page) with `figures/si/fig_readout.caption.md` (Figure S3; S1 and S2 are
-the filter cascade and the split schematic in `docs/schematics.md`). When the SI document exists, include it
-with `\figph{fig_readout}`; `\graphicspath` already lists `figures/si/`. Since F1b, Figures S1 and S2 also exist as
+same vector PDF centred on a 138.6 mm page) with `figures/si/fig_readout.caption.md` (Figure S1 in the final numbering of F1c;
+it was S3 until then, with the filter cascade and the split schematic as S1 and S2). When the SI document exists, include it
+with `\figph{fig_readout}`; `\graphicspath` already lists `figures/si/`. Since F1b, the cascade and splits (final numbers S2 and S3) also exist as
 `figures/si/fig_cascade.pdf` and `figures/si/fig_splits.pdf` (the schematics centred on a 138.6 mm page, caption
 files beside them; `figures/code/fig_si_schematics.py`), included with `\figph{fig_cascade}` and
 `\figph{fig_splits}`. The final placement of every figure is in `docs/figure_inventory.md`. Methods text that describes the readout
-(Section `sec:backbones`) may cite it as Figure S3.
+(Section `sec:backbones`) may cite it as Figure S1.
 
 ## 3. Results figures (results.tex)
 
@@ -62,9 +62,8 @@ Both caption stubs can be filled from `figures/main/fig2_learning_curves.caption
 `figures/main/fig3_advantage.caption.md`, which name the record and key of every plotted value. In LaTeX, the
 numbers come from the generated macros of those keys, not from the caption files.
 
-Not yet referenced in `paper/`: `figures/main/fig_g1_learning_curves.pdf` (G1, ANALYSIS_PLAN section 14; a
-candidate for the SI, since Figures 2 and 3 cover the same estimates) and `figures/main/fig_within_host.pdf`
-(within-host skill and A_within). Each has a caption file beside it.
+Not yet referenced in `paper/` when this section was written: the G1 and within-host figures. Their placement
+is settled in F1c (section 7): within-host is Figure 6, G1 is unnumbered.
 
 ## 4. Backbone wording in captions
 
@@ -102,3 +101,22 @@ adopted after diagnostics of v1. None calls v2 pre-registered. Paper captions sh
   called pre-registered. The paper's caption text should take its numbers from the macros of those keys.
 - Heights changed (Figure 2 84 mm, G1 94 mm, within-host 82 mm, Figure 3 72 mm); widths unchanged, so no
   `\figph` width needs editing.
+
+## 7. F1c: final numbering (2026-10-14)
+
+The final numbers are in `docs/figure_numbering.md` (old file names to numbers) and `docs/figure_inventory.md`.
+For the paper session:
+
+- Main text: Figure 1 overview, 2 learning curves, 3 advantage, 4 staging, 5 geometry, 6 within-host, 7
+  screening. Figure 6 is new in the text: `\figph{fig6_within_host}` (138.6 mm, no width argument), caption
+  from `figures/main/fig6_within_host.caption.md`. `figures/main/fig_within_host.pdf` is a copy under the old
+  name, kept only because files outside the figure scope name it; do not include it. At `origin/main`
+  `bdbc8bd`, `paper/sections/results.tex` line 47 still includes `\figph{fig6_probe}` as the main-text Figure
+  6; under this numbering that slot is the within-host figure and the probe goes to the SI as Figure S7.
+- SI: S1 readout (`\figph{fig_readout}`), S2 cascade (`\figph{fig_cascade}`), S3 splits (`\figph{fig_splits}`),
+  S4 within-host groups (`fig_si_withinhost_groups`), S5 GPU class (`fig_si_gpu_class`), S6 sensitivities
+  (`fig_si_sensitivities`), S7 latent probe (`fig6_probe`), S8 SnO2 render (`structure_sno2_vacancy.png`). The
+  Methods reference to the readout becomes Figure S1 (section 2); the Figure 7 caption cites the render as S8.
+- `figures/si/fig_g1_learning_curves.pdf` is kept but not cited and not numbered.
+- Extension points of v1 in Figures 2, 3 and 6 (and G1) now have dashed interval bars; the caption files say so
+  in the shared extension sentence. Sizes are unchanged, so no `\figph` width changes.

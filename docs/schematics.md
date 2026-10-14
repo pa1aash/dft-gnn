@@ -8,13 +8,15 @@ explanatory text, only model, stage and quantity names and panel letters.
 | File | Placement | Content | Size (mm) |
 |---|---|---|---|
 | `fig_pipeline.tex` | Figure 1 | Supercell, 5.0 Å radius graph and MEGNet backbone; S, D, P side by side with RF and B0 | 137.5 x 81.5 |
-| `fig_readout.tex` | Figure 2 | Readout [h_v ‖ pooled h ‖ u] to MLP to E_f for S; D-state injection points | 133.4 x 53.9 |
-| `fig_cascade.tex` | Figure S1 | Filter cascade, step names only (counts stay in Table 1) | 137.4 x 22.2 |
-| `fig_splits.tex` | Figure S2 | Grouped hold-out with nested budgets, Kiyohara split, K-fold CV, leave-one-chemistry-out | 136.3 x 65.2 |
+| `fig_readout.tex` | Figure S1 (Figure 2 when written; SI since M3b) | Readout [h_v ‖ pooled h ‖ u] to MLP to E_f for S; D-state injection points | 133.4 x 53.9 |
+| `fig_cascade.tex` | Figure S2 (S1 when written) | Filter cascade, step names only (counts stay in Table 1) | 137.4 x 22.2 |
+| `fig_splits.tex` | Figure S3 (S2 when written) | Grouped hold-out with nested budgets, Kiyohara split, K-fold CV, leave-one-chemistry-out | 136.3 x 65.2 |
 
 All four fit the MDPI text width of 138.6 mm (`docs/venue.md` B1), so they are placed at natural size;
 the figure font is 8 pt TeX Gyre Heros (Helvetica metrics, as the matplotlib figures use Arial/Helvetica),
-with `sansmath` for symbols.
+with `sansmath` for symbols. Placement is the final numbering (F1c, `docs/figure_numbering.md`); the caption files of
+record here keep the numbers they were written with, and the SI caption files in `figures/si/` carry the final
+ones.
 
 ## Palette
 
