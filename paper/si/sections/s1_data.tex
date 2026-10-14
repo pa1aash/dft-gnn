@@ -29,9 +29,9 @@ step are read from \texttt{results/filter\_cascade.json}.
 The three exclusions concern the integrity of the labels, not the chemistry of the hosts. D1 removes the
 \numFilterCascadeStepsDOneNRemoved{} entries of the subset that the release itself flags as a split vacancy, an
 unknown defect type, or a relaxed configuration that is not the configuration of the initial vacancy. Each of
-them also carries the last flag, so the relaxed cell of these entries no longer holds a single oxygen vacancy on
-the labelled site, and the stored formation energy does not belong to the structure that a model reads. The flags
-had removed these entries from neither the subset nor its published split. D2 removes the
+them also carries the last flag, so the stored energy of these entries may not belong to a single vacancy on the
+labelled site, which is the structure that a model reads. The subset had kept these entries although the release
+flags them. D2 removes the
 \numFilterCascadeStepsDTwoNRemoved{} sites of Sr$_2$Zr$_7$O$_{16}$, whose site labels in the machine-learning
 tables do not match the targets of the release; the release gives no criterion that explains the mismatch, so the
 host is excluded rather than repaired. D3 concerns the two hosts whose cell metadata are inconsistent with their
