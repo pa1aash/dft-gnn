@@ -37,6 +37,7 @@ Helpers: `figure`, `band_curve`, `baseline_curve`, `ext_points`, `ext_x`, `learn
 | G1 learning curves (ANALYSIS_PLAN §14) | `figures/main/fig_g1_learning_curves.pdf` (+ PNG preview) | `figures/code/fig_g1_learning_curves.py` | `results/g1_primary.json` (v1), `results/c1c2_v2.json` (v2) |
 | Within-host skill and A_within | `figures/main/fig_within_host.pdf` | `figures/code/fig_within_host.py` | `results/c1c2_v2.json`, `results/c1c2_v1.json` |
 | SI, readout schematic (Figure S3) | `figures/si/fig_readout.pdf` | `figures/code/fig_si_readout.py` | `schematics/fig_readout.pdf` |
+| SI, filter cascade (Figure S1) and split designs (Figure S2), added in F1b | `figures/si/fig_cascade.pdf`, `figures/si/fig_splits.pdf` | `figures/code/fig_si_schematics.py` | `schematics/fig_cascade.pdf`, `schematics/fig_splits.pdf` (natural widths 137.4 and 136.3 mm, centred on a 138.6 mm page) |
 
 Every plot script takes `--results-root DIR` and `--out-dir DIR` (defaults `results/`, `figures/main/`) and
 writes its caption file beside the PDF. The registered inputs are the 10-resample x 3-seed records. The
@@ -62,9 +63,8 @@ Payload schema: that of `results/c1c2_<arm>.json`: `budgets` (point keys, e.g. `
 `"k20"`), `mae.<key>.<S|D-state>.<mae|within_host_skill>.{mean, ci}`,
 `A_mae.<key>.{A, ci95, upper_one_sided_95}`, `A_within_host.<key>.{A, ci95}`, plus
 `x_training_hosts.<key>` (the mean fold training size for CV; may be omitted when the key is the budget).
-For precision, the payload's top-level estimates are the pooled 30 x 5 values. The scripts were checked
-against synthetic records of this schema (not committed): all four build and pass QA with three of the four
-extensions present.
+For precision, the payload's top-level estimates are the pooled 30 x 5 values. All four records exist at
+`results-v1`, and the four scripts are built from them (F2 rebuild; QA below).
 
 ## Figures 4 to 6 (built in A2 to A4)
 
@@ -76,7 +76,7 @@ their records, QA below.
 | Figure | Claim | Output | Script | Result records | Status |
 |---|---|---|---|---|---|
 | Figure 4, staging | C3a, C3a-v2 | `figures/main/fig4_staging.pdf` | `figures/code/fig4_staging.py` | `results/staging_v1.json` (registered staging analysis, v1), `results/staging_v2.json` (POST HOC, v2) | built (A2) |
-| Figure 5, geometry | C3b | `figures/main/fig5_geometry.pdf` | `figures/code/fig5_geometry.py` | `results/geometry_c3b.json` (v1, our 818 relaxations), `results/geometry_descriptive.json`, `results/analysis/geometry_host_change.parquet` | built (A3); v1 only: no v2 geometry evaluation on our relaxations exists. The collaborator's 809-host evaluation (`results/mlip/`, `results/mlip_eval_v2.json`) is excluded from C3b by the `docs/deviations.md` row of 2026-10-11 (§9) and is not drawn. The caption names the keys of `results/geometry_c3b.json` but not its file name (open point for a figure session) |
+| Figure 5, geometry | C3b | `figures/main/fig5_geometry.pdf` | `figures/code/fig5_geometry.py` | `results/geometry_c3b.json` (v1, our 818 relaxations), `results/geometry_descriptive.json`, `results/analysis/geometry_host_change.parquet` | built (A3); v1 only: no v2 geometry evaluation on our relaxations exists. The collaborator's 809-host evaluation (`results/mlip/`, `results/mlip_eval_v2.json`) is excluded from C3b by the `docs/deviations.md` row of 2026-10-11 (§9) and is not drawn. The caption names `results/geometry_c3b.json` and its keys (file name added in F1b) |
 | Figure 6, latent probe | C4, C4-v2 | `figures/si/fig6_probe.pdf` (moved to the SI under the §10 rule) | `figures/code/fig6_probe.py` | `results/probe_c4_v1.json` (v1), `results/probe_descriptive.json` (`payload.s_v2`, POST HOC) | built (A4), SI |
 
 ## QA
@@ -86,32 +86,45 @@ one font family; width 138.6 or 184.6 mm (+/- 0.5 mm; or `--width-mm`); and no t
 inside an axes (axes found from the clip rectangles matplotlib writes for data artists; a PDF without any
 axes fails this check, because the rule needs at least one). Exit status 0 only if all checks pass.
 
-Status of every PDF in `figures/main/` and `figures/si/` on 2026-10-14 (F2, after the rebuild with the extension
-inputs; `python figures/code/qa_figure.py figures/main/*.pdf figures/si/*.pdf`); rows for Figures 4 to 6 added at the results freeze, A6, from the same command; the full table is
-repeated in `results/freeze_table.json`, `payload.checks.figures`):
+Status of every PDF in `figures/main/` and `figures/si/` on 2026-10-14 (F1b, after the redraws of Figure 5,
+Figure 6, Figure 7 and the GPU-class figure and the new SI schematic pages; `python figures/code/qa_figure.py
+figures/main/*.pdf figures/si/*.pdf`). The frozen copy of the earlier table in `results/freeze_table.json`
+(`payload.checks.figures`) is not edited; every row it holds has the same outcome here.
 
-| Figure | vector | fonts | one_family | width (mm) | height (mm) | no_text_in_axes | Result |
-|---|---|---|---|---|---|---|---|
-| `main/fig2_learning_curves.pdf` | ok | ok | ok (Arial) | 138.6 | 84.0 | ok | PASS |
-| `main/fig3_advantage.pdf` (extended) | ok | ok | ok (Arial) | 138.6 | 72.0 | ok | PASS |
-| `main/fig_g1_learning_curves.pdf` | ok | ok | ok (Arial) | 138.6 | 94.0 | ok | PASS |
-| `main/fig_within_host.pdf` | ok | ok | ok (Arial) | 138.6 | 82.0 | ok | PASS |
-| `main/fig7_screening.pdf` | ok | ok | ok (Arial) | 138.6 | 80.0 | ok | PASS |
-| `main/fig1_overview.pdf` | FAIL (1 raster: the ZnO render, by design) | ok | ok (TeX Gyre Heros) | 138.6 | 142.0 | FAIL (no axes: schematic and render, nothing to check) | accepted with reason (documented exception) |
-| `si/fig_si_gpu_class.pdf` | ok | ok | ok (Arial) | 138.6 | 118.0 | ok | PASS |
-| `si/fig_si_withinhost_groups.pdf` | ok | ok | ok (Arial) | 138.6 | 205.0 | ok | PASS |
-| `si/fig_si_sensitivities.pdf` (A5, added 2026-10-14) | ok | ok | ok (Arial) | 138.6 | 82.0 | ok | PASS |
-| `main/fig4_staging.pdf` (A2, added at the freeze) | ok | ok | ok (Arial) | 138.6 | 84.0 | ok | PASS |
-| `main/fig5_geometry.pdf` (A3, added at the freeze) | ok | ok | ok (Arial) | 138.6 | 128.0 | ok | PASS |
-| `si/fig6_probe.pdf` (A4, added at the freeze) | ok | ok | ok (Arial) | 138.6 | 172.0 | ok | PASS |
-| `si/fig_readout.pdf` | ok | ok | ok (TeX Gyre Heros; the CMSY8 math glyph was removed from `schematics/fig_readout.tex`) | 138.6 | 53.9 | FAIL (no axes: schematic, nothing to check) | accepted with reason (documented exception): vector, fonts, one family and width pass; the axes rule has no axes to test |
+| Figure | Placement | vector | fonts | one_family | width (mm) | height (mm) | no_text_in_axes | Result |
+|---|---|---|---|---|---|---|---|---|
+| `main/fig1_overview.pdf` | Fig 1 | FAIL (1 raster: the ZnO render, by design) | ok | ok (TeX Gyre Heros) | 138.6 | 142.0 | FAIL (no axes: schematic and render, nothing to check) | accepted with reason (documented exception) |
+| `main/fig2_learning_curves.pdf` | Fig 2 | ok | ok | ok (Arial) | 138.6 | 84.0 | ok | PASS |
+| `main/fig3_advantage.pdf` | Fig 3 | ok | ok | ok (Arial) | 138.6 | 72.0 | ok | PASS |
+| `main/fig4_staging.pdf` | Fig 4 | ok | ok | ok (Arial) | 138.6 | 84.0 | ok | PASS |
+| `main/fig5_geometry.pdf` (caption only changed in F1b; PDF byte-identical) | Fig 5 | ok | ok | ok (Arial) | 138.6 | 128.0 | ok | PASS |
+| `main/fig7_screening.pdf` (F1b: v1 bar dash (4, 2)) | Fig 7 | ok | ok | ok (Arial) | 138.6 | 80.0 | ok | PASS |
+| `main/fig_g1_learning_curves.pdf` | not placed | ok | ok | ok (Arial) | 138.6 | 94.0 | ok | PASS |
+| `main/fig_within_host.pdf` | not placed | ok | ok | ok (Arial) | 138.6 | 82.0 | ok | PASS |
+| `si/fig_cascade.pdf` (F1b) | Figure S1 | ok | ok | ok (TeX Gyre Heros) | 138.6 | 22.2 | FAIL (no axes: schematic, nothing to check) | accepted with reason (documented exception, as the readout) |
+| `si/fig_splits.pdf` (F1b) | Figure S2 | ok | ok | ok (TeX Gyre Heros) | 138.6 | 65.2 | FAIL (no axes: schematic, nothing to check) | accepted with reason (documented exception, as the readout) |
+| `si/fig_readout.pdf` | Figure S3 | ok | ok | ok (TeX Gyre Heros; the CMSY8 math glyph was removed from `schematics/fig_readout.tex`) | 138.6 | 53.9 | FAIL (no axes: schematic, nothing to check) | accepted with reason (documented exception): vector, fonts, one family and width pass; the axes rule has no axes to test |
+| `si/fig6_probe.pdf` (F1b: dashed v1 bars in (c)) | SI | ok | ok | ok (Arial) | 138.6 | 172.0 | ok | PASS |
+| `si/fig_si_gpu_class.pdf` (F1b: dashed v1 bars, key-only caption) | SI | ok | ok | ok (Arial) | 138.6 | 118.0 | ok | PASS |
+| `si/fig_si_sensitivities.pdf` | SI | ok | ok | ok (Arial) | 138.6 | 82.0 | ok | PASS |
+| `si/fig_si_withinhost_groups.pdf` | SI | ok | ok | ok (Arial) | 138.6 | 205.0 | ok | PASS |
+
+The structure renders (`figures/main/fig1_zno_vacancy.png`, `figures/si/structure_sno2_vacancy.png`) are PNG by
+design and are outside the PDF check (see Structure renders).
+
+Backbone audit (F1b, Figure 7 and every SI figure): v2 solid with filled markers and bands, v1 dashed with open
+markers and hatched bands or dashed bars; legend wording exactly "primary backbone (v2)" and "originally
+registered backbone (v1)" where a backbone is drawn (Figure 6 draws v1 only; the schematics none); no text inside
+an axes; widths 138.6 mm. Deviations fixed in F1b: the GPU-class figure drew v1 bars solid and its backbone legend
+entries as markers without a line; Figure 6 (c) drew the v1 trained-probe bars solid; Figure 7 used a (3, 1.6)
+dash for v1 bars instead of the style's (4, 2).
 
 F2 rebuilt Figure 2, Figure 3, G1, within-host and the SI GPU-class figure (CV marker change) with all four
 extension records drawn; Figure 2, G1 and within-host grew in height (74 to 84, 88 to 94, 72 to 82 mm) so the
 legend, now one entry longer, does not shrink the panels. `figures/main/fig3_advantage_extended.pdf` is no longer
 in `figures/main` (see `docs/figure_integration.md`). Their captions name records and keys and contain no typed
-numbers outside file names, keys and figure identifiers; the SI GPU-class caption still types its design points
-and GPU class names (not rewritten in F2).
+numbers outside file names, keys and figure identifiers; the SI GPU-class caption, which still typed its design
+points and GPU class names after F2, was rewritten in the same key-only style in F1b.
 
 Figures 2, 3, G1 and within-host replace the versions that failed in M3 (Computer Modern or DejaVu fallback,
 widths of 164.0 and 81.5 mm, a legend inside the data area, panel titles in the plot). The M3 style exercise

@@ -44,7 +44,7 @@ def draw(ax, x, y, lo, hi, color: str, version: str) -> None:
                                     capsize=CAP, capthick=0.9, zorder=3)
         if not filled:
             for b in bars:
-                b.set_linestyle((0, (3.0, 1.6)))
+                b.set_linestyle(sp.BACKBONE_LS[version])
     ax.plot([x], [y], ls="none", marker="o", ms=MS, mfc=color if filled else "white", mec=color if filled else color,
             mew=0.9 if filled else 1.2, zorder=4)
 

@@ -3,8 +3,9 @@ pristine host unit cells were relaxed with MACE-MP-0 (medium model, double preci
 supercells (`docs/deviations.md`: the geometry, relaxation and tiling rows); the models are not retrained. Three
 inference conditions: (i) DFT geometry, (ii) MLIP geometry and (iii) MLIP geometry isotropically rescaled to the DFT
 volume. S is the structure-only model, D the descriptor model, which keeps its DFT descriptors under every condition
-(a fixed oracle, so its change isolates the graph input), and P the staged model (predicted descriptors into D). All
-series are the originally registered backbone (v1), drawn with open markers and dashed interval bars, at the
+(a fixed oracle, so its change isolates the graph input), and P the staged model (predicted descriptors into D).
+Values: `results/geometry_c3b.json`, the registered geometry analysis; every `payload` key below belongs to that
+record unless another file is named. All series are the originally registered backbone (v1), drawn with open markers and dashed interval bars, at the
 registered budget (key `payload.budgets.654`); the descriptive extra budget is under `payload.budgets.200` and is not
 drawn. (**a**) ΔMAE = MAE(condition) − MAE(DFT geometry) of the seed-ensemble predictions on the same test sites, for
 MLIP geometry (circles) and MLIP geometry rescaled to the DFT volume (down triangles), with two-sided 95% intervals of
