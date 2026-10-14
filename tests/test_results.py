@@ -1,5 +1,6 @@
 import json
 import subprocess
+from importlib import metadata
 
 import pytest
 
@@ -40,3 +41,10 @@ def test_dirty_tree_refused_unless_allowed(tmp_path):
         write_result("demo", {}, repo_root=tmp_path, results_dir=tmp_path / "r")
     out = write_result("demo", {}, repo_root=tmp_path, results_dir=tmp_path / "r", allow_dirty=True)
     assert json.loads(out.read_text())["git_dirty"] is True
+
+
+def test_write_result_records_matgl_version(tmp_path):
+    _repo(tmp_path)
+    out = write_result("demo", {}, repo_root=tmp_path, results_dir=tmp_path / "results")
+    versions = json.loads(out.read_text())["package_versions"]
+    assert versions["matgl"] == metadata.version("matgl")

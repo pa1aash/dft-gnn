@@ -14,7 +14,7 @@ from dftgnn.config import Config, load_config
 REPO_ROOT = Path(__file__).resolve().parents[3]
 PACKAGES = (
     "numpy", "scipy", "pandas", "scikit-learn", "pymatgen", "ase",
-    "torch", "torch_geometric", "mace-torch", "pydantic", "optuna",
+    "torch", "torch_geometric", "mace-torch", "matgl", "pydantic", "optuna",
 )
 
 
