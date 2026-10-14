@@ -70,6 +70,8 @@ Each macro expands to `\ensuremath{...}`, so it works in text and in math:
   magnitude 1000 or more is rounded to an integer with separators; magnitude below 0.001 is written as
   `m\times10^{e}` with two significant figures;
 - negative values carry a math minus sign; positive values carry no sign.
+- training-host counts (leaves under `x_training_hosts`, `HOST_COUNT_KEYS`) are printed as the nearest
+  integer, because the cross-validation values are mean fold sizes (736.2 prints as 736).
 
 Write a macro followed by `{}` before a space (`\numVarianceDecompositionHostIcc{} of`) so the space is kept.
 A number that needs a different rounding or a derived value (a percentage, a difference not stored in a
