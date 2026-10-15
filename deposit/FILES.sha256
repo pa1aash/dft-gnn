@@ -1,10 +1,10 @@
 # FILES.sha256: every file proposed for the Zenodo archive, written by deposit/make_files_manifest.py
-# repository HEAD when hashed: 9d664032ac313515d2f0cf9630bfdff57ac43674 (the code rows are provisional until the final tag)
+# repository HEAD when hashed: 41cedd7f222eb6052d98cafef0c7eedc87c1ce1d (the code rows are provisional until the final tag)
 # this file is not listed in itself
 # components: deposit = top-level record files; code = members of the code snapshot;
 #   bundle = assets of release inputs-v1; inputs, checkpoints, mace = members of those bundles;
 #   snapshot = code snapshot zip of the final tag (absent until the results freeze)
-# total code: 8594 files, 282154237 bytes
+# total code: 8594 files, 282154261 bytes
 # total deposit: 6 files, 30397 bytes
 # total bundle: 11 files, 1206905688 bytes
 # total inputs: 832 files, 148593736 bytes
@@ -95,7 +95,7 @@ dbd89c8404379101af819a52cad279fb65f671d72176d91f0097f7fc640d0d46	6260	code	docs/
 44ba932341e50433d0e248fe3ed5c6b83dab3ae24da7961fe9493e5902f6c71a	1143199	code	docs/json_schema_inventory.csv
 691adc47773643742f3671f22fa43c28a8469a7bdf78f67a9f42c83bddc0cab3	3718	code	docs/limitations_notes.md
 3fb6e4c6f23a555549f92fd85d2fdfb32ace65f3e0ff880adabbf09ea0fa5e63	32573	code	docs/literature.md
-6a87dfef57591a63f1c1b6b6df3ece6030e54816274779c851d5a3b9f6030c93	8221	code	docs/mdpi_checklist.md
+12402c05d1c7fc469c320ee0abaf4246bf23c6df503c1e5b0a7323ece6dbe1cb	8245	code	docs/mdpi_checklist.md
 d1fd9b1af99179cb24729f095f57f30a77b4a0744073cc7fc97e900b6e971b5d	7769	code	docs/methods_notes.md
 26aa3d4afbbbc1b1f3b921826ac6718fa1f276acb8eed501d8bd032fb9ea874c	2560	code	docs/nrp/n0.md
 2280c6b0377eb98e077962365fe54b654f1f2f580b36d056078041df44014ca9	1957	code	docs/nrp/n0_job.yaml
