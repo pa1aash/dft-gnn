@@ -60,7 +60,11 @@ decision before upload. History is never rewritten.
    - `deposit/README.md`;
    - `deposit/.zenodo.json`;
    - `docs/data_availability.md`;
-   - `paper/sections/data_availability.tex`.
+   - `paper/sections/data_availability.tex`;
+   - `paper/sections/methods.tex` (Provenance Labels and Reproducibility);
+   - `paper/si/sections/s9_reproducibility.tex`.
+
+   The full list with line numbers is in `docs/placeholders.md`.
 
    In `deposit/CITATION.cff`, add `doi`, `version`, `commit` and `date-released`.
 2. Validate the metadata. Fetch the two schemas as described in the header of `deposit/validate_metadata.py`,
