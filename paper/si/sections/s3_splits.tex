@@ -9,14 +9,14 @@ Table~\ref{tab:cascade}), and the four designs are drawn in Figure~\ref{fig:spli
 \begin{figure}[htbp]
 \centering
 \sifig{fig_cascade}
-\caption{Filter cascade that defines universe v1, from the completed neutral oxygen-vacancy entries of the release of
+\caption{Filter cascade that defines the \numFilterCascadeStepsFinalHosts{}-host dataset, from the completed neutral oxygen-vacancy entries of the release of
 Kumagai et al.\ through its neutral machine-learning subset and the filters D1 to D3 of this work. Dashed boxes are
 the entries excluded at each step, and Table~\ref{tab:cascade} gives the site and host counts after every step.}
 \label{fig:cascade}
 \end{figure}
 
 In the primary protocol each of \numCfgSplitNOuterResamples{} outer resamples holds out
-\numSplitMetaNTestHosts{} test hosts, a fraction \numSplitMetaTestFraction{} of the universe, stratified by the
+\numSplitMetaNTestHosts{} test hosts, a fraction \numSplitMetaTestFraction{} of the dataset, stratified by the
 host-mean formation energy, and orders the remaining pool of \numSplitMetaPoolSize{} hosts so that the training
 set at budget $B$ is its first $B$ hosts. The budgets, \numCfgBudgetsHostsItemOne{} to \numCfgBudgetsHostsItemSix{}
 hosts, are therefore nested within a resample, and the test hosts of a resample are the same at every budget, so
@@ -42,13 +42,13 @@ of those hosts in the comparison itself (\texttt{results/c0\_official.json}, key
 The grouped $K$-fold cross-validation (extension) partitions all \numSplitCvNHosts{} hosts into
 $K = \numSplitCvKsItemOne{}$ or $K = \numSplitCvKsItemTwo{}$ folds, so that every host is tested exactly once and the
 mean training set, \numCvGOneVOneXTrainingHostsKTen{} and \numCvGOneVOneXTrainingHostsKTwenty{} hosts, exceeds the
-largest registered budget. Its test population is the whole universe, including the
+largest registered budget. Its test population is the whole dataset, including the
 \numSplitMetaCoverageNeverInTest{} hosts that no outer resample tests, so a cross-validated error is not directly
 comparable with a registered budget at a similar number of training hosts.
 
 Leave-one-chemistry-out asks whether the models transfer to chemistries absent from training. Each host belongs to
 the family given by the set of periodic-table groups of its cations, which gives \numSplitLocoNFamilies{} families
-over the universe, and \numSplitLocoNFolds{} folds each hold out whole families. The runs of the originally
+over the dataset, and \numSplitLocoNFolds{} folds each hold out whole families. The runs of the originally
 registered network follow the registered design but are the collaborator's, whose validation carve-out differs
 from the one our later clarification specifies; they are adopted as run and labelled extension at the results
 freeze (\texttt{docs/freeze\_notes.md}), while \texttt{docs/provenance\_labels.md} records them as registered in
