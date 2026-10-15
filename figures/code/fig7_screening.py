@@ -40,12 +40,12 @@ def draw(ax, x, y, lo, hi, color: str, version: str) -> None:
     """One site of one backbone: marker with a min-max bar (none when the host was held out once)."""
     filled = sp.BACKBONE_FILLED[version]
     if hi > lo:
-        _, caps, bars = ax.errorbar(x, y, yerr=[[y - lo], [hi - y]], fmt="none", ecolor=color, elinewidth=0.9,
+        _, _caps, bars = ax.errorbar(x, y, yerr=[[y - lo], [hi - y]], fmt="none", ecolor=color, elinewidth=0.9,
                                     capsize=CAP, capthick=0.9, zorder=3)
         if not filled:
             for b in bars:
                 b.set_linestyle(sp.BACKBONE_LS[version])
-    ax.plot([x], [y], ls="none", marker="o", ms=MS, mfc=color if filled else "white", mec=color if filled else color,
+    ax.plot([x], [y], ls="none", marker="o", ms=MS, mfc=color if filled else "white", mec=color,
             mew=0.9 if filled else 1.2, zorder=4)
 
 
