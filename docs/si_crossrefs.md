@@ -10,7 +10,7 @@ not by `\ref`, because the SI is a separate document.
 
 | Article location | Citation as written | What the sentence needs | SI item | SI label (compiled number, page) | Status |
 |---|---|---|---|---|---|
-| `results.tex:84` (Section 3.4, site resolution) | Supplementary Figure S4 | breakdown of the within-host error by chemistry (extension) | Figure S4, `fig_si_withinhost_groups`, Section S4 with Table S7 | `fig:withinhost` (S4, p. 10) | match |
+| `results.tex:84` (Section 3.4, site resolution) | Supplementary Figure S4 | breakdown of the within-host error by chemistry (extension) | Figure S4, `fig_si_withinhost_groups`, Section S4 with Table S7 | `fig:si_withinhost_groups` (S4, p. 10) | match |
 | `results.tex:128` (Section 3.7, latent probe) | Supplementary Figure S7 | the probe figure, moved to the SI because the registered rule fails | Figure S7, `fig6_probe`, Section S7 | `fig:probe` (S7, p. 16) | match |
 | `results.tex:135` (Section 3.9, sensitivities and hardware) | Supplementary Figures S5 and S6 | high-moment exclusion, training-length limit, architecture (S6) and hardware (S5) | Figure S5 `fig_si_gpu_class` (Section S5); Figure S6 `fig_si_sensitivities` (Section S6) | `fig:gpu` (S5, p. 12); `fig:sens` (S6, p. 14) | match |
 | `results.tex:139` (Section 3.9, hardware) | Supplementary Figure S5 | paired-cell A by GPU class | Figure S5, Table S9 | `fig:gpu` (S5, p. 12) | match |
@@ -55,8 +55,18 @@ Numbers checked against `paper/si/si.aux` of the SI built in the W2 worktree (`m
 | Section 4.2 (`sec:disc_site`), second paragraph | Supplementary Figure S1 | the step that reads the vacancy-site vector into the energy | `fig:readout` (S1, p. 4) | match |
 | Section 4.3 (`sec:disc_domain`), first paragraph | Supplementary Figure S2 | the filter cascade, including the perturbed-host-state step | `fig:cascade` (S2, p. 6) | match |
 | Section 4.6 (`sec:disc_limitations`) | Supplementary Figure S3 | the split designs, for the cross-validation test population | `fig:splits` (S3, p. 7) | match |
-| Section 4.2, third paragraph | Supplementary Figure S4 | within-host spread by d-electron class and cation | `fig:withinhost` (S4, p. 10) | match |
+| Section 4.2, third paragraph | Supplementary Figure S4 | within-host spread by d-electron class and cation | `fig:si_withinhost_groups` (S4, p. 10) | match |
 | Section 4.6 | Supplementary Figure S5 | GPU class | `fig:gpu` (S5, p. 12) | match |
 | Section 4.6 | Supplementary Figure S6 | training-length limit (capped twins) | `fig:sens` (S6, p. 14) | match |
 | Section 4.4 (`sec:disc_pipeline`), third paragraph | Supplementary Figure S7 | the latent probe | `fig:probe` (S7, p. 16) | match |
 | Section 4.3, third paragraph | Supplementary Figure S8 | the SnO2 site render | `fig:sno2` (S8, p. 18) | match |
+
+## T1 update (2026-10-15)
+
+The label of Supplementary Figure S4 is `fig:si_withinhost_groups` (renamed in F3, `bb45417`); the tables above now
+use it. The three unnumbered citations of the second table now cite the figure by number: `data.tex` (filter
+cascade) cites Supplementary Figure S2, `methods.tex` (readout) Supplementary Figure S1 and `methods.tex`
+(`sec:splits`) Supplementary Figure S3. The `methods.tex` sentence on deviations (`sec:repro`) now says that the
+Supplementary Materials summarise the departures by kind (Section S9) and that the full dated log is released with
+the code (final code tag and Zenodo DOI still placeholders), which resolves the extent mismatch recorded above
+without adding the log to the SI. Line numbers in the tables above refer to the W3 state and have shifted.
