@@ -3,7 +3,7 @@
 
 If learning formation energies from structure alone made the network learn the electronic structure of the host,
 a linear map from its learned description of the vacancy site and its host to the DFT descriptors should improve as
-the network sees more training oxides, and should do better than the same map applied to an untrained network
+the network sees more training hosts, and should do better than the same map applied to an untrained network
 reading the same geometry. This is claim C4, registered on the originally registered network (v1;
 \texttt{docs/a4\_notes.md}). For every resample and budget, the readout input of the seed-0 S checkpoint (the
 vacancy-site vector, the pooled host vector and the global state) was mapped by a ridge regression, fitted on the

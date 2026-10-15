@@ -1,7 +1,7 @@
 \section{Data: filter cascade, descriptor classes and integrity exclusions}
 \label{si:data}
 
-The universe of this work is the set of neutral oxygen vacancies, $V_\mathrm{O}^{\times}$, of the release of
+The dataset of this work is the set of neutral oxygen vacancies, $V_\mathrm{O}^{\times}$, of the release of
 Kumagai et al.\ \citep{Kumagai2021insights} that survive a fixed cascade of filters (Table~\ref{tab:cascade}; the
 cascade is drawn as Figure~\ref{fig:cascade} in Section~\ref{si:splits}). The release holds
 \numFilterCascadeStepsReleaseSites{} completed neutral calculations in \numFilterCascadeStepsReleaseHosts{} host
@@ -11,13 +11,13 @@ perturbed-host-state entries (\numScreeningAbsenceReleaseNeutralCompletedPhs{} o
 the entries whose band edges could not be determined and the dynamically unstable hosts. A perturbed-host-state
 entry is a vacancy whose two donor electrons do not stay in a localised in-gap state but delocalise into the host
 conduction band, so the subset, and every result of this work, describes deep, localised neutral vacancies in
-non-magnetic ordered oxides. Our three further filters, D1 to D3, remove what the data audit
+ordered oxides classified as non-magnetic in the release. Our three further filters, D1 to D3, remove what the data audit
 (\texttt{docs/data\_audit.md}) found inconsistent in that subset; they leave \numFilterCascadeStepsFinalSites{}
 oxygen sites in \numFilterCascadeStepsFinalHosts{} hosts, one host per formula. The site counts after each
 step are read from \texttt{results/filter\_cascade.json}.
 
 \begin{table}[htbp]
-\caption{Filter cascade of universe v1, with the oxygen sites, hosts and formulas left after each step
+\caption{Filter cascade of the \numFilterCascadeStepsFinalHosts{}-host dataset, with the oxygen sites, hosts and formulas left after each step
 (\texttt{results/filter\_cascade.json}; the same table as \arttabcascade{} of the article).}
 \label{tab:cascade}
 \centering\small
@@ -40,7 +40,7 @@ supercells, Ba$_4$Nb$_2$WO$_{12}$ and Sr$_2$SnO$_4$ (the Sr$_2$SnO$_4$ supercell
 of the expected volume, because it was built from the primitive cell). An entry of these hosts is kept only if
 its labelled vacancy site maps to an oxygen atom of the supercell whose first cation shell matches that of the
 unit-cell site within \numFilterCascadeDThreeSrTwoSnOFourSitesOOneToleranceA{}~\AA{}; every entry passed, and D3
-removed \numFilterCascadeStepsDThreeNRemoved{} sites. Every site of the universe lies in the published split of
+removed \numFilterCascadeStepsDThreeNRemoved{} sites. Every site of the dataset lies in the published split of
 Kiyohara et al.\ \citep{Kiyohara2025machinelearning} (\numFilterCascadeKiyoharaSplitSitesAbsent{} sites absent),
 which is used for the comparison with the published accuracy (Section~\ref{si:splits}).
 
