@@ -5,7 +5,7 @@ with the definition the article uses and the place where it is first defined. Se
 `paper/sections/*.tex`; "Methods" means `sec:methods` and its subsections. The register follows
 `docs/prose_style.md`; this file records usage and does not change it. Every term below is used in the same sense in
 the Introduction, Data, Methods and Results after T1. Inconsistencies found in the Abstract, Discussion, Conclusions
-and SI, which T1 did not edit, are listed at the end for the next session.
+and SI, which T1 did not edit, are listed at the end; session T2 (2026-10-15) resolved each of them.
 
 ## Physical quantities and data
 
@@ -18,12 +18,12 @@ and SI, which T1 did not edit, are listed at the end for the next session.
 | host, host oxide | one crystal structure of the release; hosts are distinct formulas, so host and formula grouping coincide | Data (`sec:data`, Filter cascade) |
 | site | one symmetry-inequivalent oxygen of a host | Data (`sec:data`, Filter cascade) |
 | pristine host | the host supercell without the vacancy, as read by the networks | Data and Methods (`sec:graph`) |
-| universe, universe v1 | the final set of sites and hosts after the filter cascade D1 to D3 | Data (`sec:data`, Filter cascade) |
+| universe, universe v1; the 818-host dataset | the final set of sites and hosts after the filter cascade D1 to D3; the Discussion and SI call it "the dataset" or "the 818-host dataset" (`\numFilterCascadeStepsFinalHosts{}`) after T2 | Data (`sec:data`, Filter cascade) |
 | D1, D2, D3 | the three filters of this work, applied in order | Data (`sec:data`, Filter cascade) |
-| perturbed-host-state entry | an entry in which the two electrons of the neutral vacancy perturb the host band edge instead of occupying a localised state (shallow donor) | Data (`sec:domain`); gloss also in the Table 1 caption |
+| perturbed-host-state entry, PHS | an entry in which the two electrons of the neutral vacancy perturb the host band edge instead of occupying a localised state (shallow donor) | Data (`sec:domain`); gloss also in the Table 1 caption; abbreviation PHS defined in SI S4 and the Table S7 caption only (T2) |
 | deep, localised vacancy | the domain of every result: vacancies that remain after the perturbed-host-state filter | Data (`sec:domain`) |
 | shallow donor | a vacancy whose electrons delocalise into the conduction band; outside the domain | Data (`sec:domain`) |
-| non-magnetic | hosts classified as non-magnetic in the release | Introduction, last paragraph (T1 wording); Discussion 4.3 (T1 wording) |
+| non-magnetic | hosts classified as non-magnetic in the release | Introduction, last paragraph (T1 wording); same qualifier in Abstract, Discussion 4.3 and 4.6, Conclusions and SI S1, S6 (T2) |
 | d0 cation (`\dzero`) | cation with an empty $d$ shell | Data (`sec:domain`) |
 | $\mathrm{ICC}_\mathrm{host}$ | one-way random-effects intraclass correlation of $E_\mathrm{f}$ grouped by host | Data (`sec:data`, Source and target) |
 | descriptors | DFT quantities of the pristine cell given to D | Introduction, third paragraph; classes in Data (`sec:descriptors`) |
@@ -36,7 +36,7 @@ and SI, which T1 did not edit, are listed at the end for the next session.
 
 | Term | Definition used in the article | First defined |
 |---|---|---|
-| graph network | a learned encoder of the local coordination environment of every atom | Introduction, third paragraph (gloss added in T1) |
+| graph network | a learned encoder of the local coordination environment of every atom; keyword "graph neural network" (`sections/keywords.tex`) | Introduction, third paragraph (gloss added in T1; the only definition) |
 | backbone | the shared network architecture of MEGNet blocks | Methods (`sec:models`, Graph networks) |
 | MEGNet block | one step of aggregation over bonded neighbours; successive blocks span successive coordination shells | Methods (`sec:models`, Graph networks) |
 | neighbour list, cutoff | atoms closer than the cutoff are connected in the periodic graph | Methods (`sec:graph`) |
@@ -71,7 +71,7 @@ and SI, which T1 did not edit, are listed at the end for the next session.
 | precision extension | twenty further resamples with five seeds at the two largest budgets | Methods (`sec:splits`) |
 | leave one chemistry out | folds that hold out whole families of cation chemistry; registered in design, adopted as run under the extension protocol | Methods (`sec:splits`, T1 wording) |
 | MAE | site-level test mean absolute error, eV | Methods (`sec:statistics`) |
-| within-host residual MAE | MAE of the residuals after removing each host's mean of predictions and of targets | Methods (`sec:statistics`) |
+| within-host residual MAE | MAE of the residuals after removing each host's mean of predictions and of targets | Methods (`sec:statistics`); same term in Discussion 4.2 and SI S4 (T2) |
 | zero-skill value | within-host residual MAE of a predictor constant within a host; 0.187 eV under the registered resample-mean estimator (`\numHostMeanOracleAggregateWithinHostMaeMean`), 0.184 eV in the site-averaged breakdown (`\numWithinHostBreakdownGroupsPooledAllVOneSZeroSkillMaePoint`) | Methods (`sec:statistics`); the two estimators in Results (`sec:within_host`, T1) |
 | $A$ | $\mathrm{MAE}_\mathrm{S} - \mathrm{MAE}_\mathrm{D}$; positive when the descriptors lower the error | Methods (`sec:statistics`) |
 | $A_\mathrm{within}$ | the same contrast on the within-host residual MAE | Results (`sec:within_host`) |
@@ -84,31 +84,42 @@ and SI, which T1 did not edit, are listed at the end for the next session.
 | hierarchical bootstrap, host-cluster bootstrap | resamples then hosts with replacement; hosts only for single partitions | Methods (`sec:statistics`) |
 | registered v1, post hoc, extension | provenance labels by chronology; R, PH, E in Table 2 | Methods (`sec:repro`); Table 2 caption |
 
-## Inconsistencies in files T1 did not edit (for the next session)
+## Inconsistencies in files T1 did not edit (all resolved in T2)
 
 1. Abstract: "training hosts split by compound"; the body says grouped by formula or by host (Methods `sec:splits`).
    Suggest "split by formula".
+   Resolved (T2): Abstract now "training hosts grouped by formula", the grouping of Methods `sec:splits` and the Introduction.
 2. Abstract, Conclusions (first sentence) and Discussion 4.6 (first sentence): "ordered, non-magnetic hosts/oxides";
    Discussion 4.3 (second sentence) "on ordered hosts that are non-magnetic". The Introduction and the Discussion 4.3
    magnetic-host sentence now say "classified as non-magnetic in the release". Suggest the same qualifier, or one
    pointer, in the Abstract, Conclusions and Discussion 4.6.
+   Resolved (T2): Abstract (sentence 7), Conclusions (first sentence), Discussion 4.3 (second sentence) and 4.6 (first sentence), SI S1 and S6 now say "classified as non-magnetic in the release"; the later Discussion 4.3 sentence now reads "no host outside that classification was tested" to avoid repeating it.
 3. Abstract: "deep, neutral vacancies"; the body and Conclusions say "deep, localised neutral oxygen vacancies".
+   Resolved (T2): Abstract now "deep, localised neutral oxygen vacancies".
 4. Keywords: "graph neural network"; the article says "graph network" throughout.
+   Resolved (T2): keyword kept as "graph neural network" (`sections/keywords.tex`, outside the T2 scope, unchanged); the text defines the graph network once, in the Introduction, and Abstract, Discussion and Conclusions use "graph network" without redefining it.
 5. Discussion 4.2 (`sec:disc_site`): "within-host error" (twice); Methods and Results define "within-host residual
    MAE". The SI also writes "within-host MAE" in Section S4 and its table. Suggest "within-host residual MAE" at
    first use in each.
+   Resolved (T2): Discussion 4.2 and SI S4 (prose and the Table S7 caption) now say "within-host residual MAE" throughout.
 6. Abstract: "geometry relaxed with an interatomic potential"; Conclusions "relaxed interatomic-potential geometry";
    Discussion 4.4 "universal interatomic potential"; Methods and Introduction "machine-learned interatomic potential"
    (MACE-MP-0). Suggest "machine-learned interatomic potential" everywhere.
+   Resolved (T2): "machine-learned interatomic potential" in Abstract, Conclusions and Discussion 4.4.
 7. Abstract: "training oxides" and "training hosts" in one paragraph; the defined term is training hosts (x-axis
    rule). "Training oxides" also appears in the Introduction and Discussion as a synonym; acceptable in motivation,
    but the Abstract should use one.
+   Resolved (T2): Abstract uses only "training hosts"; Discussion 4.5 and 4.6 and SI S7 also changed to "training hosts".
 8. SI Table S7 (`tab_withinhost.tex`): "PHS-prone cation"; the abbreviation PHS is never defined in the article,
    which spells out "perturbed-host-state". Suggest spelling it out or defining it in the SI.
+   Resolved (T2): PHS spelled out as perturbed host state at its first use in SI S4 ("perturbed-host-state (PHS) rate") and in the Table S7 caption. The row labels themselves come from `paper/si/tools/make_si_tables.py` (outside the T2 scope), so they still read "PHS-prone".
 9. "universe v1" (Data and SI Tables S1, Figure S2 caption) shares the suffix v1 with the originally registered
    network; the two are unrelated. Consider dropping the label in the article or renaming it in a later pass.
+   Resolved (T2): the Discussion and SI no longer use "universe"; they say "the dataset" or "the \numFilterCascadeStepsFinalHosts{}-host dataset" (Table S1 and Figure S2 captions). Data (`sec:data`), outside the T2 scope, still defines "universe v1".
 10. SI Section S2 (`s2_training.tex`): label written "(registered v1; ...)"; the article tables use R, PH, E and the
    Methods label "Registered v1". Consistent in meaning; no change needed unless the SI adopts the table letters.
+    Resolved (T2): no change needed, as stated.
 11. Introduction (before T1) called the staged model, the geometry evaluation and the probe extensions or post hoc on
    v2 only; Methods, Results and `docs/provenance_labels.md` (#20, #22, #26) record all three as registered for v1.
    T1 corrected the Introduction. The Abstract and Conclusions do not label them and need no change.
+    Resolved (T2): no change needed, as stated.
