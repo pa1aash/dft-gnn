@@ -18,8 +18,10 @@ S7). The one exception is the within-host figure, renamed to `fig6_within_host` 
 | Figure 6, site resolution within a host | `figures/main/fig6_within_host.{pdf,caption.md}` | `figures/main/fig_within_host.{pdf,caption.md}` | "Figure." (unnumbered, not placed) | `figures/code/fig_within_host.py` (`STEM = "fig6_within_host"`) |
 | Figure 7, screening demonstration | `figures/main/fig7_screening.pdf` | unchanged | Figure 7 | `figures/code/fig7_screening.py` |
 
-The old within-host name is kept as a byte-identical copy, `figures/main/fig_within_host.{pdf,caption.md}`,
-because files outside the figure scope name it: `analysis/freeze_table.py` (`FIGURE_RECORDS`),
+Q0 (2026-10-15): `analysis/freeze_table.py` (`FIGURE_RECORDS`) and `deposit/FILES.sha256` now use the final names, nothing
+in `paper/`, `analysis/` or `deposit/` names the old file, and the copy `figures/main/fig_within_host.{pdf,caption.md}` has
+been deleted. `results/freeze_table.json` is frozen and still records the old name. Before Q0 the copy was kept
+because files outside the figure scope named it: `analysis/freeze_table.py` (`FIGURE_RECORDS`),
 `results/freeze_table.json` (frozen at `results-v1`, `payload.checks.figures`) and `deposit/FILES.sha256`. The
 script writes only the new name; the copy is refreshed by hand (`cp figures/main/fig6_within_host.pdf
 figures/main/fig_within_host.pdf`, likewise the caption) until those references move to the new name, after
@@ -49,7 +51,8 @@ it copies them, and `docs/schematics.md` lists the final numbers.
 |---|---|---|
 | `figures/si/fig_g1_learning_curves.{pdf,png,caption.md}` (G1 learning curves, ANALYSIS_PLAN section 14) | `figures/main/` | Kept, not cited in the text and not numbered (title "Figure G1"). Figure 2 and Figure 3 carry the same series. `figures/code/fig_g1_learning_curves.py` now writes to `figures/si/` by default. |
 
-Names that still point at the old G1 location, outside the figure scope: `analysis/freeze_table.py`
+Q0 (2026-10-15): `analysis/freeze_table.py` and `deposit/FILES.sha256` now name `si/fig_g1_learning_curves.pdf`; only the
+frozen `results/freeze_table.json` keeps the old location. Before Q0, names that still pointed at the old G1 location, outside the figure scope: `analysis/freeze_table.py`
 (`FIGURE_RECORDS["main/fig_g1_learning_curves.pdf"]`), `results/freeze_table.json` (frozen) and
 `deposit/FILES.sha256`. Session notes (`docs/g1_notes.md`, `docs/a1_notes.md`, `docs/a4_notes.md`,
 `docs/results_summary.md`) record the names in use when they were written and are not rewritten.

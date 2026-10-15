@@ -18,9 +18,9 @@ and SI, which T1 did not edit, are listed at the end; session T2 (2026-10-15) re
 | host, host oxide | one crystal structure of the release; hosts are distinct formulas, so host and formula grouping coincide | Data (`sec:data`, Filter cascade) |
 | site | one symmetry-inequivalent oxygen of a host | Data (`sec:data`, Filter cascade) |
 | pristine host | the host supercell without the vacancy, as read by the networks | Data and Methods (`sec:graph`) |
-| universe, universe v1; the 818-host dataset | the final set of sites and hosts after the filter cascade D1 to D3; the Discussion and SI call it "the dataset" or "the 818-host dataset" (`\numFilterCascadeStepsFinalHosts{}`) after T2 | Data (`sec:data`, Filter cascade) |
+| the 818-host dataset (record name `universe_v1`) | the final set of sites and hosts after the filter cascade D1 to D3, written "the `\numFilterCascadeStepsFinalHosts{}`-host dataset" at its definition and "the dataset" after it; "universe" no longer appears in the paper or SI (Q0); `universe_v1` survives only in file and record names | Data (`sec:data`, Filter cascade; Q0 wording) |
 | D1, D2, D3 | the three filters of this work, applied in order | Data (`sec:data`, Filter cascade) |
-| perturbed-host-state entry, PHS | an entry in which the two electrons of the neutral vacancy perturb the host band edge instead of occupying a localised state (shallow donor) | Data (`sec:domain`); gloss also in the Table 1 caption; abbreviation PHS defined in SI S4 and the Table S7 caption only (T2) |
+| perturbed-host-state entry, PHS | an entry in which the two electrons of the neutral vacancy perturb the host band edge instead of occupying a localised state (shallow donor) | Data (`sec:domain`); gloss also in the Table 1 caption; Table S7 rows read "perturbed-host-state-prone" since Q0 (generator `paper/si/tools/make_si_tables.py`); the abbreviation PHS no longer appears in the paper or SI |
 | deep, localised vacancy | the domain of every result: vacancies that remain after the perturbed-host-state filter | Data (`sec:domain`) |
 | shallow donor | a vacancy whose electrons delocalise into the conduction band; outside the domain | Data (`sec:domain`) |
 | non-magnetic | hosts classified as non-magnetic in the release | Introduction, last paragraph (T1 wording); same qualifier in Abstract, Discussion 4.3 and 4.6, Conclusions and SI S1, S6 (T2) |
@@ -36,7 +36,7 @@ and SI, which T1 did not edit, are listed at the end; session T2 (2026-10-15) re
 
 | Term | Definition used in the article | First defined |
 |---|---|---|
-| graph network | a learned encoder of the local coordination environment of every atom; keyword "graph neural network" (`sections/keywords.tex`) | Introduction, third paragraph (gloss added in T1; the only definition) |
+| graph network, graph neural network | a learned encoder of the local coordination environment of every atom; keyword "graph neural network" (`sections/keywords.tex`), glossed once as "Graph networks (graph neural networks)" (Q0) | Introduction, third paragraph (gloss added in T1; the only definition) |
 | backbone | the shared network architecture of MEGNet blocks | Methods (`sec:models`, Graph networks) |
 | MEGNet block | one step of aggregation over bonded neighbours; successive blocks span successive coordination shells | Methods (`sec:models`, Graph networks) |
 | neighbour list, cutoff | atoms closer than the cutoff are connected in the periodic graph | Methods (`sec:graph`) |
