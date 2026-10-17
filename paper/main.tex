@@ -32,24 +32,11 @@
 %% Number macros (generated) and text constants that contain digits.
 \input{generated/numbers}
 \newcommand{\ccby}{CC~BY~4.0}
-%% Text constants with digits that are not results. Dates and commits of the backbone chronology are
-%% from docs/deviations.md and docs/provenance_labels.md (UTC commit times); versions from the
-%% package_versions of the result records and results/mace_model.json; GPU names from
-%% results/nrp/n1_recompute.json and docs/methods_notes.md.
-\newcommand{\dateprereg}{6~October 2026, 09:03~UTC}
-\newcommand{\commitprereg}{\texttt{2d2c19a}}
-\newcommand{\datetunedvone}{7~October 2026, 11:24~UTC}
-\newcommand{\dategone}{8~October 2026, 08:55~UTC}
-\newcommand{\datesiteres}{8~October 2026, 13:40~UTC}
-\newcommand{\commitsiteres}{\texttt{ac0af6c}}
-\newcommand{\datevtwoprotocol}{8~October 2026, 16:55~UTC}
-\newcommand{\commitvtwoprotocol}{\texttt{44cf16b}}
-\newcommand{\datevtwoselect}{9~October 2026, 00:36~UTC}
-\newcommand{\datevtwofreeze}{9~October 2026, 16:24~UTC}
-\newcommand{\commitvtwofreeze}{\texttt{1f3a136}}
-\newcommand{\datevtwofirstrun}{9~October 2026, 17:02~UTC}
-\newcommand{\dateauthordecision}{11~October 2026}
+%% Text constants with digits that are not results: the release commit (docs/provenance.md), the
+%% interval level of configs/config.yaml analysis.display_ci, and the software versions from the
+%% package_versions of the result records and results/mace_model.json.
 \newcommand{\releasecommit}{\texttt{e310353}}
+\newcommand{\pctci}{95\%}
 \newcommand{\vermatgl}{4.1.0}
 \newcommand{\vertorch}{2.13.0}
 \newcommand{\verpyg}{2.8.0}
@@ -58,17 +45,11 @@
 \newcommand{\veroptuna}{5.0.0}
 \newcommand{\verpymatgen}{2026.9.24}
 \newcommand{\verase}{3.29.0}
-\newcommand{\gpulfortys}{NVIDIA L40S}
-\newcommand{\gpuaten}{NVIDIA A10}
-\newcommand{\gputhreeoh}{NVIDIA GeForce RTX~3090}
-\newcommand{\gpuafour}{NVIDIA RTX A4000}
-\newcommand{\gpulfour}{NVIDIA L4}
-\newcommand{\gpufourty}{NVIDIA GeForce RTX~4090}
 \newcommand{\dzero}{\ensuremath{d^{0}}}
 \newcommand{\eVsq}{eV\ensuremath{^{2}}}
 \newcommand{\evperang}{eV\,\AA\ensuremath{^{-1}}}
 
-\Title{Oxygen-vacancy formation energies in non-magnetic oxides: how much do explicit electronic descriptors add to graph networks as training data grows?}
+\Title{Crystal Structure Alone Predicts Oxygen-Vacancy Formation Energies in Non-Magnetic Oxides to Within 0.05~eV of a Descriptor-Augmented Network}
 
 \newcommand{\orcidauthorA}{0009-0006-7448-9488}
 \newcommand{\orcidauthorB}{0009-0007-3281-8420}
@@ -103,7 +84,6 @@ $^{2}$ \quad Westview High School, San Diego, CA, USA; aiden.lee.sd@gmail.com}
 
 \vspace{6pt}
 
-\supplementary{The following supporting information can be downloaded at \linksupplementary{s1}: Sections S1--S9 (data and descriptor classes; models and training; split designs; site resolution within a host; hardware variation; sensitivity analyses; latent probe; structure renders; reproducibility), Figure S1: readout of the structure-only network; Figure S2: filter cascade; Figure S3: split designs; Figure S4: site resolution within a host by chemistry and site; Figure S5: the advantage by GPU class; Figure S6: sensitivity analyses; Figure S7: latent probe; Figure S8: structure render of rutile SnO$_2$; Table S1: filter cascade; Table S2: descriptor classes; Table S3: tuning search space; Table S4: tuned values of the originally registered network (v1); Table S5: tuned values of the primary network (v2); Table S6: runs stopped at the epoch cap; Table S7: within-host residual MAE by group; Table S8: GPU repeatability; Table S9: the advantage by GPU class; Table S10: first cation shell of the rendered sites; Table S11: tags of the code repository; Table S12: provenance labels of the result groups.}
 \authorcontributions{\input{sections/author_contributions}}
 
 \funding{\input{sections/funding}}
@@ -117,6 +97,13 @@ $^{2}$ \quad Westview High School, San Diego, CA, USA; aiden.lee.sd@gmail.com}
 \acknowledgments{\input{sections/acknowledgments}}
 
 \conflictsofinterest{\input{sections/conflicts}}
+
+%% Appendices A-K. The Supplementary Materials (paper/si/) are merged into them in a later session; until then
+%% sections/appendix_stub.tex holds only their titles and labels (docs/pending_edits.md).
+\appendixtitles{yes}
+\appendixstart
+\appendix
+\input{sections/appendix_stub}
 
 \begin{adjustwidth}{-\extralength}{0cm}
 \reftitle{References}
