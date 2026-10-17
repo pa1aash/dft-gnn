@@ -21,6 +21,25 @@ stands and must be revisited once P1 has been rerun with a longer limit:
 If longer training lowers the error of P enough to change an outcome, every item above changes together; if not,
 only the epoch-limit sentence of Results 3.4 gains the result of the check.
 
+R4 (2026-10-17) found that P1 was not re-tuned under He initialisation: S and D received 30 trials at each of three
+anchors under He initialisation, P1 none; it carries its default-initialisation values (`docs/r4_verification.md`
+(d)). Every staging statement now reads "at the tuning and training length used", and the Methods say what was and was
+not re-tuned. Each of these edits is pending the extended check (P1 re-tuned under He initialisation and trained with
+a longer limit); if the check changes an outcome, all of them change together, and if it does not, the qualifier can be
+replaced by the result of the check:
+
+- Abstract s8: "At the tuning and training length used, predicting them from structure never beats structure alone".
+- Results 3.4 p1: "At the tuning and training length used, P is never better than S (Figure 4); P1 kept the settings
+  tuned under the default initialisation (Section 2.3)."
+- Discussion 4.1 last paragraph: "At the tuning and training length used, staging costs accuracy", the second possible
+  source (P1's tuning and training length) and the two checks.
+- Conclusions s2: "and, at the tuning and training length used, predicting them from structure never beats ...".
+- Table 1 row: "MAE_P - MAE_S, B = 654, at the tuning and training length used".
+- Methods 2.3: the tuning paragraph ("Under the default initialisation every model, S, D and P1, received ...") and
+  the initialisation paragraph ("P1 was not re-tuned: ... so the staged model P received no tuning trials under the
+  initialisation used for S and D").
+- Introduction p6: "the same tuning budget for S and D" (was "for every model").
+
 ## 2. Appendix stubs
 
 `paper/sections/appendix_stub.tex` holds only the titles and `\label` targets of Appendices A to K (`app:data`,
@@ -96,6 +115,22 @@ No new reference was needed: every key cited in the rewritten text was already i
 - The moved schematics now read "final 818-host dataset" (Figure A1) and "leave one family out" (Figure C1 (d)),
   fixed by W2c (`docs/w2c_figure_checks.md`), which merged during R3.
 
+## 5b. Appendices and SI, from R4 (for the appendix session; R4 did not touch them)
+
+- Tolerance: the main text prints delta = 0.05 eV through the curated macro `\numNetTolerance` (and delta_P through
+  `\numNetStagingDeltaP`, now also 0.05). Appendix text and tables that print the tolerance should use
+  `\numNetTolerance`, not `\numCfgStatsDeltaEV` (0.050).
+- Published structure-only error: `\numNetPublishedMae` now prints 0.29, the precision of the source; an appendix that
+  quotes the Kiyohara value should use it.
+- Appendix B must say that P1 was not re-tuned under He initialisation, with the trial counts and best validation
+  errors of `docs/r4_verification.md` (d): S and D 30 trials per anchor under He, and P1 30 per anchor under the
+  default initialisation only.
+- The family `1-14` of the leave-one-family-out folds is "the alkali tetrelates (silicates, germanates, stannates and
+  plumbates of the alkali metals)", 48 hosts including 16 stannates and Li and Na compounds; any appendix family table
+  should use that name.
+- Appendix H: Discussion 4.1 now cites the probe means at 654 hosts, untrained encoder 0.557 against trained S 0.555
+  (`\numProbeDescriptiveSVTwoAllCurvesInitZeroSixHundredFiftyFourMean`, `\numNetProbeAllRsqSixHundredFiftyFour`).
+
 ## 6. Wording decisions to confirm
 
 - Conclusions, practical rule: the brief asked for "below about 150 oxides use the forest". No record holds 150; the
@@ -103,6 +138,7 @@ No new reference was needed: every key cited in the rewritten text was already i
   below the forest with a 95% interval). The text therefore states the rule at the measured sizes ("with 100 training
   oxides or fewer ... between 100 and 200 the descriptor network overtakes it ... from 654 on, the structure-only
   network"). If a rounded "about 150" is wanted, it needs a text constant in `paper/main.tex` with its justification.
-- Title: typed as "0.05~eV" in `paper/main.tex`, as the brief gives it; the tolerance macro would print "0.050".
-- Abstract: the tolerance macro prints "0.050 eV" where the author text reads "0.05 eV"; the word count (196) and
-  every other word are identical.
+- Title: typed as "0.05~eV" in `paper/main.tex`, as the brief gives it; since R4 the text prints the same value through
+  `\numNetTolerance`, so the title may switch to the macro when main.tex is next edited.
+- Abstract: resolved in R4. The tolerance prints "0.05 eV" (`\numNetTolerance`). The Abstract now has 199 words, after
+  the descriptor set of D and the staging qualifier were added (`docs/r4_changes.md`).

@@ -272,7 +272,7 @@ claims:
     status: measured
     result_ref: results/derived_w2/w2_bound_spread.json
   - id: NET-LOCOFAM
-    statement: "On the final network, leave-one-family-out gives A = +0.041 [+0.018, +0.064] eV with an upper bound of 0.060, above delta; the alkali group-14 family (Cs, K, Rb germanates, silicates and plumbates; 48 hosts) carries the excess (A within the family +0.301 eV), and without it the pooled bound is 0.037 eV."
+    statement: "On the final network, leave-one-family-out gives A = +0.041 [+0.018, +0.064] eV with an upper bound of 0.060, above delta; the alkali tetrelate family (group-1 and group-14 cations: silicates, germanates, stannates and plumbates of Li, Na, K, Rb and Cs; 48 hosts; wording corrected in R4) carries the excess (A within the family +0.301 eV), and without it the pooled bound is 0.037 eV."
     tested_by: "analysis/c1/final_network.py, host bootstrap of the pooled folds (M1 estimator)"
     figure: "Table 1 (leave-one-family-out row)"
     falsifiable_how: "A family breakdown whose contributions did not add up to the pooled A, or a different largest contributor, refutes the row."
@@ -292,6 +292,13 @@ claims:
     falsifiable_how: "Spread ratios that differed from the stored seed-ensemble predictions refute the row."
     status: measured
     result_ref: results/derived_c1/final_network_summary.json
+  - id: NET-TUNE
+    statement: "Under He initialisation S and D were re-tuned with 30 trials at each of the anchors 50, 200 and 654 (best validation MAE S 0.490 / 0.361 / 0.263 eV, D 0.318 / 0.258 / 0.197 eV); P1 was not re-tuned and carries the values of its 30 default-initialisation trials per anchor (best validation MAE over the standardised descriptors 0.706 / 0.426 / 0.340), so the staged model P received no tuning trials under He initialisation."
+    tested_by: "scripts/tune/freeze_v2.py (configs/tuned_v2.yaml holds S, D-state and D only); read in R4 from the tuning summaries"
+    figure: "none (Methods 2.3, Appendix B)"
+    falsifiable_how: "A He-initialisation tuning study of P1 in results/tuning/, or trial counts or best values that differed from the summaries, refutes the row."
+    status: measured
+    result_ref: results/tuning_v2_summary.json
   # A4 (2026-10-17): rows for the statements of Appendices D to I that the merge of the Supplementary Materials into
   # the appendices makes from existing records of the final network (He initialisation, validation-tuned; repository
   # name v2) and, in Appendix D only, of the default-initialisation ablation. No value was computed in A4.

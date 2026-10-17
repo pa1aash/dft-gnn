@@ -19,8 +19,9 @@ epoch is. A sentence that needs machine-learning knowledge to parse is a sentenc
    default-initialisation network appears in exactly two places: one Methods paragraph and one appendix table
    (Appendix D). The Methods paragraph says plainly what was seen and done: at small training sizes the
    default-initialisation network returned nearly identical energies for all oxygen sites of a host; this was found
-   by inspecting held-out predictions; the initialisation was changed to He and every hyperparameter was re-tuned on
-   validation oxides only; test oxides played no part in that selection. Nowhere else does a second network, a
+   by inspecting held-out predictions; the initialisation was changed to He and the hyperparameters of S and D were
+   re-tuned on validation oxides only (P1 was not re-tuned, and the Methods say so; R4); test oxides played no part in
+   that selection. Nowhere else does a second network, a
    comparison of networks or a default-initialisation number appear.
 2. **No registration vocabulary.** The paper text, captions, tables and appendices never use: registered,
    pre-registered, post hoc, extension (as a label), extension protocol, REGISTERED / POST HOC / EXTENSION, gate,
@@ -147,8 +148,9 @@ finding.
    adopted v2, selected by a validation-host-only design screen under a protocol logged ..."
    After: "With the default initialisation of the library, the network returned nearly identical energies for all
    oxygen sites of a host at small training sizes, which we found by inspecting held-out predictions. We changed
-   the initialisation to He and re-tuned every hyperparameter on validation oxides only; test oxides played no part
-   in that choice. Appendix D compares the two initialisations."
+   the initialisation to He and re-tuned S and D on validation oxides only; test oxides played no part in that
+   choice. P1 was not re-tuned ... Appendix D compares the two initialisations." (R4: "every hyperparameter" was
+   wrong for P1.)
 
 5. Before (Results 3.9): "Runs on different GPU models were never bitwise identical, and their seed-ensemble errors
    differed from those of the original sweep ... these differences are descriptive and are not read as hardware

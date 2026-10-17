@@ -8,7 +8,12 @@ source column of numbers.tsv gives it. A missing pointer is an error, so a renam
 
 Formats: "num" is the house rule of make_numbers.fmt (three decimals); "dp4" prints four decimals (energy changes
 below 0.01 eV, as in the geometry check); "int" an exact integer; "hosts" the nearest whole number of hosts (the
-cross-validation sizes are fold means); "word" a boolean as the word yes or no; "text" a short string as is.
+cross-validation sizes are fold means); "word" a boolean as the word yes or no; "text" a short string as is;
+"trim" three decimals without trailing zeros, for a set value or a published value printed at the precision of its
+source (the tolerance 0.05 eV, the published 0.29 eV). A record ending in .yaml is read whole (no payload).
+
+One block is not a record leaf: ILLUSTRATION, the Boltzmann-factor example of the Introduction (R4), evaluated from
+exp(-E_f / k_B T) with k_B from scipy.constants (CODATA); its source column names the formula and the inputs.
 
 Naming: \\numNet + row + field. Rows of the C1 table are budgets in words (TwentyFive ... SixHundredFiftyFour),
 FourHundredThirtyByFive and SixHundredFiftyFourThirtyByFive (30 resamples x 5 seeds), CvTen and CvTwenty
@@ -19,9 +24,12 @@ AInside (two-sided interval inside +-delta), AUpperBelow (bound below delta), AE
 from __future__ import annotations
 
 import json
+import math
 import re
 from collections.abc import Callable
 from pathlib import Path
+
+import yaml
 
 C1 = "results/derived_c1"
 W2 = "results/derived_w2"
@@ -103,7 +111,14 @@ def spec(root: Path, words: Callable[[int], str]) -> Spec:
     c0 = "results/c0_official.json"
     s.add("AblKiyoharaMaeS", c0, ("S", "ensemble", "mae", "point"))
     s.ci("AblKiyoharaMaeS", c0, ("S", "ensemble", "mae"), "ci")
-    s.add("NetPublishedMae", c0, ("comparison_eV", "kiyohara_published"))
+    s.add("NetPublishedMae", c0, ("comparison_eV", "kiyohara_published"), "trim")
+
+    # ---- set values and counts printed in the text (R4)
+    s.add("NetTolerance", "configs/config.yaml", ("stats", "delta_eV"), "trim")
+    s.add("NetReleaseOxides", "results/structure_audit.json", ("polymorph", "release_hosts"), "int")
+    for cls, tag in (("host_electronic", "Host"), ("site_electronic", "Site")):
+        s.add(f"NetDescriptors{tag}", "results/staging_v2.json",
+              ("p1_descriptors", "654", "by_class", cls, "n_descriptors"), "int")
 
     # ---- reproduction of the published structure-only error (formula-grouped split, 654 hosts)
     c2 = "results/c1c2_v2.json"
@@ -156,7 +171,7 @@ def spec(root: Path, words: Callable[[int], str]) -> Spec:
 
     # ---- staging
     st = "results/staging_v2.json"
-    s.add("NetStagingDeltaP", st, ("delta_P_eV",))
+    s.add("NetStagingDeltaP", st, ("delta_P_eV",), "trim")
     for b in BUDGETS:
         p = ("budgets", str(b))
         s.add(f"NetStagingPMinusS{s.b(b)}", st, p + ("P_minus_S", "mean"))
@@ -284,6 +299,25 @@ def spec(root: Path, words: Callable[[int], str]) -> Spec:
     return s
 
 
+# Introduction, paragraph 2: how much an error of 0.3 eV in E_f changes exp(-E_f / k_B T) at 1000 K
+ILLUSTRATION_T_K, ILLUSTRATION_DE_EV = 1000, 0.3
+
+
+def illustration(fmt: Callable) -> list[tuple[str, str, str, str]]:
+    from scipy.constants import physical_constants
+    kb = physical_constants["Boltzmann constant in eV/K"][0]
+    kt = kb * ILLUSTRATION_T_K
+    factor = math.exp(ILLUSTRATION_DE_EV / kt)
+    one_sf = round(factor, -math.floor(math.log10(factor)))
+    src = f"exp(dE / k_B T), k_B = {kb!r} eV/K (scipy.constants, CODATA), T = {ILLUSTRATION_T_K} K, dE = "
+    src += f"{ILLUSTRATION_DE_EV} eV"
+    return [("numNetIllusTemperature", fmt(ILLUSTRATION_T_K), repr(ILLUSTRATION_T_K), src + " (input T)"),
+            ("numNetIllusDeltaE", "\\ensuremath{" + f"{ILLUSTRATION_DE_EV:g}" + "}", repr(ILLUSTRATION_DE_EV),
+             src + " (input dE)"),
+            ("numNetIllusKT", fmt(kt), repr(kt), src + " (k_B T, eV)"),
+            ("numNetIllusFactor", fmt(int(one_sf)), repr(factor), src + " (factor, one significant figure)")]
+
+
 def camel_formula(token: str, words: Callable[[int], str]) -> str:
     """Al2O3 -> AlTwoOThree, O1 -> OOne (digits spelled; macro names hold letters only)."""
     return "".join(words(int(p)) if p.isdigit() else p for p in re.findall(r"[A-Za-z]+|\d+", token))
@@ -298,14 +332,15 @@ def net_macros(root: Path, fmt: Callable, words: Callable[[int], str]) -> list[t
             raise ValueError(f"duplicate curated macro \\{name}")
         seen.add(name)
         if rel not in cache:
-            cache[rel] = json.loads((root / rel).read_text())["payload"]
+            text = (root / rel).read_text()
+            cache[rel] = yaml.safe_load(text) if rel.endswith(".yaml") else json.loads(text)["payload"]
         node = cache[rel]
         try:
             for k in path:
                 node = node[k]
         except (KeyError, IndexError, TypeError) as e:
             raise KeyError(f"\\{name}: {rel}#/payload/{'/'.join(map(str, path))} not found") from e
-        src = f"{rel}#/payload/" + "/".join(map(str, path))
+        src = f"{rel}#/{'' if rel.endswith('.yaml') else 'payload/'}" + "/".join(map(str, path))
         if f == "word":
             if not isinstance(node, bool):
                 raise TypeError(f"\\{name}: {src} is not a boolean")
@@ -319,6 +354,10 @@ def net_macros(root: Path, fmt: Callable, words: Callable[[int], str]) -> list[t
                 raise TypeError(f"\\{name}: {src} is not an integer")
             latex = fmt(round(node))
             src += " (nearest integer)" if f == "hosts" else ""
+        elif f == "trim":
+            txt = f"{abs(node):.3f}".rstrip("0").rstrip(".")
+            latex = f"\\ensuremath{{{'-' if node < 0 else ''}{txt}}}"
+            src += " (trailing zeros dropped)"
         elif f == "dp4":
             txt = f"{abs(node):.4f}"
             latex = f"\\ensuremath{{{'-' if node < 0 and txt != '0.0000' else ''}{txt}}}"
@@ -326,4 +365,8 @@ def net_macros(root: Path, fmt: Callable, words: Callable[[int], str]) -> list[t
         else:
             latex = fmt(node)
         out.append((name, latex, repr(node), src))
+    for row in illustration(fmt):
+        if row[0] in seen:
+            raise ValueError(f"duplicate curated macro \\{row[0]}")
+        out.append(row)
     return out
