@@ -25,6 +25,7 @@ _spec = importlib.util.spec_from_file_location("make_specs", ROOT / "scripts" / 
 MS = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(MS)
 TUNED = str(ROOT / "configs" / "tuned_v1.yaml")
+V1_STAGES = [s for s in NRP.STAGES if s not in NRP.V2_ONLY]
 
 
 def _gen(stage, hosts_file=None, tmp=Path("x")):
@@ -33,12 +34,12 @@ def _gen(stage, hosts_file=None, tmp=Path("x")):
 
 @pytest.fixture(scope="module")
 def built():
-    return {s: _gen(s) for s in NRP.STAGES}
+    return {s: _gen(s) for s in V1_STAGES}
 
 
 def test_counts_per_stage(built):
     counts = {s: len(jobs) for s, (jobs, _, _) in built.items()}
-    assert counts == NRP.EXPECTED
+    assert counts == {s: NRP.EXPECTED[s] for s in V1_STAGES}
     print("spec counts:", counts)
 
 
@@ -69,7 +70,7 @@ def test_two_cli_invocations_identical(tmp_path):
     assert outs[0] == outs[1]
 
 
-@pytest.mark.parametrize("stage", [s for s in NRP.STAGES if s != "relax"])
+@pytest.mark.parametrize("stage", [s for s in V1_STAGES if s != "relax"])
 def test_no_test_host_in_training_sample(built, stage):
     jobs = built[stage][0]
     for j in random.Random(0).sample(jobs, min(30, len(jobs))):
@@ -90,9 +91,9 @@ def test_every_job_carries_the_contract(built):
                 assert sp["code_ref"] == NRP.CODE_REF and "est_peak_gb" in j
                 assert run_id(RunSpec.from_dict(sp), NRP.CODE_REF, json.loads(built[s][2])["graphs_manifest_sha256"]) \
                     == j["run_id"]
-    order = [NRP.GROUP[s] for s in NRP.STAGES]
+    order = [NRP.GROUP[s] for s in V1_STAGES]
     assert order == sorted(order)                          # N2a < N2b < N3 < N4
-    lo = [min(j["priority"] for j in built[s][0]) for s in NRP.STAGES]
+    lo = [min(j["priority"] for j in built[s][0]) for s in V1_STAGES]
     assert lo == sorted(lo)
 
 
@@ -147,20 +148,24 @@ def test_backbone_v2_cv_and_precision(built, built_v2):
 
     arch = yaml.safe_load(NRP.TUNED_V2.read_text())["arch"]
     for s, (jobs, body, man) in built_v2.items():
-        m = json.loads(man)
+        m, v1 = json.loads(man), s.removesuffix("_v2")      # moment_v2 is the v2 version of moment
         assert len(jobs) == NRP.EXPECTED[s] and m["backbone"] == "v2" and m["label"] == NRP.V2_LABEL
-        assert m["backbones_with_this_stage"] == {"v1": f"{s}.jsonl", "v2": f"{s}_v2.jsonl"}
-        assert {j["spec"]["results_subdir"] for j in jobs} == {f"{s}_v2"}
+        assert m["backbones_with_this_stage"] == ({"v2": f"{s}.jsonl"} if s in NRP.V2_ONLY
+                                                  else {"v1": f"{s}.jsonl", "v2": f"{s}_v2.jsonl"})
+        assert {j["spec"]["results_subdir"] for j in jobs} == {f"{v1}_v2"}
         assert all({k: j["spec"]["hp"][k] for k in arch} == arch for j in jobs)
-        assert not {j["run_id"] for j in jobs} & {j["run_id"] for j in built[s][0]}
+        assert not {j["run_id"] for j in jobs} & {j["run_id"] for j in built[v1][0]}
         assert [(j["spec"]["model"], j["spec"]["split"], j["spec"]["budget"], j["spec"]["seed"]) for j in jobs] == \
-            [(j["spec"]["model"], j["spec"]["split"], j["spec"]["budget"], j["spec"]["seed"]) for j in built[s][0]]
-        assert min(j["priority"] for j in jobs) > max(j["priority"] for j in built[s][0])
+            [(j["spec"]["model"], j["spec"]["split"], j["spec"]["budget"], j["spec"]["seed"]) for j in built[v1][0]]
+        assert [j["spec"]["exclude_sites"] for j in jobs] == [j["spec"]["exclude_sites"] for j in built[v1][0]]
+        assert min(j["priority"] for j in jobs) > max(j["priority"] for j in built[v1][0])
         for j in random.Random(1).sample(jobs, 30):
             for test, seen in NRP.leakage_hosts(j):
                 assert test and not test & seen
     with pytest.raises(ValueError):
         NRP.build_stage("relax", backbone="v2")
+    with pytest.raises(ValueError):
+        NRP.build_stage("moment_v2", backbone="v1")
     assert "loco" not in NRP.STAGES
 
 
