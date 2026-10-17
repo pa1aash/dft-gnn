@@ -7,6 +7,14 @@ with the definition the article uses and the place where it is first defined. Se
 the Introduction, Data, Methods and Results after T1. Inconsistencies found in the Abstract, Discussion, Conclusions
 and SI, which T1 did not edit, are listed at the end; session T2 (2026-10-15) resolved each of them.
 
+**S1 update (2026-10-17).** For the rewrite specified in `docs/story_spec.md` the paper reports one network. "The
+network" is the He-initialised, validation-tuned network (repository name v2); "default initialisation" names the
+first configuration (repository name v1) and appears only in the default-initialisation paragraph of Methods and in
+Appendix D. The terms v1, v2, primary network, originally registered network, registered, post hoc, extension and
+frozen are dropped from the paper text, captions, tables and appendices; they survive only in file and record names
+(`results/c1c2_v2.json`, `configs/tuned_v1.yaml`). The rows below are updated accordingly; the section "S1 term
+changes" at the end lists every change.
+
 ## Physical quantities and data
 
 | Term | Definition used in the article | First defined |
@@ -37,7 +45,8 @@ and SI, which T1 did not edit, are listed at the end; session T2 (2026-10-15) re
 | Term | Definition used in the article | First defined |
 |---|---|---|
 | graph network, graph neural network | a learned encoder of the local coordination environment of every atom; keyword "graph neural network" (`sections/keywords.tex`), glossed once as "Graph networks (graph neural networks)" (Q0) | Introduction, third paragraph (gloss added in T1; the only definition) |
-| backbone | the shared network architecture of MEGNet blocks | Methods (`sec:models`, Graph networks) |
+| the network | the shared architecture of MEGNet blocks with He initialisation, validation-tuned; the only network of the paper (repository name v2); "backbone" is no longer used in prose | Methods 2.2 (S1) |
+| default initialisation | the first configuration, with the library's default weight initialisation (repository name v1); appears only in the Methods 2.3 paragraph and Appendix D | Methods 2.3 (S1) |
 | MEGNet block | one step of aggregation over bonded neighbours; successive blocks span successive coordination shells | Methods (`sec:models`, Graph networks) |
 | neighbour list, cutoff | atoms closer than the cutoff are connected in the periodic graph | Methods (`sec:graph`) |
 | vacancy flag | marks the oxygen site that is removed | Methods (`sec:graph`) |
@@ -45,13 +54,13 @@ and SI, which T1 did not edit, are listed at the end; session T2 (2026-10-15) re
 | global state | the learned vector of the host as a whole | Methods (`sec:graph`) |
 | readout | the final step that maps the learned vectors to one energy | Methods (`sec:models`, Graph networks) |
 | S | structure-only network | Introduction, sixth paragraph; Methods (`sec:models`) |
-| D, D-state, D-late | network given the two electronic descriptor classes; D-state (selected) injects them at the global state and vacancy node, D-late at the readout | Introduction; routes in Methods (`sec:models`) |
+| D, D-state, D-late | network given the two electronic descriptor classes; D-state (selected) injects them at the global state and vacancy node, D-late at the readout; D-late results exist for default initialisation only and leave the paper (S1) | Introduction; routes in Methods (`sec:models`); Appendix B |
 | P1, P | P1 predicts the descriptors from structure; the staged model P passes them to D | Methods (`sec:models`) |
 | B0 | physics floor, linear in the oxide formation energy and the band gap | Methods (`sec:models`, Baselines) |
 | RF-Kumagai, RF-electronic, RF-structural | random forests on all, electronic and structural descriptors | Methods (`sec:models`, Baselines) |
-| primary network (v2) | He-uniform initialisation, adopted after diagnostics of v1; every result post hoc | Introduction, sixth paragraph; Methods (`sec:backbones`) |
-| originally registered network (v1) | default initialisation; the network of the registered plan | Introduction, sixth paragraph; Methods (`sec:backbones`) |
-| S-v2, D-v2, P1-v2, P-v2 | the models on v2 | Methods (`sec:backbones`) |
+| primary network (v2) | dropped in S1; write "the network" | – |
+| originally registered network (v1) | dropped in S1; write "default initialisation", only in Methods 2.3 and Appendix D | – |
+| S-v2, D-v2, P1-v2, P-v2 | dropped in S1; the models are S, D, P1 and P of the network; the suffix survives only in record names | – |
 | seed, seed ensemble | random starting point; mean prediction of the three networks of one resample and budget | Methods (`sec:training`) |
 | epoch, early stopping, epoch cap | one pass over the training hosts; stop after no improvement; maximum number of epochs | Methods (`sec:training`) |
 | hyperparameters, anchors | settings not learned from the data; the three nested training sets of resample 0 used for tuning | Methods (`sec:tuning`) |
@@ -67,22 +76,22 @@ and SI, which T1 did not edit, are listed at the end; session T2 (2026-10-15) re
 | resample | one outer grouped hold-out with its nested training sets | Methods (`sec:splits`) |
 | grouped split | every site of one host on the same side | Introduction (T1 gloss); Methods (`sec:splits`) |
 | Kiyohara split | the published training, validation and test hosts of Kiyohara et al. | Methods (`sec:splits`) |
-| grouped $K$-fold cross-validation | folds over all hosts, every host tested once (extension) | Methods (`sec:splits`) |
-| precision extension | twenty further resamples with five seeds at the two largest budgets | Methods (`sec:splits`) |
-| leave one chemistry out | folds that hold out whole families of cation chemistry; registered in design, adopted as run under the extension protocol | Methods (`sec:splits`, T1 wording) |
+| grouped $K$-fold cross-validation | folds over all hosts, every host tested once; no label (S1) | Methods 2.4 |
+| additional resamples (was "precision extension") | twenty further resamples with five seeds at the two largest budgets, giving 30 resamples x 5 seeds at 400 and 654 hosts; the word "extension" is dropped (S1) | Methods 2.4 |
+| leave one family out (was "leave one chemistry out") | folds that hold out whole families of cation chemistry (sets of periodic-table groups of the cations); no provenance wording (S1) | Methods 2.4 |
 | MAE | site-level test mean absolute error, eV | Methods (`sec:statistics`) |
 | within-host residual MAE | MAE of the residuals after removing each host's mean of predictions and of targets | Methods (`sec:statistics`); same term in Discussion 4.2 and SI S4 (T2) |
-| zero-skill value | within-host residual MAE of a predictor constant within a host; 0.187 eV under the registered resample-mean estimator (`\numHostMeanOracleAggregateWithinHostMaeMean`), 0.184 eV in the site-averaged breakdown (`\numWithinHostBreakdownGroupsPooledAllVOneSZeroSkillMaePoint`) | Methods (`sec:statistics`); the two estimators in Results (`sec:within_host`, T1) |
+| zero-skill value | within-host residual MAE of a predictor constant within a host; 0.187 eV under the resample-mean estimator of the learning curves (`\numHostMeanOracleAggregateWithinHostMaeMean`), 0.184 eV in the site-averaged breakdown of Appendix E (`\numWithinHostBreakdownGroupsPooledAllVOneSZeroSkillMaePoint`) | Methods (`sec:statistics`); the two estimators in Results (`sec:within_host`, T1) |
 | $A$ | $\mathrm{MAE}_\mathrm{S} - \mathrm{MAE}_\mathrm{D}$; positive when the descriptors lower the error | Methods (`sec:statistics`) |
 | $A_\mathrm{within}$ | the same contrast on the within-host residual MAE | Results (`sec:within_host`) |
-| $\delta$, tolerance | 0.05 eV (`\numCfgStatsDeltaEV`); called "tolerance" everywhere after T1 | Introduction (value); Methods (`sec:statistics`) |
+| $\delta$, tolerance | 0.05 eV (`\numCfgStatsDeltaEV`); called "tolerance" everywhere after T1; stated once as "fixed before the analysis" (S1) | Introduction (value); Methods 2.5 |
 | $U$ | one-sided upper bound of $A$, the upper bootstrap quantile | Methods (`sec:statistics`); Results opening paragraph |
 | non-inferiority test | asks whether the electronic information still lowers the site error by more than $\delta$ | Methods (`sec:statistics`, T1 gloss) |
 | $N^{*}$, $N^{*}_\mathrm{within}$ | smallest tested budget from which $U$ stays below $\delta$ | Methods (`sec:statistics`) |
-| ceiling (claim C2) | $A$ at the largest registered budget with its two-sided interval | Methods (`sec:statistics`) |
+| advantage at 654 hosts (was "ceiling (claim C2)") | $A$ at 654 training hosts with its two-sided interval; claim identifiers are dropped from the paper (S1) | Methods 2.5 |
 | $\delta_\mathrm{P}$, equivalence margin | margin of the four-outcome staging rule | Methods (`sec:statistics`, symbol added in T1); Results (`sec:staging`) |
 | hierarchical bootstrap, host-cluster bootstrap | resamples then hosts with replacement; hosts only for single partitions | Methods (`sec:statistics`) |
-| registered v1, post hoc, extension | provenance labels by chronology; R, PH, E in Table 2 | Methods (`sec:repro`); Table 2 caption |
+| registered v1, post hoc, extension | dropped from the paper in S1 (rule b); provenance labels stay in `docs/provenance_labels.md` and the deposit | – |
 
 ## Inconsistencies in files T1 did not edit (all resolved in T2)
 
@@ -123,3 +132,20 @@ and SI, which T1 did not edit, are listed at the end; session T2 (2026-10-15) re
    v2 only; Methods, Results and `docs/provenance_labels.md` (#20, #22, #26) record all three as registered for v1.
    T1 corrected the Introduction. The Abstract and Conclusions do not label them and need no change.
     Resolved (T2): no change needed, as stated.
+
+## S1 term changes (2026-10-17)
+
+| Old term in the paper | New usage |
+|---|---|
+| primary network, v2, S-v2, D-v2, P1-v2, P-v2 | "the network"; S, D, P1, P |
+| originally registered network, v1 | "default initialisation", only in Methods 2.3 and Appendix D |
+| backbone | "the network" or "the architecture" |
+| registered, pre-registered, post hoc, extension (label), extension protocol, gate, frozen | not used in paper text, captions, tables or appendices |
+| precision extension | "additional resamples" (30 resamples x 5 seeds) |
+| leave one chemistry out | "leave one family out" |
+| ceiling (claim C2), claim identifiers C0-C5 | "the advantage at 654 training hosts"; no claim identifiers |
+| registered estimator | "the estimator of the learning curves" |
+| GPU class, repeatability, bitwise | not used, except the one Methods sentence on non-bitwise GPU training |
+
+File and record names keep v1 and v2 (`results/c1c2_v1.json`, `results/c1c2_v2.json`, `configs/tuned_v1.yaml`,
+`configs/tuned_v2.yaml`); a caption or appendix may cite them by path.
