@@ -58,3 +58,8 @@ has to be named.
 | Figure S7, latent probe | `figures/si/fig6_probe.pdf` | moved, redrawn on the network's probe record | Figure H1 |
 | Figure S8, SnO2 render | `figures/si/structure_sno2_vacancy.png` | moved | Figure I1 |
 | unnumbered G1 learning curves | `figures/si/fig_g1_learning_curves.pdf` | deleted from the figure set (never cited; Figure 2 carries the network's curves) | none |
+
+**R3 update (2026-10-17).** The rewritten main text (`paper/sections/`) now includes `figure1_models` to
+`figure5_screening` with the labels `fig:models`, `fig:learning_curves`, `fig:within_host`, `fig:staging` and
+`fig:screening`; the former main-text files are no longer included by `paper/main.tex`. The appendix figures are
+included once the SI is merged into the appendices (`docs/pending_edits.md`).
