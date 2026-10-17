@@ -76,8 +76,8 @@ No new reference was needed: every key cited in the rewritten text was already i
   `figure5_screening`). The former files (`fig1_overview`, `fig2_learning_curves`, `fig3_advantage`, `fig4_staging`,
   `fig5_geometry`, `fig6_within_host`, `fig7_screening`) are no longer used by `paper/main.tex`; the SI still uses its
   own former files. Deleting the former main-text files and scripts belongs to a figure-scope session.
-- The moved schematics still read "final universe v1" (Figure A1) and "leave-one-chemistry-out" (Figure C1 (d)), as
-  W2b recorded; both need the one-word edit before the appendices print them.
+- The moved schematics now read "final 818-host dataset" (Figure A1) and "leave one family out" (Figure C1 (d)),
+  fixed by W2c (`docs/w2c_figure_checks.md`), which merged during R3.
 
 ## 6. Wording decisions to confirm
 
