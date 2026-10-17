@@ -1,0 +1,23 @@
+% Purpose: Appendix C, the split designs (schematic figure): resample construction, grouped cross-validation folds, the cation
+% families of the leave-one-family-out folds and the published split of Kiyohara et al. Converted from the
+% Supplementary Materials, Section S3 (paper/si/sections/s3_splits.tex), in session A4. Input by main.tex after \appendix.
+% Numbers: splits/meta.json, splits/cv_v1.json, splits/loco_v1.json, results/precision_a_b400_b654.json,
+% results/cv_g1_v2.json, results/filter_cascade.json.
+\section{Splits}
+\label{app:splits}
+
+Every split keeps all oxygen sites of one host oxide on the same side, so no compound is both trained on and tested; in this database one formula is one host, so grouping by formula and by host coincide. The four designs are drawn in Figure~\ref{fig:app_splits}.
+
+\begin{figure}[H]
+\centering
+\figph{figureC1_splits}
+\caption{Split designs, with hosts drawn as sets (test hosts dark, training hosts light, validation hosts mid-grey) and every split grouped by formula, so no host contributes sites to both sides. (\textbf{a}) Grouped hold-out with nested training sizes, (\textbf{b}) the published split of Kiyohara et al., (\textbf{c}) grouped $K$-fold cross-validation, in which every host is tested once, and (\textbf{d}) leave-one-family-out folds that hold out whole cation families.\label{fig:app_splits}}
+\end{figure}
+
+In the learning-curve design each of \numCfgSplitNOuterResamples{} resamples holds out \numSplitMetaNTestHosts{} test hosts, a fraction \numSplitMetaTestFraction{} of the dataset, stratified by the host-mean formation energy, and orders the remaining pool of \numSplitMetaPoolSize{} hosts so that the training set of $B$ hosts is its first $B$ hosts. The training sets of \numCfgBudgetsHostsItemOne{} to \numCfgBudgetsHostsItemSix{} hosts are therefore nested within a resample, and the test hosts of a resample are the same at every size, so the learning curve compares training sizes on identical test oxides while the training oxides change between resamples. Across the resamples \numSplitMetaCoverageInTestAtLeastOnce{} hosts are tested at least once and \numSplitMetaCoverageNeverInTest{} never. At the two largest sizes, further resamples drawn by the same rule bring the design to \numPrecisionABFourHundredBSixHundredFiftyFourSubsetsThirtyXFiveNResamples{} resamples with \numPrecisionABFourHundredBSixHundredFiftyFourSubsetsThirtyXFiveNSeeds{} training seeds each; they contain the learning-curve runs.
+
+The grouped $K$-fold cross-validation partitions all \numSplitCvNHosts{} hosts into $K = \numSplitCvKsItemOne{}$ or $K = \numSplitCvKsItemTwo{}$ folds, so every host is tested exactly once and the mean training set, \numCvGOneVTwoXTrainingHostsKTen{} and \numCvGOneVTwoXTrainingHostsKTwenty{} hosts, is larger than the largest learning-curve size. Its test population is the whole dataset, including the \numSplitMetaCoverageNeverInTest{} hosts that no resample tests, so a cross-validated error is not directly comparable with a learning-curve error at a similar number of training hosts.
+
+The leave-one-family-out folds ask whether the networks transfer to cation chemistry absent from training. Each host belongs to the family given by the set of periodic-table groups of its cations, with lanthanides and actinides counted in group three, which gives \numSplitLocoNFamilies{} families over the dataset; \numSplitLocoNFolds{} folds each hold out whole families, so every host is tested once and its family is never seen in training. The family that carries the excess of the bound in these folds is named in Section~\ref{sec:learning_curves}.
+
+The published split of Kiyohara et al.\ \citep{Kiyohara2025machinelearning} trains on \numFilterCascadeKiyoharaSplitHostsTrain{} hosts, stops early on \numFilterCascadeKiyoharaSplitHostsVal{} validation hosts and tests on \numFilterCascadeKiyoharaSplitHostsTest{} hosts (\numFilterCascadeKiyoharaSplitSitesTest{} sites). It enters the paper once, as a check of the default initialisation against the published accuracy (Appendix~\ref{app:ablation}); the overlap of its test hosts with the tuning sets is described in Appendix~\ref{app:network}.

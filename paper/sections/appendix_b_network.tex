@@ -1,0 +1,79 @@
+% Purpose: Appendix B, the network and its training: readout (Figure B1), training protocol, search space (Table B1),
+% tuned values and validation errors of the network (Table B2), the rule that assigns each training size to a tuning
+% set, the choice of the descriptor injection route, the epoch-limit rule and the tuning-overlap note. Converted from
+% the Supplementary Materials, Section S2 (paper/si/sections/s2_training.tex), in session A4. Input by main.tex after
+% \appendix. Numbers: configs/config.yaml, configs/tuned_v2.yaml, configs/tuned_v1.yaml (P1), results/tuning_v2_summary.json,
+% results/tuning_summary.json (host counts of the tuning sets), results/pilot_epochs.json, results/c0_official.json.
+\section{Network and Training}
+\label{app:network}
+
+\subsection{Readout}
+
+The structure-only network S maps the pristine supercell, with the oxygen to be removed marked, to the formation energy of the neutral vacancy (Figure~\ref{fig:app_readout}). Successive MEGNet blocks \citep{Chen2019graph} aggregate information over growing coordination shells around every atom, starting from learned element embeddings, the vacancy flag, a Gaussian expansion of each interatomic distance and a global state of the cell. The readout joins three learned vectors: the description of the vacancy site, a pooled description of all atoms of the host (Set2Set or the mean, a tuned choice) and the final global state, and a small fully connected network maps them to one energy. The split follows the variance of the target: the pooled host vector and the global state carry the host-level term, the cost of releasing an oxygen atom from that oxide, and the vacancy-site vector carries the local environment that separates the sites of one host. In D the host-electronic descriptors enter the initial global state and the site-electronic descriptors the initial description of the vacancy site, each standardised with training-set statistics, so that each class enters where its physics acts; the readout itself is unchanged.
+
+\begin{figure}[H]
+\centering
+\figph{figureB1_readout}
+\caption{Readout of the structure-only network and the descriptor injection points. After the MEGNet blocks, the readout joins the final vacancy-site vector, a pooling of all atom vectors and the global state, and a fully connected network maps them to $E_\mathrm{f}$. In D the host-electronic descriptors join the initial global state and the site-electronic descriptors the initial vacancy-site features (green arrows), with the readout unchanged.\label{fig:app_readout}}
+\end{figure}
+
+\subsection{Training Protocol}
+
+Every network is trained on the standardised formation energy with an absolute-error loss and the AdamW optimiser; the step size is halved (factor \numCfgTrainingSchedulerFactor{}) when the validation error has not improved for \numCfgTrainingSchedulerPatience{} epochs. The validation hosts that decide early stopping are drawn from the training hosts of each training set (a fraction \numCfgTrainingValidationFrac{}, at least \numCfgTrainingValidationMinHosts{} hosts), so the number of training hosts counts every host whose DFT label a model consumes. Training stops when the validation error has not improved for \numCfgTrainingEarlyStoppingPatience{} epochs, or at the limit of \numCfgTrainingMaxEpochs{} epochs, and the weights of the best epoch are restored.
+
+The epoch limit and the patience follow from a calibration run on validation hosts only (\numPilotEpochsTestHostsEvaluated{} test hosts evaluated; \texttt{results/pilot\_epochs.json}), by a rule fixed before that run: the limit is the smallest multiple of fifty at or above one and a half times the slowest convergence epoch over the calibrated training sizes, and the patience is the larger of thirty epochs and fifteen per cent of the limit. This gave the limit of \numPilotEpochsMaxEpochs{} epochs and the patience of \numPilotEpochsPatience{} epochs used in tuning and in every later run. How often runs of the network reach the limit, and what that does to $A$, is given in Appendix~\ref{app:sens}.
+
+\subsection{Search Space and Tuned Values}
+
+The hyperparameters of each model were tuned on the nested training sets of resample \numCfgTuningAnchorResample{} at three tuning sizes, \numCfgTuningAnchorsItemOne{}, \numCfgTuningAnchorsItemTwo{} and \numCfgTuningAnchorsItemThree{} hosts, before any test host was evaluated. Each model and tuning size had one study of \numCfgTuningOptunaTrialsPerModelPerAnchor{} complete trials of a tree-structured Parzen sampler, scored by the best validation error; at the largest size \numTuningSummaryStudiesSASixHundredFiftyFourValidationNTrainHosts{} hosts were fitted and \numTuningSummaryStudiesSASixHundredFiftyFourValidationNValHosts{} validated. The search space is the same for every model (Table~\ref{tab:app_space}). Each training size takes the values of one tuning size: the sizes \numCfgBudgetsHostsItemOne{} and \numCfgBudgetsHostsItemTwo{} those of \numCfgTuningBudgetToAnchorTwentyFive{} hosts, the sizes \numCfgBudgetsHostsItemThree{} and \numCfgBudgetsHostsItemFour{} those of \numCfgTuningBudgetToAnchorOneHundred{} hosts, and the sizes \numCfgBudgetsHostsItemFive{} and \numCfgBudgetsHostsItemSix{} those of \numCfgTuningBudgetToAnchorFourHundred{} hosts.
+
+\begin{table}[H]
+\caption{Search space of the tuning, identical for S, both descriptor injection routes of D and P1 (\texttt{configs/config.yaml}, \texttt{tuning.search\_space}).\label{tab:app_space}}
+\centering
+\small
+\begin{tabular}{lll}
+\toprule
+Setting & Distribution & Range or choices \\
+\midrule
+Learning rate & log-uniform & \numCfgTuningSearchSpaceLearningRateLow{} to \numCfgTuningSearchSpaceLearningRateHigh{} \\
+Weight decay & log-uniform & \numCfgTuningSearchSpaceWeightDecayLow{} to \numCfgTuningSearchSpaceWeightDecayHigh{} \\
+Hidden width & categorical & \numCfgTuningSearchSpaceHiddenWidthChoicesItemOne{}, \numCfgTuningSearchSpaceHiddenWidthChoicesItemTwo{} \\
+MEGNet blocks & categorical & \numCfgTuningSearchSpaceMegnetBlocksChoicesItemOne{}, \numCfgTuningSearchSpaceMegnetBlocksChoicesItemTwo{}, \numCfgTuningSearchSpaceMegnetBlocksChoicesItemThree{} \\
+Dropout & uniform & \numCfgTuningSearchSpaceDropoutLow{} to \numCfgTuningSearchSpaceDropoutHigh{} \\
+Batch size (sites) & categorical & \numCfgTuningSearchSpaceBatchSizeChoicesItemOne{}, \numCfgTuningSearchSpaceBatchSizeChoicesItemTwo{}, \numCfgTuningSearchSpaceBatchSizeChoicesItemThree{} \\
+Readout width & categorical & \numCfgTuningSearchSpaceReadoutMlpWidthChoicesItemOne{}, \numCfgTuningSearchSpaceReadoutMlpWidthChoicesItemTwo{} \\
+Pooling of the atoms & categorical & Set2Set, mean \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The network uses He-uniform initial weights with zero biases \citep{He2015delving}. S and D were tuned with that initialisation on validation hosts only (Table~\ref{tab:app_tuned}); test hosts were never loaded during tuning. P1 keeps the settings of its own study, run with the same protocol and search space, under the He initialisation. The descriptor injection route of D was chosen by validation error alone: the route through the initial global state and vacancy-site features (Figure~\ref{fig:app_readout}) was kept over injection at the readout, and the two routes reach validation errors that differ by far less than $\delta$ (Appendix~\ref{app:ablation}), so the choice carries no physical preference for either route. The settings chosen at the smallest tuning size rest on very few validation hosts and are one reasonable setting rather than an optimum.
+
+\begin{table}[H]
+\caption{Tuned values of the network (\texttt{configs/tuned\_v2.yaml}; P1 from \texttt{configs/tuned\_v1.yaml}), with the best validation MAE of $E_\mathrm{f}$ (eV) of each study of S and D (\texttt{results/tuning\_v2\_summary.json}). Size: tuning size in hosts. LR: learning rate; WD: weight decay; width: hidden width; blocks: MEGNet blocks; batch: batch size in sites; readout: readout width.\label{tab:app_tuned}}
+\begin{adjustwidth}{-\extralength}{0cm}
+\centering
+\small
+\begin{tabular}{lrllrrlrrlr}
+\toprule
+Model & Size & LR & WD & Width & Blocks & Dropout & Batch & Readout & Pooling & Val.\ MAE \\
+\midrule
+S & \numCfgTuningAnchorsItemOne{} & \numTunedVTwoModelsSFiftyLearningRateSig{} & \numTunedVTwoModelsSFiftyWeightDecaySig{} & \numTunedVTwoModelsSFiftyHiddenWidth{} & \numTunedVTwoModelsSFiftyMegnetBlocks{} & \numTunedVTwoModelsSFiftyDropoutSig{} & \numTunedVTwoModelsSFiftyBatchSize{} & \numTunedVTwoModelsSFiftyReadoutMlpWidth{} & mean & \numTuningVTwoSummaryBestSFiftyBestValue{} \\
+ & \numCfgTuningAnchorsItemTwo{} & \numTunedVTwoModelsSTwoHundredLearningRateSig{} & \numTunedVTwoModelsSTwoHundredWeightDecaySig{} & \numTunedVTwoModelsSTwoHundredHiddenWidth{} & \numTunedVTwoModelsSTwoHundredMegnetBlocks{} & \numTunedVTwoModelsSTwoHundredDropoutSig{} & \numTunedVTwoModelsSTwoHundredBatchSize{} & \numTunedVTwoModelsSTwoHundredReadoutMlpWidth{} & mean & \numTuningVTwoSummaryBestSTwoHundredBestValue{} \\
+ & \numCfgTuningAnchorsItemThree{} & \numTunedVTwoModelsSSixHundredFiftyFourLearningRateSig{} & \numTunedVTwoModelsSSixHundredFiftyFourWeightDecaySig{} & \numTunedVTwoModelsSSixHundredFiftyFourHiddenWidth{} & \numTunedVTwoModelsSSixHundredFiftyFourMegnetBlocks{} & \numTunedVTwoModelsSSixHundredFiftyFourDropoutSig{} & \numTunedVTwoModelsSSixHundredFiftyFourBatchSize{} & \numTunedVTwoModelsSSixHundredFiftyFourReadoutMlpWidth{} & Set2Set & \numTuningVTwoSummaryBestSSixHundredFiftyFourBestValue{} \\
+\addlinespace
+D & \numCfgTuningAnchorsItemOne{} & \numTunedVTwoModelsDStateFiftyLearningRateSig{} & \numTunedVTwoModelsDStateFiftyWeightDecaySig{} & \numTunedVTwoModelsDStateFiftyHiddenWidth{} & \numTunedVTwoModelsDStateFiftyMegnetBlocks{} & \numTunedVTwoModelsDStateFiftyDropoutSig{} & \numTunedVTwoModelsDStateFiftyBatchSize{} & \numTunedVTwoModelsDStateFiftyReadoutMlpWidth{} & mean & \numTuningVTwoSummaryBestDStateFiftyBestValue{} \\
+ & \numCfgTuningAnchorsItemTwo{} & \numTunedVTwoModelsDStateTwoHundredLearningRateSig{} & \numTunedVTwoModelsDStateTwoHundredWeightDecaySig{} & \numTunedVTwoModelsDStateTwoHundredHiddenWidth{} & \numTunedVTwoModelsDStateTwoHundredMegnetBlocks{} & \numTunedVTwoModelsDStateTwoHundredDropoutSig{} & \numTunedVTwoModelsDStateTwoHundredBatchSize{} & \numTunedVTwoModelsDStateTwoHundredReadoutMlpWidth{} & mean & \numTuningVTwoSummaryBestDStateTwoHundredBestValue{} \\
+ & \numCfgTuningAnchorsItemThree{} & \numTunedVTwoModelsDStateSixHundredFiftyFourLearningRateSig{} & \numTunedVTwoModelsDStateSixHundredFiftyFourWeightDecaySig{} & \numTunedVTwoModelsDStateSixHundredFiftyFourHiddenWidth{} & \numTunedVTwoModelsDStateSixHundredFiftyFourMegnetBlocks{} & \numTunedVTwoModelsDStateSixHundredFiftyFourDropoutSig{} & \numTunedVTwoModelsDStateSixHundredFiftyFourBatchSize{} & \numTunedVTwoModelsDStateSixHundredFiftyFourReadoutMlpWidth{} & mean & \numTuningVTwoSummaryBestDStateSixHundredFiftyFourBestValue{} \\
+\addlinespace
+P1 & \numCfgTuningAnchorsItemOne{} & \numTunedVOneModelsPOneFiftyLearningRateSig{} & \numTunedVOneModelsPOneFiftyWeightDecaySig{} & \numTunedVOneModelsPOneFiftyHiddenWidth{} & \numTunedVOneModelsPOneFiftyMegnetBlocks{} & \numTunedVOneModelsPOneFiftyDropoutSig{} & \numTunedVOneModelsPOneFiftyBatchSize{} & \numTunedVOneModelsPOneFiftyReadoutMlpWidth{} & Set2Set & -- \\
+ & \numCfgTuningAnchorsItemTwo{} & \numTunedVOneModelsPOneTwoHundredLearningRateSig{} & \numTunedVOneModelsPOneTwoHundredWeightDecaySig{} & \numTunedVOneModelsPOneTwoHundredHiddenWidth{} & \numTunedVOneModelsPOneTwoHundredMegnetBlocks{} & \numTunedVOneModelsPOneTwoHundredDropoutSig{} & \numTunedVOneModelsPOneTwoHundredBatchSize{} & \numTunedVOneModelsPOneTwoHundredReadoutMlpWidth{} & mean & -- \\
+ & \numCfgTuningAnchorsItemThree{} & \numTunedVOneModelsPOneSixHundredFiftyFourLearningRateSig{} & \numTunedVOneModelsPOneSixHundredFiftyFourWeightDecaySig{} & \numTunedVOneModelsPOneSixHundredFiftyFourHiddenWidth{} & \numTunedVOneModelsPOneSixHundredFiftyFourMegnetBlocks{} & \numTunedVOneModelsPOneSixHundredFiftyFourDropoutSig{} & \numTunedVOneModelsPOneSixHundredFiftyFourBatchSize{} & \numTunedVOneModelsPOneSixHundredFiftyFourReadoutMlpWidth{} & mean & -- \\
+\bottomrule
+\end{tabular}
+\end{adjustwidth}
+\end{table}
+
+\subsection{Tuning on One Resample}
+
+The settings were tuned on one resample and then used on all of them, so the training hosts of resample \numCfgTuningAnchorResample{} helped choose settings that are later evaluated on the test hosts of other resamples. The information that passes this way is a choice among a few discrete settings, not a fit to any test label. The published split of Kiyohara et al.\ (Appendix~\ref{app:splits}) was drawn independently of resample \numCfgTuningAnchorResample{}, so \numCZeroOfficialTuningOverlapWithKiyoharaTestSixHundredFiftyFourInKiyoharaTest{} of its test hosts lie in the largest tuning set (\numCZeroOfficialTuningOverlapWithKiyoharaTestSixHundredFiftyFourOfWhichValidationHosts{} of them among its validation hosts), and an evaluation on that split uses settings chosen partly on those hosts; the network weights of that evaluation never see their labels (record in Table~\ref{tab:app_records}).
