@@ -4,7 +4,8 @@ The numbering of the rewritten manuscript (`docs/story_spec.md`, section v): mai
 A1, B1, C1, E1, H1 and I1. Every figure drawn from results shows one network, the He-initialised, validation-tuned
 network (record key `v2`), in one line style (solid line, filled markers, filled band). The number of a figure is
 set by the title of its caption file (`**Figure N.**`) and by this table. Session W2b, 2026-10-17; checks in
-`docs/w2b_figure_checks.md`.
+`docs/w2b_figure_checks.md`. Session W2c (2026-10-17) changed two schematic labels and three captions; checks in
+`docs/w2c_figure_checks.md`.
 
 The new figures carry new file stems (`figureN_*`), so the former files are untouched: the paper in `paper/` still
 includes them until the prose rewrite switches to the new names, after which the former files and their scripts
@@ -25,9 +26,9 @@ can be deleted. The former scripts were not edited and still write the former st
 
 | Number | File | Script | Source |
 |---|---|---|---|
-| Figure A1, filter cascade | `figures/si/figureA1_cascade.pdf` | `figures/code/figure_moves.py` (copy) | byte-identical copy of `figures/si/fig_cascade.pdf` |
-| Figure B1, readout schematic | `figures/si/figureB1_readout.pdf` | `figures/code/figure_moves.py` (copy) | byte-identical copy of `figures/si/fig_readout.pdf` |
-| Figure C1, split designs | `figures/si/figureC1_splits.pdf` | `figures/code/figure_moves.py` (copy) | byte-identical copy of `figures/si/fig_splits.pdf` |
+| Figure A1, filter cascade | `figures/si/figureA1_cascade.pdf` | `figures/code/figure_moves.py` (copy) | byte-identical copy of `figures/si/fig_cascade.pdf`, placed by `figures/code/fig_si_schematics.py` from `schematics/fig_cascade.tex`; counts in `results/filter_cascade.json` |
+| Figure B1, readout schematic | `figures/si/figureB1_readout.pdf` | `figures/code/figure_moves.py` (copy) | byte-identical copy of `figures/si/fig_readout.pdf`, placed by `figures/code/fig_si_readout.py` from `schematics/fig_readout.tex` |
+| Figure C1, split designs | `figures/si/figureC1_splits.pdf` | `figures/code/figure_moves.py` (copy) | byte-identical copy of `figures/si/fig_splits.pdf`, placed by `figures/code/fig_si_schematics.py` from `schematics/fig_splits.tex` |
 | Figure E1, within-host breakdown | `figures/si/figureE1_within_host_groups.pdf` | `figures/code/figureE1_within_host_groups.py` | `results/within_host_breakdown.json` (network entries) |
 | Figure F1, sensitivities | not built | none | the high-moment exclusion on the network is being rerun; build once its record exists |
 | Figure H1, latent probe | `figures/si/figureH1_probe.pdf` | `figures/code/figureH1_probe.py` | `results/probe_descriptive.json` (block `s_v2`) |
@@ -35,7 +36,8 @@ can be deleted. The former scripts were not edited and still write the former st
 
 `docs/story_spec.md` lists "Fig. A1-A2, C1" as moves of the two former Figures S2 and S3. Only one figure, the
 filter cascade, belongs to Appendix A, so there is no Figure A2; if a second Appendix A figure is wanted, its source
-has to be named.
+has to be named. Every appendix caption that names a source names the record in the last column of the table above
+(Figure A1 also points to the cascade table of Appendix A, Table A1).
 
 ## Fate of every former figure
 
