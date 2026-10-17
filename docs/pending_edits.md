@@ -117,6 +117,14 @@ No new reference was needed: every key cited in the rewritten text was already i
 
 ## 5b. Appendices and SI, from R4 (for the appendix session; R4 did not touch them)
 
+**A4 status (2026-10-17).** Applied in the appendices: no appendix prints the tolerance as a number (it appears as
+$\delta$), and $\delta_\mathrm{P}$ in Appendix J uses `\numNetStagingDeltaP`; Appendix D quotes the published error
+through `\numNetPublishedMae`; Appendix B states that P1 was not re-tuned under He initialisation (S and D 30 trials per
+tuning size under He, P1 30 under the default initialisation only), and Table B2 gives P1's best validation errors;
+no appendix names the leave-one-family-out family (Appendix C points to Section 3.2); Appendix H gives the probe means
+at 654 hosts, trained 0.555 and untrained 0.557. The title item below is outside the A4 scope (main.tex back matter
+and appendix inputs only) and stays open.
+
 - Tolerance: the main text prints delta = 0.05 eV through the curated macro `\numNetTolerance` (and delta_P through
   `\numNetStagingDeltaP`, now also 0.05). Appendix text and tables that print the tolerance should use
   `\numNetTolerance`, not `\numCfgStatsDeltaEV` (0.050).
