@@ -1,58 +1,60 @@
-# Figure numbering (F1c, final)
+# Figure numbering (W2b, one network)
 
-The final numbers of every figure, mapped from the file names they were built under. The number of a figure
-is set by the title of its caption file (`**Figure N.**`), by this table and by `docs/figure_inventory.md`;
-file stems are not renumbered, so a stem's digit can differ from the figure's number (`fig6_probe` is Figure
-S7). The one exception is the within-host figure, renamed to `fig6_within_host` on request. Results are frozen
-(`results-v1`); nothing was recomputed for the numbering.
+The numbering of the rewritten manuscript (`docs/story_spec.md`, section v): main Figures 1-5 and appendix figures
+A1, B1, C1, E1, H1 and I1. Every figure drawn from results shows one network, the He-initialised, validation-tuned
+network (record key `v2`), in one line style (solid line, filled markers, filled band). The number of a figure is
+set by the title of its caption file (`**Figure N.**`) and by this table. Session W2b, 2026-10-17; checks in
+`docs/w2b_figure_checks.md`.
+
+The new figures carry new file stems (`figureN_*`), so the former files are untouched: the paper in `paper/` still
+includes them until the prose rewrite switches to the new names, after which the former files and their scripts
+can be deleted. The former scripts were not edited and still write the former stems; the new scripts import
+`figures/code/style_paper.py` and, read-only, helpers of the former scripts.
 
 ## Main text
 
-| Number | Final file | Old file name (before F1c) | Old caption title | Script |
-|---|---|---|---|---|
-| Figure 1, models and input representation | `figures/main/fig1_overview.pdf` (panel (b): `figures/main/fig1_zno_vacancy.png`) | unchanged | Figure 1 | `figures/code/fig1_overview.py` |
-| Figure 2, learning curves of S and D | `figures/main/fig2_learning_curves.pdf` | unchanged | Figure 2 | `figures/code/fig2_learning_curves.py` |
-| Figure 3, advantage A | `figures/main/fig3_advantage.pdf` | unchanged | Figure 3 | `figures/code/fig3_advantage.py` |
-| Figure 4, staging | `figures/main/fig4_staging.pdf` | unchanged | Figure 4 | `figures/code/fig4_staging.py` |
-| Figure 5, geometry robustness | `figures/main/fig5_geometry.pdf` | unchanged | Figure 5 | `figures/code/fig5_geometry.py` |
-| Figure 6, site resolution within a host | `figures/main/fig6_within_host.{pdf,caption.md}` | `figures/main/fig_within_host.{pdf,caption.md}` | "Figure." (unnumbered, not placed) | `figures/code/fig_within_host.py` (`STEM = "fig6_within_host"`) |
-| Figure 7, screening demonstration | `figures/main/fig7_screening.pdf` | unchanged | Figure 7 | `figures/code/fig7_screening.py` |
-
-Q0 (2026-10-15): `analysis/freeze_table.py` (`FIGURE_RECORDS`) and `deposit/FILES.sha256` now use the final names, nothing
-in `paper/`, `analysis/` or `deposit/` names the old file, and the copy `figures/main/fig_within_host.{pdf,caption.md}` has
-been deleted. `results/freeze_table.json` is frozen and still records the old name. Before Q0 the copy was kept
-because files outside the figure scope named it: `analysis/freeze_table.py` (`FIGURE_RECORDS`),
-`results/freeze_table.json` (frozen at `results-v1`, `payload.checks.figures`) and `deposit/FILES.sha256`. The
-script writes only the new name; the copy is refreshed by hand (`cp figures/main/fig6_within_host.pdf
-figures/main/fig_within_host.pdf`, likewise the caption) until those references move to the new name, after
-which it can be deleted.
-
-## Supplementary Information
-
-| Number | File | Old caption title | Script |
+| Number | File (PDF and `.caption.md`) | Script | Records (read-only) |
 |---|---|---|---|
-| Figure S1, readout schematic | `figures/si/fig_readout.pdf` | Figure S3 (main-text Figure 2 in `schematics/fig_readout.caption.md`) | `figures/code/fig_si_readout.py` (caption file maintained by hand) |
-| Figure S2, filter cascade | `figures/si/fig_cascade.pdf` | Figure S1 | `figures/code/fig_si_schematics.py` (`NUMBERS`) |
-| Figure S3, split designs | `figures/si/fig_splits.pdf` | Figure S2 | `figures/code/fig_si_schematics.py` (`NUMBERS`) |
-| Figure S4, within-host groups | `figures/si/fig_si_withinhost_groups.pdf` | "Figure." (unnumbered) | `figures/code/fig_si_withinhost_groups.py` |
-| Figure S5, GPU class | `figures/si/fig_si_gpu_class.pdf` | "Figure S (GPU class)" | `figures/code/fig_si_gpu_class.py` |
-| Figure S6, sensitivities | `figures/si/fig_si_sensitivities.pdf` | "Figure S (sensitivities)" | `figures/code/fig_si_sensitivities.py` |
-| Figure S7, latent probe | `figures/si/fig6_probe.pdf` | Figure 6 | `figures/code/fig6_probe.py` |
-| Figure S8, structure render (SnO2) | `figures/si/structure_sno2_vacancy.png` | untitled ("Structure render, rutile SnO2") | `blender/render_host.py mp-856 24` (caption file maintained by hand) |
+| Figure 1, models and input representation | `figures/main/figure1_models.pdf`; panel (b) `figures/main/fig1_zno_vacancy.png` | `figures/code/figure1_models.py` (panel (a) from `figures/code/figure1_pipeline.tex`) | none |
+| Figure 2, site error and descriptor advantage against training hosts | `figures/main/figure2_descriptor_advantage.pdf` | `figures/code/figure2_descriptor_advantage.py` | `results/derived_c1/final_network_summary.json` |
+| Figure 3, site resolution within a host | `figures/main/figure3_within_host.pdf` | `figures/code/figure3_within_host.py` | `results/c1c2_v2.json`, `results/precision_g1_v2.json`, `results/cv_g1_v2.json` |
+| Figure 4, staging | `figures/main/figure4_staging.pdf` | `figures/code/figure4_staging.py` | `results/staging_v2.json` |
+| Figure 5, screening of named oxides | `figures/main/figure5_screening.pdf` | `figures/code/figure5_screening.py` | `figures/main/data/screening_demo.json` |
 
-Cross-references updated with the numbers: the Figure 7 caption cites the SnO2 render as Figure S8. The schematic
-captions of record in `schematics/` (outside the figure scope) keep the numbers they were written with (readout
-Figure 2, cascade S1, splits S2); `figures/code/fig_si_schematics.py` replaces the cascade and splits titles when
-it copies them, and `docs/schematics.md` lists the final numbers.
+## Appendices
 
-## Unnumbered
+| Number | File | Script | Source |
+|---|---|---|---|
+| Figure A1, filter cascade | `figures/si/figureA1_cascade.pdf` | `figures/code/figure_moves.py` (copy) | byte-identical copy of `figures/si/fig_cascade.pdf` |
+| Figure B1, readout schematic | `figures/si/figureB1_readout.pdf` | `figures/code/figure_moves.py` (copy) | byte-identical copy of `figures/si/fig_readout.pdf` |
+| Figure C1, split designs | `figures/si/figureC1_splits.pdf` | `figures/code/figure_moves.py` (copy) | byte-identical copy of `figures/si/fig_splits.pdf` |
+| Figure E1, within-host breakdown | `figures/si/figureE1_within_host_groups.pdf` | `figures/code/figureE1_within_host_groups.py` | `results/within_host_breakdown.json` (network entries) |
+| Figure F1, sensitivities | not built | none | the high-moment exclusion on the network is being rerun; build once its record exists |
+| Figure H1, latent probe | `figures/si/figureH1_probe.pdf` | `figures/code/figureH1_probe.py` | `results/probe_descriptive.json` (block `s_v2`) |
+| Figure I1, SnO2 structure render | `figures/si/figureI1_sno2_vacancy.png` (with `.render.json`) | `figures/code/figure_moves.py` (copy) | byte-identical copy of `figures/si/structure_sno2_vacancy.png` |
 
-| File | Old location | Status |
-|---|---|---|
-| `figures/si/fig_g1_learning_curves.{pdf,png,caption.md}` (G1 learning curves, ANALYSIS_PLAN section 14) | `figures/main/` | Kept, not cited in the text and not numbered (title "Figure G1"). Figure 2 and Figure 3 carry the same series. `figures/code/fig_g1_learning_curves.py` now writes to `figures/si/` by default. |
+`docs/story_spec.md` lists "Fig. A1-A2, C1" as moves of the two former Figures S2 and S3. Only one figure, the
+filter cascade, belongs to Appendix A, so there is no Figure A2; if a second Appendix A figure is wanted, its source
+has to be named.
 
-Q0 (2026-10-15): `analysis/freeze_table.py` and `deposit/FILES.sha256` now name `si/fig_g1_learning_curves.pdf`; only the
-frozen `results/freeze_table.json` keeps the old location. Before Q0, names that still pointed at the old G1 location, outside the figure scope: `analysis/freeze_table.py`
-(`FIGURE_RECORDS["main/fig_g1_learning_curves.pdf"]`), `results/freeze_table.json` (frozen) and
-`deposit/FILES.sha256`. Session notes (`docs/g1_notes.md`, `docs/a1_notes.md`, `docs/a4_notes.md`,
-`docs/results_summary.md`) record the names in use when they were written and are not rewritten.
+## Fate of every former figure
+
+| Former number | Former file | Fate | New number |
+|---|---|---|---|
+| Figure 1, models and input representation | `figures/main/fig1_overview.pdf` | kept, redrawn: the dashed outline behind each graph network in panel (a) and the key that explained it are removed; nothing else changes | Figure 1 |
+| Figure 1 (b), ZnO render | `figures/main/fig1_zno_vacancy.png` | kept, unchanged, as panel (b) | Figure 1 (b) |
+| Figure 2, learning curves | `figures/main/fig2_learning_curves.pdf` | merged, network only: becomes panel (a) | Figure 2 (a) |
+| Figure 3, advantage A | `figures/main/fig3_advantage.pdf` | merged, network only: becomes panel (b), from 100 training hosts | Figure 2 (b) |
+| Figure 4, staging | `figures/main/fig4_staging.pdf` | kept, redrawn on the network | Figure 4 |
+| Figure 5, geometry | `figures/main/fig5_geometry.pdf` | deleted from the paper: the relaxed-geometry check becomes a Results paragraph and the Appendix G table | none |
+| Figure 6, site resolution within a host | `figures/main/fig6_within_host.pdf` | kept, redrawn on the network | Figure 3 |
+| Figure 7, screening | `figures/main/fig7_screening.pdf` | kept, redrawn on the network | Figure 5 |
+| Figure S1, readout schematic | `figures/si/fig_readout.pdf` | moved | Figure B1 |
+| Figure S2, filter cascade | `figures/si/fig_cascade.pdf` | moved | Figure A1 |
+| Figure S3, split designs | `figures/si/fig_splits.pdf` | moved | Figure C1 |
+| Figure S4, within-host groups | `figures/si/fig_si_withinhost_groups.pdf` | moved, redrawn on the network | Figure E1 |
+| Figure S5, GPU class | `figures/si/fig_si_gpu_class.pdf` | deleted (one Methods sentence replaces it) | none |
+| Figure S6, sensitivities | `figures/si/fig_si_sensitivities.pdf` | to be rebuilt on the network; not built in W2b | Figure F1 (pending) |
+| Figure S7, latent probe | `figures/si/fig6_probe.pdf` | moved, redrawn on the network's probe record | Figure H1 |
+| Figure S8, SnO2 render | `figures/si/structure_sno2_vacancy.png` | moved | Figure I1 |
+| unnumbered G1 learning curves | `figures/si/fig_g1_learning_curves.pdf` | deleted from the figure set (never cited; Figure 2 carries the network's curves) | none |
