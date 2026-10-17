@@ -171,7 +171,7 @@ def spec(root: Path, words: Callable[[int], str]) -> Spec:
 
     # ---- staging
     st = "results/staging_v2.json"
-    s.add("NetStagingDeltaP", st, ("delta_P_eV",))
+    s.add("NetStagingDeltaP", st, ("delta_P_eV",), "trim")
     for b in BUDGETS:
         p = ("budgets", str(b))
         s.add(f"NetStagingPMinusS{s.b(b)}", st, p + ("P_minus_S", "mean"))
