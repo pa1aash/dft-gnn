@@ -26,7 +26,6 @@ tolerance 1e-9 eV). Writes through ``write_result`` into ``results/derived_c1/``
 """
 from __future__ import annotations
 
-import hashlib
 import importlib.util
 import json
 import sys
@@ -38,8 +37,8 @@ import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-from analysis import a1_common as c  # noqa: E402
-from analysis import cv_analysis, precision_analysis, staging_analysis  # noqa: E402
+from analysis import a1_common as c
+from analysis import cv_analysis, precision_analysis, staging_analysis
 
 OUT_DIR = ROOT / "results" / "derived_c1"
 BUDGETS = (25, 50, 100, 200, 400, 654)
@@ -176,7 +175,7 @@ def within_host_spread(ens: pd.DataFrame, long: pd.DataFrame) -> dict:
 
 
 def sweep_repro(blocks: dict, base: dict, spread: dict, root: Path) -> dict:
-    rec = lambda n: c.record(n, root)["payload"]  # noqa: E731
+    rec = lambda n: c.record(n, root)["payload"]
     g1, st1, st2, c2 = rec("g1_primary"), rec("staging_v1"), rec("staging_v2"), rec("c1c2_v2")
     prec, diag = rec("precision_a_b400_b654"), rec("g1_diagnostics")
     out = {}
