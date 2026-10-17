@@ -1,0 +1,40 @@
+% Purpose: Appendix F, sensitivities of the network: runs that reach the epoch limit (Table F1) and the direction of
+% their effect on A, the high-moment exclusion and the untuned CGCNN check. Converted from the Supplementary
+% Materials, Sections S2.3 and S6 (paper/si/sections/s2_training.tex, s6_sensitivities.tex), in session A4, with the
+% final-network records only. No figure (Figure F1 is not built). Input by main.tex after \appendix. Numbers:
+% results/derived_w2/w2_training_limit.json (docs/w2_diagnostics.md (b)), results/precision_a_b400_b654.json,
+% results/sens_high_moment_rf.json, results/sens_cgcnn.json.
+\section{Sensitivities}
+\label{app:sens}
+
+\subsection{Runs That Reach the Epoch Limit}
+
+A run reaches the limit of \numNetCapMaxEpochs{} epochs (Appendix~\ref{app:network}) when early stopping has not ended it by the last epoch. In the learning-curve design this happens rarely for S and D and often for the descriptor predictor P1 at the larger training sizes (Table~\ref{tab:app_capped}). Over the additional resamples with \numCfgBudgetsMax{} training hosts, \numPrecisionABFourHundredBSixHundredFiftyFourDescriptiveCappedPrecisionSixHundredFiftyFourVTwoSNCapped{} of \numPrecisionABFourHundredBSixHundredFiftyFourDescriptiveCappedPrecisionSixHundredFiftyFourVTwoSNRuns{} runs of S and \numPrecisionABFourHundredBSixHundredFiftyFourDescriptiveCappedPrecisionSixHundredFiftyFourVTwoDNCapped{} of \numPrecisionABFourHundredBSixHundredFiftyFourDescriptiveCappedPrecisionSixHundredFiftyFourVTwoDNRuns{} of D reach the limit.
+
+\begin{table}[H]
+\caption{Runs of the learning-curve design that stop at the limit of \numNetCapMaxEpochs{} epochs rather than by early stopping, out of \numNetCapRunsSixHundredFiftyFour{} runs (\numCfgSplitNOuterResamples{} resamples, three seeds) per training size. P counts a run when its P1 or D component reaches the limit. Record: \texttt{results/derived\_w2/w2\_training\_limit.json}.\label{tab:app_capped}}
+\centering
+\small
+\begin{tabular}{rrrrr}
+\toprule
+Training hosts & S & D & P1 & P \\
+\midrule
+\numCfgBudgetsHostsItemOne{} & \numNetCapSTwentyFive{} & \numNetCapDTwentyFive{} & \numNetCapPOneTwentyFive{} & \numNetCapPTwentyFive{} \\
+\numCfgBudgetsHostsItemTwo{} & \numNetCapSFifty{} & \numNetCapDFifty{} & \numNetCapPOneFifty{} & \numNetCapPFifty{} \\
+\numCfgBudgetsHostsItemThree{} & \numNetCapSOneHundred{} & \numNetCapDOneHundred{} & \numNetCapPOneOneHundred{} & \numNetCapPOneHundred{} \\
+\numCfgBudgetsHostsItemFour{} & \numNetCapSTwoHundred{} & \numNetCapDTwoHundred{} & \numNetCapPOneTwoHundred{} & \numNetCapPTwoHundred{} \\
+\numCfgBudgetsHostsItemFive{} & \numNetCapSFourHundred{} & \numNetCapDFourHundred{} & \numNetCapPOneFourHundred{} & \numNetCapPFourHundred{} \\
+\numCfgBudgetsHostsItemSix{} & \numNetCapSSixHundredFiftyFour{} & \numNetCapDSixHundredFiftyFour{} & \numNetCapPOneSixHundredFiftyFour{} & \numNetCapPSixHundredFiftyFour{} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The runs that reach the limit lower $A$ slightly rather than raise it. With \numCfgBudgetsMax{} training hosts, the single-run site MAE of the runs of S that reach the limit minus that of the other runs of S is \numNetCapThirtyByFiveCappedMinusUncappedMaeS{}~eV over the additional resamples and \numNetCapSweepCappedMinusUncappedMaeS{}~eV in the learning-curve design: they are the runs still improving when training stopped. Pairs of S and D runs that contain such a run have a smaller $A$, so including them changes the mean single-run $A$ by \numNetCapThirtyByFiveEffectOnA{}~eV over the additional resamples and by \numNetCapSweepEffectOnA{}~eV in the learning-curve design, and removing them from the seed ensembles moves $A$ over the additional resamples from \numNetCapEnsembleAAll{} to \numNetCapEnsembleACappedRemoved{}~eV. Training S longer would therefore more likely shrink $A$ than grow it; the effect is small next to the interval of $A$ and is descriptive. For P1 the limit binds in most runs at \numCfgBudgetsMax{} training hosts, so the staging comparison of Section~\ref{sec:staging} holds for P1 trained within that limit.
+
+\subsection{Entries with a High Defect Moment}
+
+The hosts are classified as non-magnetic in the release, but \numSensHighMomentRfNExcludedEntries{} neutral vacancy calculations of the dataset end with a defect magnetic moment above \numSensHighMomentVOneThresholdMuB{}~$\mu_\mathrm{B}$; all lie in La- or Ce-containing oxides, apart from one tungstate. The check removes these entries from training and test and repeats the fit. For RF-Kumagai with \numSensHighMomentRfPoolSize{} training hosts the removal changes the site MAE by \numSensHighMomentRfDeltaTotalExcludedMinusBaselineMaeMean{} [\numSensHighMomentRfDeltaTotalExcludedMinusBaselineMaeCiLo{}, \numSensHighMomentRfDeltaTotalExcludedMinusBaselineMaeCiHi{}]~eV (\texttt{results/sens\_high\_moment\_rf.json}), because the entries make up a small part of every test set.
+
+\subsection{A Second Architecture}
+
+An untuned CGCNN \citep{Xie2018crystal}, with fixed optimiser settings, was trained as S and D on resample \numSensCgcnnResample{} at \numSensCgcnnBudgetsItemOne{}, \numSensCgcnnBudgetsItemTwo{} and \numSensCgcnnBudgetsItemThree{} training hosts (\texttt{results/sens\_cgcnn.json}). Its advantage falls with the number of training hosts as that of the network does, from \numSensCgcnnTableCgcnnFiftyAPoint{} [\numSensCgcnnTableCgcnnFiftyACiNinetyFiveItemOne{}, \numSensCgcnnTableCgcnnFiftyACiNinetyFiveItemTwo{}]~eV at \numSensCgcnnBudgetsItemOne{} hosts to \numSensCgcnnTableCgcnnSixHundredFiftyFourAPoint{} [\numSensCgcnnTableCgcnnSixHundredFiftyFourACiNinetyFiveItemOne{}, \numSensCgcnnTableCgcnnSixHundredFiftyFourACiNinetyFiveItemTwo{}]~eV at \numSensCgcnnBudgetsItemThree{}, against \numSensCgcnnTableMegnetVTwoFiftyAPoint{} and \numSensCgcnnTableMegnetVTwoSixHundredFiftyFourAPoint{} [\numSensCgcnnTableMegnetVTwoSixHundredFiftyFourACiNinetyFiveItemOne{}, \numSensCgcnnTableMegnetVTwoSixHundredFiftyFourACiNinetyFiveItemTwo{}]~eV for the network on the same resample. CGCNN has \numSensCgcnnParameterCountsCgcnnCgcnnSSixHundredFiftyFour{} trainable parameters in S, fewer than the network at any tuning size (\numSensCgcnnParameterCountsMegnetVTwoSTwoHundred{} to \numSensCgcnnParameterCountsMegnetVTwoSSixHundredFiftyFour{}). With one resample the intervals reflect only the sampling of its test hosts, so the check shows that the fall of $A$ with training data is not peculiar to MEGNet blocks; it sets no bound for other architectures.
