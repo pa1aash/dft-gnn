@@ -20,6 +20,9 @@ from pathlib import Path
 
 import yaml
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from net_macros import net_macros  # W2a: one-network names, paper/tools/net_macros.py
+
 ROOT = Path(__file__).resolve().parents[2]
 
 # subtrees that are never flattened (per-replicate detail, run metadata)
@@ -302,6 +305,13 @@ def main(argv: list[str] | None = None) -> int:
                     clashes.append((name, macros[name][2], f"{rel}#/" + "/".join(path)))
                     continue
                 macros[name] = (fmt_sig(val), repr(val), f"{rel}#/" + "/".join(path) + " (3 s.f.)")
+
+    # W2a: curated one-network names (\numNet..., \numAbl...) after every generic macro; a curated name may
+    # never displace a generic one, so a clash stops the build
+    for name, latex, raw, src in net_macros(ROOT, fmt, words):
+        if name in macros:
+            raise SystemExit(f"curated macro \\{name} ({src}) clashes with {macros[name][2]}")
+        macros[name] = (latex, raw, src)
 
     if clashes:
         for name, s1, s2 in clashes[:20]:
