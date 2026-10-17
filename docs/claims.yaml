@@ -247,3 +247,48 @@ claims:
     falsifiable_how: "Descriptive; values that differed from the stored per-cell fits in results/probe_fit_v1.json would invalidate the row."
     status: measured
     result_ref: results/probe_descriptive.json
+  # R3 (2026-10-17): rows for the final-network statements that the rewritten main text makes from the C1 and W2a
+  # records. Final network = He initialisation, validation-tuned (repository name v2). Descriptive diagnostics; no
+  # value was computed in R3.
+  - id: NET-XRF
+    statement: "On the final network, RF-Kumagai is as accurate as either network or better up to 100 training hosts (S - RF = +0.089 [+0.027, +0.154], D - RF = +0.006 [-0.044, +0.073] eV at 100); from 200 hosts D lies below the forest with a 95% interval (-0.046 [-0.066, -0.028] at 200), and S lies below it in point estimate from 200 hosts and with a 95% interval at 654 (-0.051 [-0.073, -0.030])."
+    tested_by: "analysis/w2/diagnostics.py, paired G1 hierarchical bootstrap with the C1 draws"
+    figure: "Figure 2a (figures/main/figure2_descriptor_advantage.pdf)"
+    falsifiable_how: "A recomputation from the stored sweep predictions that gave different differences or interval signs refutes the row."
+    status: measured
+    result_ref: results/derived_w2/w2_forest_crossover.json
+  - id: NET-DSMALL
+    statement: "On the final network, the error of D at 25 and 50 training hosts is dominated by fewer than one in a hundred test-site predictions (78 and 69), all in La- and Ce-containing oxides whose conduction-band f character (cbm_f) lies far outside the training range; these sites carry 0.34 and 0.52 of the absolute error, and no run has a non-finite prediction or loss. Figure 2b therefore starts at 100 hosts."
+    tested_by: "analysis/w2/diagnostics.py (descriptor z-scores from the stored run specifications)"
+    figure: "Figure 2 (panel b starts at 100 training hosts)"
+    falsifiable_how: "Extreme sites outside La and Ce oxides, or a descriptor other than cbm_f furthest from the training data at those sites, refutes the row."
+    status: measured
+    result_ref: results/derived_w2/w2_descriptor_small_budget.json
+  - id: NET-SPREAD
+    statement: "On the final network the one-sided bound on A is 0.047 eV at 200, 0.075 at 400 and 0.033 at 654 training hosts (10 x 3), at nearly equal precision (bootstrap SD 0.015, 0.013, 0.011 eV); at 400, 6 of 10 resamples (19 of 30 in the 30 x 5 set) have A above 0.05 eV, so the 200-host pass is a low point estimate and N* = 654."
+    tested_by: "analysis/w2/diagnostics.py, G1 hierarchical bootstrap"
+    figure: "Figure 2b"
+    falsifiable_how: "Per-resample A values that differed from results/c1c2_v2.json or results/precision_a_b400_b654.json refute the row."
+    status: measured
+    result_ref: results/derived_w2/w2_bound_spread.json
+  - id: NET-LOCOFAM
+    statement: "On the final network, leave-one-family-out gives A = +0.041 [+0.018, +0.064] eV with an upper bound of 0.060, above delta; the alkali group-14 family (Cs, K, Rb germanates, silicates and plumbates; 48 hosts) carries the excess (A within the family +0.301 eV), and without it the pooled bound is 0.037 eV."
+    tested_by: "analysis/c1/final_network.py, host bootstrap of the pooled folds (M1 estimator)"
+    figure: "Table 1 (leave-one-family-out row)"
+    falsifiable_how: "A family breakdown whose contributions did not add up to the pooled A, or a different largest contributor, refutes the row."
+    status: measured
+    result_ref: results/derived_c1/loco_family.json
+  - id: NET-CAP
+    statement: "On the final network in the sweep (10 x 3), P1 reaches the 200-epoch training limit in 2, 10 and 20 of 30 runs at 200, 400 and 654 training hosts; S in 0 runs up to 200, 1 at 400 and 3 at 654; D in 1 run at 654."
+    tested_by: "analysis/w2/diagnostics.py (epoch counts from the stored run records)"
+    figure: "none (Appendix F)"
+    falsifiable_how: "Counts that differed from the stored run records refute the row."
+    status: measured
+    result_ref: results/derived_w2/w2_training_limit.json
+  - id: NET-SITERES
+    statement: "On the final network the within-host SD of the S predictions is 0.012 and 0.017 of the within-host SD of the DFT targets at 25 and 50 training hosts and 0.123 and 0.265 at 100 and 200, against at most 0.004 for default initialisation up to 200 hosts; the network resolves individual sites from about 100 training oxides."
+    tested_by: "analysis/c1/final_network.py (definition of results/g1_diagnostics.json)"
+    figure: "none (Methods 2.3, Appendix D)"
+    falsifiable_how: "Spread ratios that differed from the stored seed-ensemble predictions refute the row."
+    status: measured
+    result_ref: results/derived_c1/final_network_summary.json
