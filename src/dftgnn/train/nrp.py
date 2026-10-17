@@ -9,13 +9,15 @@ checkpoint index, the GPU benchmark), and uses no GPU and no network.
 Stages, programme group (priority order) and job counts:
     N2a  relax 818 (all hosts; ``hosts`` restricts it), peval 183, embed 240, geomeval 180          (v1)
     N2b  moment 60, cgcnn 18, capped 33 (POST HOC)                                                   (v1)
+    N2b  moment_v2 60: the moment jobs on the v2 backbone, same 10 excluded sites (specs/moment.jsonl)   (v2 only)
     N3   cv 180 per backbone (EXTENSION): {S, D} x K in {10, 20} x folds x seeds 0-2                  (v1 and v2)
     N4   precision 480 per backbone (EXTENSION): {S, D} x B in {400, 654} x (r = 10..29 x seeds 0-4
          + r = 0..9 x seeds 3, 4)                                                                     (v1 and v2)
-The N2a and N2b stages reuse the S12 builders (``dftgnn.train.s12``) unchanged. LOCO is not a stage: the
+The N2a and N2b stages reuse the S12 builders (``dftgnn.train.s12``); moment_v2 passes its sites, subdir, stage
+and tags to ``build_moment``, whose defaults keep the v1 ids. LOCO is not a stage: the
 collaborator's 30 v1 LOCO runs are adopted (docs/deviations.md, 2026-10-11). The v2 backbone (POST HOC,
-``configs/tuned_v2.yaml``: its a654 values plus the fixed ``arch`` options) writes to ``results/cv_v2/`` and
-``results/precision_v2/``.
+``configs/tuned_v2.yaml``: its a654 values plus the fixed ``arch`` options) writes to ``results/cv_v2/``,
+``results/precision_v2/`` and ``results/moment_v2/``.
 """
 from __future__ import annotations
 
@@ -36,24 +38,32 @@ from dftgnn.train.stages import TUNED, _job, load_tuned, tuned_hparams
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SPECS_DIR = REPO_ROOT / "specs"
 CODE_REF = "nrp-code-v1"
-STAGES = ("relax", "peval", "embed", "geomeval", "moment", "cgcnn", "capped", "cv", "precision")
+# moment_v2 is last so that the priorities of the earlier stages (and their spec files) do not change
+STAGES = ("relax", "peval", "embed", "geomeval", "moment", "cgcnn", "capped", "cv", "precision", "moment_v2")
 GROUP = {"relax": "N2a", "peval": "N2a", "embed": "N2a", "geomeval": "N2a", "moment": "N2b", "cgcnn": "N2b",
-         "capped": "N2b", "cv": "N3", "precision": "N4"}
+         "capped": "N2b", "cv": "N3", "precision": "N4", "moment_v2": "N2b"}
 LABEL = {"relax": "registered", "peval": "registered", "embed": "registered",
          "geomeval": "registered (B = 200 DESCRIPTIVE EXTRA)", "moment": "registered", "cgcnn": "registered",
-         "capped": "POST HOC", "cv": "EXTENSION", "precision": "EXTENSION"}
+         "capped": "POST HOC", "cv": "EXTENSION", "precision": "EXTENSION", "moment_v2": "POST HOC"}
 EXPECTED = {"relax": 818, "peval": 183, "embed": 240, "geomeval": 180, "moment": 60, "cgcnn": 18, "capped": 33,
-            "cv": 180, "precision": 480}
+            "cv": 180, "precision": 480, "moment_v2": 60}
 BACKBONES = ("v1", "v2")
-V2_STAGES = ("cv", "precision")             # stages with a v2 version (the v2 backbone of configs/tuned_v2.yaml)
+V2_STAGES = ("cv", "precision", "moment_v2")   # stages with a v2 version (the v2 backbone of configs/tuned_v2.yaml)
+V2_ONLY = ("moment_v2",)                       # stages with no v1 version
 TUNED_V2 = REPO_ROOT / "configs" / "tuned_v2.yaml"
 V2_LABEL = "EXTENSION, v2 backbone (POST HOC)"
+MOMENT_SPEC = SPECS_DIR / "moment.jsonl"       # source of the excluded sites of moment_v2
 V2_PRIORITY_OFFSET = 50_000                 # v2 jobs follow the v1 jobs of the same stage
 PRIORITY_STRIDE = 100_000
 PRECISION_BUDGETS = (400, 654)
 PRECISION_NEW = (EXT_RESAMPLES, range(5))   # r = 10..29, seeds 0-4
 PRECISION_REG = (range(10), (3, 4))         # r = 0..9, seeds 3 and 4
 CV_SEEDS = (0, 1, 2)
+
+
+def spec_name(stage: str, backbone: str) -> str:
+    """File name of a stage's spec: ``<stage>.jsonl``, ``<stage>_v2.jsonl`` for a v2 version of a v1 stage."""
+    return f"{stage}{'_v2' if backbone == 'v2' and stage not in V2_ONLY else ''}.jsonl"
 
 
 def sha256_file(p: Path) -> str:
@@ -109,6 +119,21 @@ def build_precision(code: str, gsha: str, tuned: dict, cfg: Config, table: dict 
     return jobs
 
 
+def moment_sites(path: Path = MOMENT_SPEC) -> list[str]:
+    """The excluded site ids of the v1 moment spec (identical in all its jobs), read, not re-derived."""
+    lists = {tuple(sorted(j["spec"]["exclude_sites"])) for j in load_spec_file(path)}
+    if len(lists) != 1:
+        raise ValueError(f"{path}: {len(lists)} different exclusion lists")
+    return list(lists.pop())
+
+
+def build_moment_v2(code: str, gsha: str, tuned: dict, cfg: Config, table: dict | None) -> list[dict]:
+    """N2b, v2 only: the 60 moment jobs on the v2 backbone without the sites of specs/moment.jsonl,
+    results/moment_v2/."""
+    return S12.build_moment(code, gsha, tuned, cfg, table, sites=moment_sites(), subdir="moment_v2",
+                            stage="moment_v2", tags={"v2": tuned["version"]})
+
+
 # ------------------------------------------------------------------------------------------- generator
 def _benchmark() -> dict | None:
     from dftgnn.train import admission
@@ -134,6 +159,8 @@ def build_stage(stage: str, *, code_ref: str = CODE_REF, backbone: str = "v1", h
         raise ValueError(f"unknown backbone {backbone!r}")
     if backbone == "v2" and stage not in V2_STAGES:
         raise ValueError(f"stage {stage!r} has a v1 version only")
+    if backbone == "v1" and stage in V2_ONLY:
+        raise ValueError(f"stage {stage!r} has a v2 version only")
     tuned_path = tuned_path if tuned_path is not None else (TUNED_V2 if backbone == "v2" else TUNED)
     cfg = cfg if cfg is not None else load_config()
     tuned, gsha, table, code = load_tuned(tuned_path), manifest_sha(), _benchmark(), code_ref
@@ -158,6 +185,8 @@ def build_stage(stage: str, *, code_ref: str = CODE_REF, backbone: str = "v1", h
             jobs = [{**j, "after": [a for a in j["after"] if a in keep]} for j in jobs]
     elif stage == "moment":
         jobs = S12.build_moment(code, gsha, tuned, cfg, table)
+    elif stage == "moment_v2":
+        jobs = build_moment_v2(code, gsha, tuned, cfg, table)
     elif stage == "cgcnn":
         jobs = S12.build_cgcnn(code, gsha, cfg, table)
     elif stage == "capped":
@@ -201,8 +230,8 @@ def manifest(stage: str, jobs: list[dict], body: bytes, *, jsonl_name: str, code
 
     return {"stage": stage, "group": GROUP[stage], "label": V2_LABEL if backbone == "v2" else LABEL[stage],
             "code_ref": code_ref, "backbone": backbone,
-            "backbones_with_this_stage": {"v1": f"{stage}.jsonl", **({"v2": f"{stage}_v2.jsonl"} if stage in V2_STAGES
-                                                                       else {})},
+            "backbones_with_this_stage": {b: spec_name(stage, b) for b in BACKBONES
+                                          if (b == "v1" and stage not in V2_ONLY) or (b == "v2" and stage in V2_STAGES)},
             "jsonl": jsonl_name, "sha256": hashlib.sha256(body).hexdigest(),
             "count": len(jobs), "counts_by_model": dict(sorted(Counter(j["spec"]["model"] for j in jobs).items())),
             "priority_range": [min(j["priority"] for j in jobs), max(j["priority"] for j in jobs)] if jobs else None,
