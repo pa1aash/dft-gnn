@@ -1,0 +1,36 @@
+% Purpose: Appendix G, the geometry check: relaxation and mapping protocol (809 relaxed hosts, 802 converged and
+% evaluated), the three strain components and the change in MAE of S, D and P on relaxed and rescaled cells (Table G1).
+% Converted in session A4 from the former Methods section on geometry robustness (sec:mlip, before R3) and Results 3.5;
+% one network only. Input by main.tex after \appendix. Numbers: results/mlip_eval_v2.json (\numNetGeom... macros),
+% results/mlip_inputs.json, results/geometry_descriptive.json, configs/config.yaml (mlip.relax); the hosts that did not
+% converge are those flagged converged = false in results/mlip/relaxed_shard*.json.gz.
+\section{Geometry Check}
+\label{app:geometry}
+
+A network that screens new oxides will usually receive structures relaxed with a machine-learned interatomic potential rather than with DFT. To measure what that costs, the pristine unit cell of each host was relaxed with the medium MACE-MP-0 model \citep{Batatia2025foundation} (mace-torch \vermace{}) in double precision, cell and positions together, with the FIRE optimiser \citep{Bitzek2006structural} under the Fr\'echet cell filter of ASE \citep{HjorthLarsen2017atomic}, to a maximum force of \numCfgMlipRelaxFmaxEVPerA{}~\evperang{} in at most \numCfgMlipRelaxMaxSteps{} steps and without symmetry constraints.
+
+The relaxed unit cell is tiled with the integer supercell matrix of the release supercell, and its atoms are mapped onto the atom order of the release by element and minimum-image position after a lattice translation, within \numMlipInputsMatchTolA{}~\AA{}, so that the vacancy index of the release keeps its meaning. This mapping succeeds for \numMlipInputsNMapped{} of the \numMlipInputsNHosts{} hosts; for the others the tiling does not reproduce the release supercell (\texttt{results/mlip\_inputs.json}). Of the \numNetGeomRelaxedHosts{} relaxed hosts, \numNetGeomEvaluatedHosts{} converged and are evaluated. The relaxations of KLa(MoO$_4$)$_2$, KAsO$_2$, LiBO$_2$, MgV$_2$O$_6$, CuAsPbO$_4$, CsBO$_2$ and Cs$_3$AlO$_3$ reached the step limit without meeting the convergence criterion and are left out (\texttt{results/mlip/relaxed\_shard*.json.gz}, flag \texttt{converged}).
+
+The change of geometry of each host is split into three physical components. The isotropic strain is the cube root of the ratio of the relaxed to the DFT cell volume, minus one; its median is \numNetGeomIsotropicStrainMedian{}, an expansion of the cell. The deviatoric strain, the change of cell shape at fixed volume, is the Frobenius norm of the traceless part of the stretch tensor of the deformation between the DFT and relaxed lattices after rigid rotation is removed by polar decomposition; its median is \numNetGeomDeviatoricStrainMedian{}. The internal displacement, which alters M--O bond lengths and polyhedral distortions, is the root-mean-square displacement between the DFT positions and the relaxed fractional coordinates placed on the DFT lattice, after removal of the mean displacement; its median is \numNetGeomInternalRmsdMedian{}~\AA{}.
+
+The trained models are evaluated without retraining under three conditions: the DFT geometry, the relaxed geometry and, as a control that removes the volume change, the relaxed geometry rescaled isotropically to the DFT volume. The change in MAE relative to the DFT geometry is computed for S, D and P with \numCfgBudgetsHostsItemFour{} and \numCfgBudgetsMax{} training hosts, with the paired hierarchical bootstrap of Appendix~\ref{app:stats} (Table~\ref{tab:app_geometry}). Under the relaxed geometry D keeps its DFT descriptors, so its change isolates the contribution of the structural input. No change exceeds \numNetGeomMaxAbsDeltaMae{}~eV in magnitude, the largest being that of P on relaxed cells with \numCfgBudgetsMax{} training hosts, and every interval lies far inside $\pm\delta$.
+
+\begin{table}[H]
+\caption{Change in site MAE (eV) on relaxed and on volume-rescaled cells relative to the DFT geometry, with two-sided \pctci{} intervals, over the \numNetGeomEvaluatedHosts{} evaluated hosts. $B$: training hosts. Record: \texttt{results/mlip\_eval\_v2.json}.\label{tab:app_geometry}}
+\centering
+\small
+\begin{tabular}{lrll}
+\toprule
+Model & $B$ & Relaxed & Rescaled to the DFT volume \\
+\midrule
+S & \numCfgBudgetsHostsItemFour{} & \numNetGeomDeltaMaeSTwoHundredRelaxed{} [\numNetGeomDeltaMaeSTwoHundredRelaxedLo{}, \numNetGeomDeltaMaeSTwoHundredRelaxedHi{}] & \numNetGeomDeltaMaeSTwoHundredRescaled{} [\numNetGeomDeltaMaeSTwoHundredRescaledLo{}, \numNetGeomDeltaMaeSTwoHundredRescaledHi{}] \\
+ & \numCfgBudgetsMax{} & \numNetGeomDeltaMaeSSixHundredFiftyFourRelaxed{} [\numNetGeomDeltaMaeSSixHundredFiftyFourRelaxedLo{}, \numNetGeomDeltaMaeSSixHundredFiftyFourRelaxedHi{}] & \numNetGeomDeltaMaeSSixHundredFiftyFourRescaled{} [\numNetGeomDeltaMaeSSixHundredFiftyFourRescaledLo{}, \numNetGeomDeltaMaeSSixHundredFiftyFourRescaledHi{}] \\
+\addlinespace
+D & \numCfgBudgetsHostsItemFour{} & \numNetGeomDeltaMaeDTwoHundredRelaxed{} [\numNetGeomDeltaMaeDTwoHundredRelaxedLo{}, \numNetGeomDeltaMaeDTwoHundredRelaxedHi{}] & \numNetGeomDeltaMaeDTwoHundredRescaled{} [\numNetGeomDeltaMaeDTwoHundredRescaledLo{}, \numNetGeomDeltaMaeDTwoHundredRescaledHi{}] \\
+ & \numCfgBudgetsMax{} & \numNetGeomDeltaMaeDSixHundredFiftyFourRelaxed{} [\numNetGeomDeltaMaeDSixHundredFiftyFourRelaxedLo{}, \numNetGeomDeltaMaeDSixHundredFiftyFourRelaxedHi{}] & \numNetGeomDeltaMaeDSixHundredFiftyFourRescaled{} [\numNetGeomDeltaMaeDSixHundredFiftyFourRescaledLo{}, \numNetGeomDeltaMaeDSixHundredFiftyFourRescaledHi{}] \\
+\addlinespace
+P & \numCfgBudgetsHostsItemFour{} & \numNetGeomDeltaMaePTwoHundredRelaxed{} [\numNetGeomDeltaMaePTwoHundredRelaxedLo{}, \numNetGeomDeltaMaePTwoHundredRelaxedHi{}] & \numNetGeomDeltaMaePTwoHundredRescaled{} [\numNetGeomDeltaMaePTwoHundredRescaledLo{}, \numNetGeomDeltaMaePTwoHundredRescaledHi{}] \\
+ & \numCfgBudgetsMax{} & \numNetGeomDeltaMaePSixHundredFiftyFourRelaxed{} [\numNetGeomDeltaMaePSixHundredFiftyFourRelaxedLo{}, \numNetGeomDeltaMaePSixHundredFiftyFourRelaxedHi{}] & \numNetGeomDeltaMaePSixHundredFiftyFourRescaled{} [\numNetGeomDeltaMaePSixHundredFiftyFourRescaledLo{}, \numNetGeomDeltaMaePSixHundredFiftyFourRescaledHi{}] \\
+\bottomrule
+\end{tabular}
+\end{table}
