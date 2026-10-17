@@ -15,7 +15,7 @@
   \node[cstep, right=of ml] (d1) {D1};
   \node[cstep, right=of d1] (d2) {D2};
   \node[cstep, right=of d2] (d3) {D3};
-  \node[ends, right=of d3] (fin) {final\\universe v1};
+  \node[ends, right=of d3] (fin) {final\\818-host\\dataset};
   \foreach \a/\b in {rel/ml, ml/d1, d1/d2, d2/d3, d3/fin} \draw[flow] (\a) -- (\b);
   \foreach \n in {ml, d1, d2, d3} {
     \node[sink, below=6mm of \n] (x\n) {excluded};
