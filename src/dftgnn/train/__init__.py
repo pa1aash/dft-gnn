@@ -110,9 +110,10 @@ def code_sha(root: Path = REPO_ROOT) -> str:
 
 
 CODE_REF_PATHS = ("src", "scripts", "configs", "splits", "specs")
-# Bug-fix tags whose code may run the specs pinned to a code reference (deviations row of 2026-10-14). The run ids
-# keep the original reference string; only the code check accepts the successor.
-CODE_REF_SUCCESSORS = {"nrp-code-v1": ("nrp-code-v2",)}
+# Successor tags whose code may run the specs pinned to a code reference (deviations rows of 2026-10-14 and
+# 2026-10-18), oldest first: v2 bug fixes, v4 the moment_v2 stage, v5 reserved for the stages of the next cluster job.
+# The run ids keep the original reference string; only the code check accepts the successor.
+CODE_REF_SUCCESSORS = {"nrp-code-v1": ("nrp-code-v2", "nrp-code-v4", "nrp-code-v5")}
 
 
 def check_code_ref(ref: str, root: Path = REPO_ROOT) -> str:
@@ -121,9 +122,10 @@ def check_code_ref(ref: str, root: Path = REPO_ROOT) -> str:
 
     A spec with ``code_ref`` has its run id computed with ``ref`` in place of the commit SHA, so it may run only
     on that code: ``ref`` must resolve to an ancestor of HEAD and nothing under ``CODE_REF_PATHS`` may differ
-    between it and HEAD (commits that add results on top of the tag are allowed). A bug-fix successor of ``ref``
-    (``CODE_REF_SUCCESSORS``; nrp-code-v2 for nrp-code-v1) is accepted in its place: it must exist, be an ancestor of
-    HEAD, and nothing under ``CODE_REF_PATHS`` may differ between it and HEAD. Raises RuntimeError otherwise.
+    between it and HEAD (commits that add results on top of the tag are allowed). A successor of ``ref``
+    (``CODE_REF_SUCCESSORS``; nrp-code-v2, v4 and v5 for nrp-code-v1) is accepted in its place: it must exist, be an
+    ancestor of HEAD, and nothing under ``CODE_REF_PATHS`` may differ between it and HEAD. Raises RuntimeError
+    otherwise.
     """
     def git(*args: str) -> subprocess.CompletedProcess:
         return subprocess.run(["git", *args], cwd=root, capture_output=True, text=True, check=False)

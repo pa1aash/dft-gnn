@@ -296,3 +296,16 @@ done
 
 **[MAC]** Ingest each branch with `bash scripts/nrp/ingest_batch.sh nrp/<stage>` (section 8); the counts must be
 relax 818, embed 240 and geomeval 180.
+
+## 10. moment_v2 and the code tags from `nrp-code-v4` (2026-10-18)
+
+The stage `moment_v2` (N2b, v2 backbone only, 60 jobs, `specs/moment_v2.jsonl`, results to `results/moment_v2/`)
+reruns the high-moment exclusion on the final network; it is code tagged `nrp-code-v4` (deviations row of
+2026-10-18). Its specs keep `code_ref` = `nrp-code-v1`; the worker accepts a checkout whose pinned paths equal
+`nrp-code-v4` because the tag is listed in `CODE_REF_SUCCESSORS` (`src/dftgnn/train/__init__.py`). Run it from
+`git checkout --detach nrp-code-v4`.
+
+- Scope gates (`git diff --stat <tag> -- src scripts configs splits specs`) compare against `nrp-code-v4` from now on.
+- A new stage needs a code commit under the pinned paths, an annotated tag on that commit, and an entry for the tag
+  in `CODE_REF_SUCCESSORS` for the code reference its specs carry (`nrp-code-v5` is already listed for N5); without
+  the entry the worker refuses the job at the code-reference check.

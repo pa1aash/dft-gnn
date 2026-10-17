@@ -155,9 +155,12 @@ def high_moment_sites(cfg: Config) -> list[str]:
     return sorted(u.site_id[u.defect_moment_muB.abs() > thr])
 
 
-def build_moment(code: str, gsha: str, tuned: dict, cfg: Config, table: dict | None) -> list[dict]:
+def build_moment(code: str, gsha: str, tuned: dict, cfg: Config, table: dict | None, *, sites: list[str] | None = None,
+                 subdir: str = "moment", stage: str = "moment", tags: dict | None = None) -> list[dict]:
+    """``sites`` (default: from the universe), ``subdir``, ``stage`` and extra ``tags`` serve the v2 rerun
+    (``dftgnn.train.nrp``, stage moment_v2); the defaults give the registered v1 jobs and run ids."""
     d = tuned["d_variant"]
-    sites = high_moment_sites(cfg)
+    sites = high_moment_sites(cfg) if sites is None else sorted(sites)
     if len(sites) != 10:
         raise ValueError(f"expected 10 high-moment entries, found {len(sites)}")
     b = cfg.sensitivity.exclude_high_moment.budget
@@ -166,9 +169,9 @@ def build_moment(code: str, gsha: str, tuned: dict, cfg: Config, table: dict | N
         for s in cfg.training.seeds:
             for m in ("S", d):
                 spec = RunSpec(model=m, **tuned_hparams(tuned, m, cfg.tuning.budget_to_anchor[b]), split=f"outer_r{r}",
-                               r=r, budget=b, seed=s, exclude_sites=sites, results_subdir="moment",
-                               tags={"sensitivity": "high_moment"})
-                jobs.append(_job(spec, "moment", code, gsha, table=table))
+                               r=r, budget=b, seed=s, exclude_sites=sites, results_subdir=subdir,
+                               tags={"sensitivity": "high_moment", **(tags or {})})
+                jobs.append(_job(spec, stage, code, gsha, table=table))
     return jobs
 
 
