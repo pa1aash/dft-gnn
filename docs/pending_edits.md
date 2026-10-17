@@ -59,11 +59,28 @@ only the epoch-limit sentence of Results 3.4 gains the result of the check.
 
 Until the merge, `paper/si/` builds on its own (`make -C paper/si PYTHON=python`) and is untouched.
 
+**A4 update (2026-10-17).** Done: the SI is merged into Appendices A to K (`paper/sections/appendix_*.tex`, input by
+`paper/main.tex`; `appendix_stub.tex` removed), with the labels above unchanged; `paper/si/` is no longer built or
+referenced. Map and deletions in `docs/a4_merge_report.md`. Left open from this list:
+
+- Appendix F, high-moment exclusion on the network: **TO BE ADDED.** The rerun of S and D without the entries whose
+  defect moment exceeds 0.5 muB has no record on the network (`results/sens_high_moment_v1.json` holds the default
+  initialisation only). Appendix F.2 states the exclusion and the network-free forest check
+  (`results/sens_high_moment_rf.json`); once the network rerun exists, add its change in A and its upper bound there
+  (with a claims row) and build Figure F1.
+- Appendix F, Figure F1: not built (`docs/figure_numbering.md`).
+- `paper/tables/filter_cascade.tex` ("Final universe") and `paper/tables/freeze_table.tex` (registration labels) are
+  no longer input by `paper/main.tex` (Table A1 is written with macros in `appendix_a_data.tex`); delete them, or
+  their generators, in a session whose scope includes `paper/tables/` and `analysis/`.
+
 ## 3. Supplementary statement
 
 The MDPI `\supplementary{...}` statement listed Sections S1-S9 and Tables S1-S12 with registration labels; R3 removed
 it from `paper/main.tex`, because the SI becomes Appendices A-K of one PDF. If a separate SI file remains at
 submission, the statement has to be rewritten without labels.
+
+**A4 update.** No separate SI file remains, so no Supplementary Materials statement is needed; `paper/main.tex`
+has none, and every other back-matter statement is unchanged.
 
 ## 4. Bibliography (`paper/refs.bib`, not edited)
 
