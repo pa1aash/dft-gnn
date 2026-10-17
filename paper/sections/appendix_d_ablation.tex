@@ -1,0 +1,62 @@
+% Purpose: Appendix D, the default-initialisation ablation: Table D1 (the network against the same architecture with the
+% default initialisation of the library, at every training size and design, with the within-host spread ratios), the
+% comparison of the structure-only errors at 654 hosts, the published-split check and the choice of the descriptor
+% injection route. The only place outside Methods 2.3 where default-initialisation numbers appear (docs/prose_style.md,
+% rule 1). Rendered in session A4 from results/derived_c1/default_init_ablation.json and
+% results/derived_c1/final_network_summary.json (docs/c1_ablation_table.md) with the \numAbl... and \numNet... macros;
+% the published-split value from results/c0_official.json, the route choice from results/tuning_summary.json.
+\section{Default-Initialisation Ablation}
+\label{app:ablation}
+
+The ablation keeps everything but the initial weights: the same architecture, data, splits, training seeds, seed ensembles and estimators, with the default initialisation of the library and settings tuned under it, against the network with He initialisation (Section~\ref{sec:training}). Table~\ref{tab:app_ablation} sets the two side by side at every training size and design, together with the within-host spread of the predictions, the standard deviation of the predictions over the sites of a test host divided by that of the DFT energies (mean over test hosts with at least two sites; mean within-host spread of the DFT energies \numNetSpreadTargetSd{}~eV). A spread ratio near zero means that a model predicts one energy per host.
+
+\begin{table}[H]
+\caption{The network (He initialisation) against the default initialisation. MAE of S and D and $A = \mathrm{MAE}_\mathrm{S} - \mathrm{MAE}_\mathrm{D}$ in eV on held-out oxides, with the two-sided \pctci{} interval of $A$, its one-sided upper bound $U$ and whether the two-sided interval lies inside $\pm\delta$. Spread: within-host spread ratio of the predictions of S and D. Hosts: training hosts (mean fold size for cross-validation), grouped by design. Records: \texttt{results/derived\_c1/default\_init\_ablation.json} and \texttt{results/derived\_c1/final\_network\_summary.json}.\label{tab:app_ablation}}
+\begin{adjustwidth}{-\extralength}{0cm}
+\centering
+\small
+\begin{tabular}{rlrrrcrcrr}
+\toprule
+ & & \pairhead{MAE} & & & & Inside & \pairhead{Spread} \\
+\ablrules
+Hosts & Initialisation & S & D & $A$ & \pctci{} interval & $U$ & $\pm\delta$ & S & D \\
+\midrule
+\ablgroup{learning curve} \\
+\numNetTwentyFiveHosts{} & He & \numNetTwentyFiveMaeS{} & \numNetTwentyFiveMaeD{} & \numNetTwentyFiveA{} & [\numNetTwentyFiveALo{}, \numNetTwentyFiveAHi{}] & \numNetTwentyFiveAUpper{} & \numNetTwentyFiveAInside{} & \numNetSpreadRatioSTwentyFive{} & \numNetSpreadRatioDTwentyFive{} \\
+ & default & \numAblTwentyFiveMaeS{} & \numAblTwentyFiveMaeD{} & \numAblTwentyFiveA{} & [\numAblTwentyFiveALo{}, \numAblTwentyFiveAHi{}] & \numAblTwentyFiveAUpper{} & \numAblTwentyFiveAInside{} & \numAblSpreadRatioSTwentyFive{} & \numAblSpreadRatioDTwentyFive{} \\
+\numNetFiftyHosts{} & He & \numNetFiftyMaeS{} & \numNetFiftyMaeD{} & \numNetFiftyA{} & [\numNetFiftyALo{}, \numNetFiftyAHi{}] & \numNetFiftyAUpper{} & \numNetFiftyAInside{} & \numNetSpreadRatioSFifty{} & \numNetSpreadRatioDFifty{} \\
+ & default & \numAblFiftyMaeS{} & \numAblFiftyMaeD{} & \numAblFiftyA{} & [\numAblFiftyALo{}, \numAblFiftyAHi{}] & \numAblFiftyAUpper{} & \numAblFiftyAInside{} & \numAblSpreadRatioSFifty{} & \numAblSpreadRatioDFifty{} \\
+\numNetOneHundredHosts{} & He & \numNetOneHundredMaeS{} & \numNetOneHundredMaeD{} & \numNetOneHundredA{} & [\numNetOneHundredALo{}, \numNetOneHundredAHi{}] & \numNetOneHundredAUpper{} & \numNetOneHundredAInside{} & \numNetSpreadRatioSOneHundred{} & \numNetSpreadRatioDOneHundred{} \\
+ & default & \numAblOneHundredMaeS{} & \numAblOneHundredMaeD{} & \numAblOneHundredA{} & [\numAblOneHundredALo{}, \numAblOneHundredAHi{}] & \numAblOneHundredAUpper{} & \numAblOneHundredAInside{} & \numAblSpreadRatioSOneHundred{} & \numAblSpreadRatioDOneHundred{} \\
+\numNetTwoHundredHosts{} & He & \numNetTwoHundredMaeS{} & \numNetTwoHundredMaeD{} & \numNetTwoHundredA{} & [\numNetTwoHundredALo{}, \numNetTwoHundredAHi{}] & \numNetTwoHundredAUpper{} & \numNetTwoHundredAInside{} & \numNetSpreadRatioSTwoHundred{} & \numNetSpreadRatioDTwoHundred{} \\
+ & default & \numAblTwoHundredMaeS{} & \numAblTwoHundredMaeD{} & \numAblTwoHundredA{} & [\numAblTwoHundredALo{}, \numAblTwoHundredAHi{}] & \numAblTwoHundredAUpper{} & \numAblTwoHundredAInside{} & \numAblSpreadRatioSTwoHundred{} & \numAblSpreadRatioDTwoHundred{} \\
+\numNetFourHundredHosts{} & He & \numNetFourHundredMaeS{} & \numNetFourHundredMaeD{} & \numNetFourHundredA{} & [\numNetFourHundredALo{}, \numNetFourHundredAHi{}] & \numNetFourHundredAUpper{} & \numNetFourHundredAInside{} & \numNetSpreadRatioSFourHundred{} & \numNetSpreadRatioDFourHundred{} \\
+ & default & \numAblFourHundredMaeS{} & \numAblFourHundredMaeD{} & \numAblFourHundredA{} & [\numAblFourHundredALo{}, \numAblFourHundredAHi{}] & \numAblFourHundredAUpper{} & \numAblFourHundredAInside{} & \numAblSpreadRatioSFourHundred{} & \numAblSpreadRatioDFourHundred{} \\
+\numNetSixHundredFiftyFourHosts{} & He & \numNetSixHundredFiftyFourMaeS{} & \numNetSixHundredFiftyFourMaeD{} & \numNetSixHundredFiftyFourA{} & [\numNetSixHundredFiftyFourALo{}, \numNetSixHundredFiftyFourAHi{}] & \numNetSixHundredFiftyFourAUpper{} & \numNetSixHundredFiftyFourAInside{} & \numNetSpreadRatioSSixHundredFiftyFour{} & \numNetSpreadRatioDSixHundredFiftyFour{} \\
+ & default & \numAblSixHundredFiftyFourMaeS{} & \numAblSixHundredFiftyFourMaeD{} & \numAblSixHundredFiftyFourA{} & [\numAblSixHundredFiftyFourALo{}, \numAblSixHundredFiftyFourAHi{}] & \numAblSixHundredFiftyFourAUpper{} & \numAblSixHundredFiftyFourAInside{} & \numAblSpreadRatioSSixHundredFiftyFour{} & \numAblSpreadRatioDSixHundredFiftyFour{} \\
+\addlinespace
+\ablgroup{additional resamples} \\
+\numNetFourHundredThirtyByFiveHosts{} & He & \numNetFourHundredThirtyByFiveMaeS{} & \numNetFourHundredThirtyByFiveMaeD{} & \numNetFourHundredThirtyByFiveA{} & [\numNetFourHundredThirtyByFiveALo{}, \numNetFourHundredThirtyByFiveAHi{}] & \numNetFourHundredThirtyByFiveAUpper{} & \numNetFourHundredThirtyByFiveAInside{} & -- & -- \\
+ & default & \numAblFourHundredThirtyByFiveMaeS{} & \numAblFourHundredThirtyByFiveMaeD{} & \numAblFourHundredThirtyByFiveA{} & [\numAblFourHundredThirtyByFiveALo{}, \numAblFourHundredThirtyByFiveAHi{}] & \numAblFourHundredThirtyByFiveAUpper{} & \numAblFourHundredThirtyByFiveAInside{} & -- & -- \\
+\numNetSixHundredFiftyFourThirtyByFiveHosts{} & He & \numNetSixHundredFiftyFourThirtyByFiveMaeS{} & \numNetSixHundredFiftyFourThirtyByFiveMaeD{} & \numNetSixHundredFiftyFourThirtyByFiveA{} & [\numNetSixHundredFiftyFourThirtyByFiveALo{}, \numNetSixHundredFiftyFourThirtyByFiveAHi{}] & \numNetSixHundredFiftyFourThirtyByFiveAUpper{} & \numNetSixHundredFiftyFourThirtyByFiveAInside{} & -- & -- \\
+ & default & \numAblSixHundredFiftyFourThirtyByFiveMaeS{} & \numAblSixHundredFiftyFourThirtyByFiveMaeD{} & \numAblSixHundredFiftyFourThirtyByFiveA{} & [\numAblSixHundredFiftyFourThirtyByFiveALo{}, \numAblSixHundredFiftyFourThirtyByFiveAHi{}] & \numAblSixHundredFiftyFourThirtyByFiveAUpper{} & \numAblSixHundredFiftyFourThirtyByFiveAInside{} & -- & -- \\
+\addlinespace
+\ablgroup{grouped cross-validation} \\
+\numNetCvTenHosts{} & He & \numNetCvTenMaeS{} & \numNetCvTenMaeD{} & \numNetCvTenA{} & [\numNetCvTenALo{}, \numNetCvTenAHi{}] & \numNetCvTenAUpper{} & \numNetCvTenAInside{} & -- & -- \\
+ & default & \numAblCvTenMaeS{} & \numAblCvTenMaeD{} & \numAblCvTenA{} & [\numAblCvTenALo{}, \numAblCvTenAHi{}] & \numAblCvTenAUpper{} & \numAblCvTenAInside{} & -- & -- \\
+\numNetCvTwentyHosts{} & He & \numNetCvTwentyMaeS{} & \numNetCvTwentyMaeD{} & \numNetCvTwentyA{} & [\numNetCvTwentyALo{}, \numNetCvTwentyAHi{}] & \numNetCvTwentyAUpper{} & \numNetCvTwentyAInside{} & -- & -- \\
+ & default & \numAblCvTwentyMaeS{} & \numAblCvTwentyMaeD{} & \numAblCvTwentyA{} & [\numAblCvTwentyALo{}, \numAblCvTwentyAHi{}] & \numAblCvTwentyAUpper{} & \numAblCvTwentyAInside{} & -- & -- \\
+\addlinespace
+\ablgroup{leave one family out} \\
+\numNetLocoHosts{} & He & -- & -- & \numNetLocoA{} & [\numNetLocoALo{}, \numNetLocoAHi{}] & \numNetLocoAUpper{} & \numNetLocoAInside{} & -- & -- \\
+ & default & -- & -- & \numAblLocoA{} & [\numAblLocoALo{}, \numAblLocoAHi{}] & \numAblLocoAUpper{} & \numAblLocoAInside{} & -- & -- \\
+\bottomrule
+\end{tabular}
+\end{adjustwidth}
+\end{table}
+
+The structure-only error of the network at \numNetSixHundredFiftyFourHosts{} training hosts, \numNetSixHundredFiftyFourMaeS{} [\numNetSixHundredFiftyFourMaeSLo{}, \numNetSixHundredFiftyFourMaeSHi{}]~eV, lies above that of the default initialisation, \numAblSixHundredFiftyFourMaeS{} [\numAblSixHundredFiftyFourMaeSLo{}, \numAblSixHundredFiftyFourMaeSHi{}]~eV, and the two intervals overlap. The He initialisation was chosen to resolve sites, not to lower the error: with the default initialisation S predicts one energy per host up to \numCfgBudgetsHostsItemFour{} training hosts (spread ratio at most \numAblSpreadRatioSFifty{}), whereas the network resolves sites from \numCfgBudgetsHostsItemThree{} hosts on (\numNetSpreadRatioSOneHundred{} and \numNetSpreadRatioSTwoHundred{} at \numCfgBudgetsHostsItemThree{} and \numCfgBudgetsHostsItemFour{} hosts), and both reach a similar spread with \numCfgBudgetsMax{} training hosts (\numNetSpreadRatioSSixHundredFiftyFour{} and \numAblSpreadRatioSSixHundredFiftyFour{}). The descriptor network spreads its predictions within a host at every size under both initialisations.
+
+The descriptor advantage stays inside $\pm\delta$ under both configurations from \numCfgBudgetsMax{} training hosts on. With \numCfgBudgetsMax{} hosts, over the additional resamples, $A = \numNetSixHundredFiftyFourThirtyByFiveA{}$ [\numNetSixHundredFiftyFourThirtyByFiveALo{}, \numNetSixHundredFiftyFourThirtyByFiveAHi{}]~eV for the network and \numAblSixHundredFiftyFourThirtyByFiveA{} [\numAblSixHundredFiftyFourThirtyByFiveALo{}, \numAblSixHundredFiftyFourThirtyByFiveAHi{}]~eV for the default initialisation, and the two cross-validations keep both inside the tolerance. With \numCfgBudgetsHostsItemFive{} training hosts neither configuration is inside it. The two initialisations differ in the sign of $A$ at the largest sizes, which is negative for the default initialisation, and in the leave-one-family-out folds, where only the network exceeds $\delta$ (Section~\ref{sec:learning_curves}).
+
+On the published split of Kiyohara et al.\ \citep{Kiyohara2025machinelearning}, with its own training, validation and test hosts (Appendix~\ref{app:splits}), S with the default initialisation reaches \numAblKiyoharaMaeS{} [\numAblKiyoharaMaeSLo{}, \numAblKiyoharaMaeSHi{}]~eV, against the published structure-only \numNetPublishedMae{}~eV. The descriptor injection route of D was chosen once, under the default initialisation, by the mean over the three tuning sizes of the best validation error: \numTuningSummaryDecisionMeansEVDState{}~eV for injection into the initial global state and vacancy-site features against \numTuningSummaryDecisionMeansEVDLate{}~eV for injection at the readout, a difference of \numTuningSummaryDecisionDifferenceEV{}~eV.
