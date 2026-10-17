@@ -10,8 +10,10 @@ Input: results/derived_c1/final_network_summary.json only (``table.rows``; read-
         training size (triangles), with two-sided 95% intervals, the one-sided 95% upper bounds (bars) and the
         tolerance +-delta (dashed lines)
 
-A at 25 and 50 training hosts (-0.14 and -0.51 eV, intervals up to 2 eV wide) is left out of (b) so that the
-tolerance band stays readable; it stays in the record and in panel (a) as the two MAE curves.
+A at 25 and 50 training hosts (-0.14 and -0.51 eV, intervals up to 2 eV wide) is left out of (b): there D is
+dominated by under 1% of the test sites, whose conduction-band f-character descriptor (cbm_f) lies far outside the
+training range (docs/w2_diagnostics.md, (a)). Both values stay in the record and in panel (a) as the two MAE curves.
+The y-limits of (b) span +-delta, every two-sided interval and every one-sided bound, so nothing in (b) is clipped.
 
     python figures/code/figure2_descriptor_advantage.py
 """
@@ -95,12 +97,11 @@ def main() -> Path:
 
 
 CAPTION = """
-**Figure 2. Site error and descriptor advantage of the network against training hosts.** (**a**) Test MAE of the
-structure-only network S and the descriptor network D on held-out oxides, with RF-Kumagai and the physics floor B0
-as references. (**b**) The descriptor advantage A = MAE_S − MAE_D from one hundred training hosts, with the
-tolerance ±δ, one-sided upper bounds (bars), pooled estimates over additional resamples and seeds, and grouped
-cross-validation at its mean training size. Bands and vertical bars are two-sided bootstrap intervals, values in
-`results/derived_c1/final_network_summary.json`.
+**Figure 2. Site error and descriptor advantage of the network against training hosts.** (**a**) Test MAE of S
+and D on held-out oxides, with RF-Kumagai and the physics floor B0. (**b**) A = MAE_S − MAE_D with ±δ, one-sided upper bounds (bars), pooled resamples and seeds, and grouped cross-validation,
+from one hundred hosts, because at twenty-five and fifty a handful of test sites whose conduction-band f-character
+descriptor lies far outside the training range dominate D. Bands and vertical bars are two-sided bootstrap
+intervals, values in `results/derived_c1/final_network_summary.json`.
 """
 
 
