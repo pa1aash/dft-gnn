@@ -1,0 +1,46 @@
+% Purpose: Appendix K, code and data: repository, run identifiers, result records (Table K1), deposit and software
+% versions; the Data Availability Statement points here. Converted from the Supplementary Materials, Sections S9.1 and
+% S9.2 (paper/si/sections/s9_reproducibility.tex), and the former Methods section on reproducibility (before R3), in
+% session A4. Tables of S9 that recorded repository history are not carried over (docs/a4_merge_report.md). Record
+% paths keep their file names (docs/prose_style.md, rule 2). Input by main.tex after \appendix.
+\section{Code and Data}
+\label{app:code}
+
+\subsection{Code, Run Identifiers and Records}
+
+The code is released at \url{https://github.com/pa1aash/dft-gnn} under the MIT licence, with the final code tag of the release \texttt{[FINAL-TAG-TBD]}, to be set when the deposit is minted. Every training or analysis run writes one JSON record through a single function, \texttt{write\_result}, from a clean working tree; the record holds the full configuration, the commit of the code, the package versions, the seeds, the device and the time, and the record of a training run names the hash of its per-site prediction table. A training run is named by its run identifier, a prefix of the \shatwo{} digest of a canonical description of the run: model, hyperparameters, split, resample, training size, seed, code reference and the hash of the manifest of the graph store, plus any non-default option such as an epoch override or the component runs of the staged model (\texttt{src/dftgnn/train/\_\_init\_\_.py}, function \texttt{run\_id}). The same description therefore always gives the same identifier, and two runs with the same identifier are the same computation. For the runs on the computing cluster the code reference in the identifier is a fixed annotated tag of the repository instead of the generating commit, so that identifiers computed on the cluster and on the workstation agree; a worker runs such a job only if the tag is an ancestor of its checkout and the source, configuration, split and job-specification directories are unchanged since the tag. Named analysis records (Table~\ref{tab:app_records}) are read by \texttt{paper/tools/make\_numbers.py}, which turns every number of the paper into a macro with its source pointer, so no number in the text is typed by hand.
+
+\begin{table}[H]
+\caption{Result records behind the main results and the appendices (paths in the repository and the deposit).\label{tab:app_records}}
+\centering
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}Xl}
+\toprule
+Content & Record \\
+\midrule
+Learning curve, additional resamples, cross-validation and family folds of the network (Table~\ref{tab:headline}, Figure~\ref{fig:learning_curves}) & \texttt{results/derived\_c1/final\_network\_summary.json} \\
+$A$, $N^{*}$ and $A_\mathrm{within}$ of the network & \texttt{results/c1c2\_v2.json} \\
+Additional resamples at the two largest sizes & \recprecision{} \\
+Grouped cross-validation & \texttt{results/cv\_extended\_budget.json} \\
+Family folds and the contribution of each family & \texttt{results/derived\_c1/loco\_family.json} \\
+Default-initialisation ablation (Appendix~\ref{app:ablation}) & \texttt{results/derived\_c1/default\_init\_ablation.json} \\
+Within-host breakdown (Appendix~\ref{app:within}) & \texttt{results/within\_host\_breakdown.json} \\
+Staging (Figure~\ref{fig:staging}) & \texttt{results/staging\_v2.json} \\
+Geometry check (Appendix~\ref{app:geometry}) & \texttt{results/mlip\_eval\_v2.json} \\
+Latent probe (Appendix~\ref{app:probe}) & \texttt{results/probe\_descriptive.json} \\
+Epoch limit, forest crossover, bound spread, screening (Appendices~\ref{app:sens} and~\ref{app:screening}) & \texttt{results/derived\_w2/} \\
+Filter cascade (Appendix~\ref{app:data}) & \texttt{results/filter\_cascade.json} \\
+Variance decomposition & \texttt{results/variance\_decomposition.json} \\
+Tuning of the network (Appendix~\ref{app:network}) & \texttt{results/tuning\_v2\_summary.json} \\
+Tuning overlap with the published split; default initialisation on that split & \texttt{results/c0\_official.json} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Deposit}
+
+The data and models are deposited at Zenodo under \ccby{} (DOI \textbf{[ZENODO-DOI-TBD]}, to be minted at submission). The record holds the processed site table of the dataset, the graph store of the pristine supercells with its manifest, the release supercells of the hosts as released, the unit cells and supercell tiling used for the machine-learned relaxations, all splits, the job specifications of the cluster runs, the per-site prediction tables and the record of every run, the checkpoints trained on the workstation, the MACE-MP-0 weights used for the relaxations, and a \shatwo{} manifest of every file. Checkpoints, relaxed structures and embeddings of the cluster runs are too large for the record; they are listed by \shatwo{} and are available from the corresponding author on request. All formation energies, descriptors and structures derive from the oxygen-vacancy database of Kumagai et al.\ \citep{Kumagai2021insights}, used at commit \releasecommit{} under \ccby{}; no new DFT calculation was made.
+
+\subsection{Software}
+
+The networks use matgl \vermatgl{} \citep{Ko2025materials}, PyTorch \vertorch{} and PyTorch Geometric \verpyg{} \citep{Fey2019fast,Paszke2019pytorch}; the relaxations use mace-torch \vermace{} \citep{Batatia2025foundation} and ASE \verase{} \citep{HjorthLarsen2017atomic}; the forests and the probe use scikit-learn \versklearn{} \citep{Pedregosa2018scikitlearn}; the tuning uses Optuna \veroptuna{} \citep{Akiba2019optuna}; and the structure handling uses pymatgen \verpymatgen{} \citep{Ong2013python}. The versions are those stored in the package-version field of the result records.
