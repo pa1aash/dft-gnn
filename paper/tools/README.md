@@ -85,3 +85,23 @@ record) must first be written to a result record by an analysis script; it is ne
 name (`B0`, `D3`, `MACE-MP-0`). Text quoted verbatim from a third party (the NRP acknowledgement) sits between
 `% verbatim-begin` and `% verbatim-end` lines and is exempt. Text constants that contain digits but are not
 results (the licence name) are macros defined in `main.tex` (`\ccby`).
+
+## One-network names (`net_macros.py`)
+
+The rewrite names one network, so `net_macros.py` adds curated names after every generic macro: `\numNet...`
+for the final network (He-initialised, validation-tuned; v2 in the repository) and `\numAbl...` for the
+default-initialisation ablation of Appendix D (v1). Each is one JSON pointer into a record (the C1 tables in
+`results/derived_c1/`, the W2 diagnostics in `results/derived_w2/`, and the top-level records of the final
+network), listed with its source in `numbers.tsv`. A missing pointer stops the build, and a curated name may never
+displace a generic one (a clash stops the build), so the generic macros are unchanged.
+
+Name = `\numNet` or `\numAbl` + row + field. Rows of the C1 table: training hosts in words (`TwentyFive` ...
+`SixHundredFiftyFour`), `FourHundredThirtyByFive` and `SixHundredFiftyFourThirtyByFive` (30 resamples x 5 seeds),
+`CvTen`, `CvTwenty` (grouped cross-validation) and `Loco` (leave one family out). Fields: `MaeS`, `MaeD`, `MaeP`,
+`MaeRf`, `MaeBZero` (suffixes `Lo`, `Hi` for the two-sided 95% interval), `A`, `ALo`, `AHi`, `AUpper` (one-sided
+95% bound), `AInside`, `AUpperBelow`, `AExcludesZero` (the words yes or no) and `Hosts`. `\numNetHeadlineA...` is
+the 30 x 5 estimate at 654 hosts. Other groups: `NetRepro...` (formula-grouped reproduction of the published
+error), `NetLoco...` (family breakdown), `NetWithin...`, `NetStaging...` (`...Outcome` is a word),
+`NetGeom...` (809 relaxed, 802 evaluated; energy changes with four decimals), `NetProbe...`, `NetScreen...`
+(per site: oxide and site label with digits spelled, e.g. `NetScreenGaTwoOThreeOTwoPred`), `NetCross...`,
+`NetSpread...`, `NetCap...`, `NetDsmall...` (W2 diagnostics), `AblKiyohara...` and `AblSpreadRatio...`.
