@@ -65,3 +65,8 @@ has to be named. Every appendix caption that names a source names the record in 
 `figure5_screening` with the labels `fig:models`, `fig:learning_curves`, `fig:within_host`, `fig:staging` and
 `fig:screening`; the former main-text files are no longer included by `paper/main.tex`. The appendix figures are
 included once the SI is merged into the appendices (`docs/pending_edits.md`).
+
+**A4 update (2026-10-17).** The appendix figures are now included by `paper/main.tex`: Figure A1 (`fig:app_cascade`),
+B1 (`fig:app_readout`), C1 (`fig:app_splits`), E1 (`fig:app_within`), H1 (`fig:app_probe`) and I1 (`fig:app_sno2`,
+printed 69 mm wide, its 600 ppi width), numbered per appendix by `paper/main.tex`. The printed captions are rewritten
+from the `.caption.md` files to the 70-word limit of `scripts/check_captions.py`. Figure F1 is still not built.

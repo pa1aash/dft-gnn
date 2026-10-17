@@ -1,0 +1,80 @@
+% Purpose: Appendix I, screening detail and structures: the full screened-site table (Table I1), the site pairs within
+% a host (Table I2), the first cation shell of the two rendered sites (Table I3) and the SnO2 render (Figure I1).
+% Converted in session A4 from the former Results tables of the screening (before R3) and the Supplementary Materials,
+% Section S8 (paper/si/sections/s8_structures.tex), with the network only. Input by main.tex after \appendix. Numbers:
+% results/derived_w2/w2_screening_sites.json (\numNetScreen...), figures/main/data/screening_demo.json,
+% figures/main/fig1_zno_vacancy.render.json, figures/si/figureI1_sno2_vacancy.render.json, results/structure_audit.json.
+\section{Screening Detail and Structures}
+\label{app:screening}
+
+Table~\ref{tab:app_screening} gives the screened sites of Section~\ref{sec:screening} with their structure, the first cation shell of the oxygen to be removed and two host descriptors, and Table~\ref{tab:app_pairs} the energy differences between sites of one host. The network orders \numNetScreenPairsConcordant{} of the \numNetScreenPairs{} site pairs as DFT does; the pair it inverts, the two sites of monoclinic ZrO$_2$, differs by less in DFT than any other pair.
+
+\begin{table}[H]
+\caption{Screened oxygen sites. Structure: structure type, from the space group and the coordination of the site, or monoclinic where no simple type applies. SG: space group number of the host. Cations: cations in the first coordination shell of the oxygen to be removed, within a fixed factor of the nearest cation distance, and $\langle d\rangle$ their mean distance to it. $E_\mathrm{g}$: host band gap; $\Delta H_\mathrm{f}$: host formation energy per atom, both descriptors of the release. S: prediction with \numNetScreenBudget{} training hosts, mean over the $N$ resamples that hold the host out. Records: \texttt{figures/main/data/screening\_demo.json} and \texttt{results/derived\_w2/w2\_screening\_sites.json}.\label{tab:app_screening}}
+\begin{adjustwidth}{-\extralength}{0cm}
+\centering
+\small
+\begin{tabular}{lllrrrrrrrrr}
+\toprule
+Oxide & Site & Structure & SG & Cations & $\langle d\rangle$ (\AA) & $E_\mathrm{g}$ (eV) & $\Delta H_\mathrm{f}$ (eV/atom) & DFT (eV) & S (eV) & S $-$ DFT (eV) & $N$ \\
+\midrule
+SnO$_2$ & O$_1$ & rutile-type & \numScreeningDemoHostsSnOTwoSpaceGroupNumber{} & \numScreeningDemoSitesSnOTwoVaOOneZeroFirstShellCations{} & \numScreeningDemoSitesSnOTwoVaOOneZeroFirstShellMeanDistanceA{} & \numScreeningDemoSitesSnOTwoVaOOneZeroBandGapEV{} & \numScreeningDemoSitesSnOTwoVaOOneZeroHostFormationEnergyEVPerAtom{} & \numNetScreenSnOTwoOOneDft{} & \numNetScreenSnOTwoOOnePred{} & \numNetScreenSnOTwoOOneErr{} & \numNetScreenSnOTwoOOneN{} \\
+ZnO & O$_1$ & wurtzite & \numScreeningDemoHostsZnOSpaceGroupNumber{} & \numScreeningDemoSitesZnOVaOOneZeroFirstShellCations{} & \numScreeningDemoSitesZnOVaOOneZeroFirstShellMeanDistanceA{} & \numScreeningDemoSitesZnOVaOOneZeroBandGapEV{} & \numScreeningDemoSitesZnOVaOOneZeroHostFormationEnergyEVPerAtom{} & \numNetScreenZnOOOneDft{} & \numNetScreenZnOOOnePred{} & \numNetScreenZnOOOneErr{} & \numNetScreenZnOOOneN{} \\
+Ga$_2$O$_3$ & O$_1$ & monoclinic & \numScreeningDemoHostsGaTwoOThreeSpaceGroupNumber{} & \numScreeningDemoSitesGaTwoOThreeVaOOneZeroFirstShellCations{} & \numScreeningDemoSitesGaTwoOThreeVaOOneZeroFirstShellMeanDistanceA{} & \numScreeningDemoSitesGaTwoOThreeVaOOneZeroBandGapEV{} & \numScreeningDemoSitesGaTwoOThreeVaOOneZeroHostFormationEnergyEVPerAtom{} & \numNetScreenGaTwoOThreeOOneDft{} & \numNetScreenGaTwoOThreeOOnePred{} & \numNetScreenGaTwoOThreeOOneErr{} & \numNetScreenGaTwoOThreeOOneN{} \\
+Ga$_2$O$_3$ & O$_2$ & monoclinic & \numScreeningDemoHostsGaTwoOThreeSpaceGroupNumber{} & \numScreeningDemoSitesGaTwoOThreeVaOTwoZeroFirstShellCations{} & \numScreeningDemoSitesGaTwoOThreeVaOTwoZeroFirstShellMeanDistanceA{} & \numScreeningDemoSitesGaTwoOThreeVaOTwoZeroBandGapEV{} & \numScreeningDemoSitesGaTwoOThreeVaOTwoZeroHostFormationEnergyEVPerAtom{} & \numNetScreenGaTwoOThreeOTwoDft{} & \numNetScreenGaTwoOThreeOTwoPred{} & \numNetScreenGaTwoOThreeOTwoErr{} & \numNetScreenGaTwoOThreeOTwoN{} \\
+Ga$_2$O$_3$ & O$_3$ & monoclinic & \numScreeningDemoHostsGaTwoOThreeSpaceGroupNumber{} & \numScreeningDemoSitesGaTwoOThreeVaOThreeZeroFirstShellCations{} & \numScreeningDemoSitesGaTwoOThreeVaOThreeZeroFirstShellMeanDistanceA{} & \numScreeningDemoSitesGaTwoOThreeVaOThreeZeroBandGapEV{} & \numScreeningDemoSitesGaTwoOThreeVaOThreeZeroHostFormationEnergyEVPerAtom{} & \numNetScreenGaTwoOThreeOThreeDft{} & \numNetScreenGaTwoOThreeOThreePred{} & \numNetScreenGaTwoOThreeOThreeErr{} & \numNetScreenGaTwoOThreeOThreeN{} \\
+TiO$_2$ & O$_4$ & monoclinic & \numScreeningDemoHostsTiOTwoSpaceGroupNumber{} & \numScreeningDemoSitesTiOTwoVaOFourZeroFirstShellCations{} & \numScreeningDemoSitesTiOTwoVaOFourZeroFirstShellMeanDistanceA{} & \numScreeningDemoSitesTiOTwoVaOFourZeroBandGapEV{} & \numScreeningDemoSitesTiOTwoVaOFourZeroHostFormationEnergyEVPerAtom{} & \numNetScreenTiOTwoOFourDft{} & \numNetScreenTiOTwoOFourPred{} & \numNetScreenTiOTwoOFourErr{} & \numNetScreenTiOTwoOFourN{} \\
+ZrO$_2$ & O$_1$ & monoclinic & \numScreeningDemoHostsZrOTwoSpaceGroupNumber{} & \numScreeningDemoSitesZrOTwoVaOOneZeroFirstShellCations{} & \numScreeningDemoSitesZrOTwoVaOOneZeroFirstShellMeanDistanceA{} & \numScreeningDemoSitesZrOTwoVaOOneZeroBandGapEV{} & \numScreeningDemoSitesZrOTwoVaOOneZeroHostFormationEnergyEVPerAtom{} & \numNetScreenZrOTwoOOneDft{} & \numNetScreenZrOTwoOOnePred{} & \numNetScreenZrOTwoOOneErr{} & \numNetScreenZrOTwoOOneN{} \\
+ZrO$_2$ & O$_2$ & monoclinic & \numScreeningDemoHostsZrOTwoSpaceGroupNumber{} & \numScreeningDemoSitesZrOTwoVaOTwoZeroFirstShellCations{} & \numScreeningDemoSitesZrOTwoVaOTwoZeroFirstShellMeanDistanceA{} & \numScreeningDemoSitesZrOTwoVaOTwoZeroBandGapEV{} & \numScreeningDemoSitesZrOTwoVaOTwoZeroHostFormationEnergyEVPerAtom{} & \numNetScreenZrOTwoOTwoDft{} & \numNetScreenZrOTwoOTwoPred{} & \numNetScreenZrOTwoOTwoErr{} & \numNetScreenZrOTwoOTwoN{} \\
+MgO & O$_1$ & rocksalt & \numScreeningDemoHostsMgOSpaceGroupNumber{} & \numScreeningDemoSitesMgOVaOOneZeroFirstShellCations{} & \numScreeningDemoSitesMgOVaOOneZeroFirstShellMeanDistanceA{} & \numScreeningDemoSitesMgOVaOOneZeroBandGapEV{} & \numScreeningDemoSitesMgOVaOOneZeroHostFormationEnergyEVPerAtom{} & \numNetScreenMgOOOneDft{} & \numNetScreenMgOOOnePred{} & \numNetScreenMgOOOneErr{} & \numNetScreenMgOOOneN{} \\
+Al$_2$O$_3$ & O$_1$ & corundum & \numScreeningDemoHostsAlTwoOThreeSpaceGroupNumber{} & \numScreeningDemoSitesAlTwoOThreeVaOOneZeroFirstShellCations{} & \numScreeningDemoSitesAlTwoOThreeVaOOneZeroFirstShellMeanDistanceA{} & \numScreeningDemoSitesAlTwoOThreeVaOOneZeroBandGapEV{} & \numScreeningDemoSitesAlTwoOThreeVaOOneZeroHostFormationEnergyEVPerAtom{} & \numNetScreenAlTwoOThreeOOneDft{} & \numNetScreenAlTwoOThreeOOnePred{} & \numNetScreenAlTwoOThreeOOneErr{} & \numNetScreenAlTwoOThreeOOneN{} \\
+\bottomrule
+\end{tabular}
+\end{adjustwidth}
+\end{table}
+
+\begin{table}[H]
+\caption{Differences between two screened sites of one host, first site minus second, from DFT and from the predictions of S with \numNetScreenBudget{} training hosts (mean over the resamples that hold the host out). Record: \texttt{figures/main/data/screening\_demo.json}, key \texttt{pairs}.\label{tab:app_pairs}}
+\centering
+\small
+\begin{tabular}{llrr}
+\toprule
+Oxide & Sites & DFT (eV) & S (eV) \\
+\midrule
+Ga$_2$O$_3$ & O$_1$ $-$ O$_2$ & \numScreeningDemoPairsGaTwoOThreeOOneOTwoDftDiffEV{} & \numScreeningDemoPairsGaTwoOThreeOOneOTwoVTwoDiffEV{} \\
+Ga$_2$O$_3$ & O$_1$ $-$ O$_3$ & \numScreeningDemoPairsGaTwoOThreeOOneOThreeDftDiffEV{} & \numScreeningDemoPairsGaTwoOThreeOOneOThreeVTwoDiffEV{} \\
+Ga$_2$O$_3$ & O$_2$ $-$ O$_3$ & \numScreeningDemoPairsGaTwoOThreeOTwoOThreeDftDiffEV{} & \numScreeningDemoPairsGaTwoOThreeOTwoOThreeVTwoDiffEV{} \\
+ZrO$_2$ & O$_1$ $-$ O$_2$ & \numScreeningDemoPairsZrOTwoOOneOTwoDftDiffEV{} & \numScreeningDemoPairsZrOTwoOOneOTwoVTwoDiffEV{} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The networks read the pristine host supercell with the oxygen to be removed marked, never the relaxed defect cell. Two renders show that input for two of the screened oxides, wurtzite ZnO (Figure~\ref{fig:models}b) and rutile SnO$_2$ (Figure~\ref{fig:app_sno2}), and Table~\ref{tab:app_shell} lists the first cation shell of the removed oxygen in each, read from the pristine supercells of the release. In wurtzite ZnO the oxygen is tetrahedrally coordinated by four Zn atoms, with three Zn--O bonds of \numRenderZnOFirstShellSeventyFiveDistanceA{}~\AA{} and one of \numRenderZnOFirstShellZeroDistanceA{}~\AA{}. In rutile SnO$_2$ the oxygen sits in a planar three-fold site with one Sn--O bond of \numRenderSnOTwoFirstShellZeroDistanceA{}~\AA{} and two of \numRenderSnOTwoFirstShellEighteenDistanceA{}~\AA{}. Removing the oxygen breaks four and three cation--oxygen bonds respectively, and the two electrons of the neutral vacancy are left in this cation environment. In the relaxed neutral defect cell of ZnO from the release no atom lies more than \numStructureAuditZnoPristineVsRelaxedDisplacementAMaxOfMatchedAtoms{}~\AA{} from its pristine position, and that relaxation is an output of the defect calculation that the models replace.
+
+\begin{table}[H]
+\caption{First cation shell of the removed oxygen in the two rendered hosts (pristine PBEsol(+$U$) supercells of the release). Atoms: atoms of the supercell; vacancy atom: index of the removed oxygen in the supercell; bond cutoff: the cation--oxygen distance below which a bond is drawn in the renders. Records: \texttt{figures/main/fig1\_zno\_vacancy.render.json} and \texttt{figures/si/figureI1\_sno2\_vacancy.render.json} (\texttt{first\_shell}).\label{tab:app_shell}}
+\centering
+\small
+\begin{tabular}{lrrlrr}
+\toprule
+Host & Atoms & Vacancy atom & Neighbour & M--O distance (\AA) & Bond cutoff (\AA) \\
+\midrule
+wurtzite ZnO & \numRenderZnONAtoms{} & \numRenderZnOVacancyAtomIndex{} & Zn & \numRenderZnOFirstShellSeventyFiveDistanceA{} & \numRenderZnOCationOBondCutoffAZn{} \\
+ & & & Zn & \numRenderZnOFirstShellSeventyEightDistanceA{} & \\
+ & & & Zn & \numRenderZnOFirstShellOneHundredThirtyFiveDistanceA{} & \\
+ & & & Zn & \numRenderZnOFirstShellZeroDistanceA{} & \\
+\addlinespace
+rutile SnO$_2$ & \numRenderSnOTwoNAtoms{} & \numRenderSnOTwoVacancyAtomIndex{} & Sn & \numRenderSnOTwoFirstShellZeroDistanceA{} & \numRenderSnOTwoCationOBondCutoffASn{} \\
+ & & & Sn & \numRenderSnOTwoFirstShellNineteenDistanceA{} & \\
+ & & & Sn & \numRenderSnOTwoFirstShellEighteenDistanceA{} & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Both renders use the same camera conventions, lights and materials. The SnO$_2$ render was made with Blender Cycles on the CPU with \numRenderSnOTwoSamples{} samples and denoising. Its cell is shifted by lattice translations only, so that the vacancy lies near the faces closest to the viewer, and the planar three-fold site is seen nearly edge-on, so Figure~\ref{fig:app_sno2} draws the three Sn neighbours enlarged (parameters in \texttt{figures/si/figureI1\_sno2\_vacancy.render.json}).
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=69mm]{figureI1_sno2_vacancy.png}
+\caption{Neutral oxygen vacancy in rutile SnO$_2$. Pristine SnO$_2$ supercell of the release with the removed oxygen marked by the translucent amber sphere and its three nearest Sn neighbours enlarged and joined into a translucent triangle, seen nearly edge-on (Sn grey-blue, O red). Camera, lights and materials are those of the ZnO render of Figure~\ref{fig:models}b, with render parameters in \texttt{figures/si/figureI1\_sno2\_vacancy.render.json}.\label{fig:app_sno2}}
+\end{figure}

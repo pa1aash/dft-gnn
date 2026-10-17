@@ -70,3 +70,9 @@ cascade) cites Supplementary Figure S2, `methods.tex` (readout) Supplementary Fi
 Supplementary Materials summarise the departures by kind (Section S9) and that the full dated log is released with
 the code (final code tag and Zenodo DOI still placeholders), which resolves the extent mismatch recorded above
 without adding the log to the SI. Line numbers in the tables above refer to the W3 state and have shifted.
+
+## A4 update (2026-10-17)
+
+The Supplementary Materials are merged into Appendices A to K of the article (`docs/a4_merge_report.md`), so the
+tables above describe a document that is no longer built. The main text refers to the appendices by `\ref` to the
+labels `app:data` to `app:code`, all of which resolve.

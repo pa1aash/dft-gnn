@@ -1,0 +1,23 @@
+% Purpose: Appendix J, statistical details: the paired hierarchical bootstrap, the paired host-cluster bootstrap of
+% single partitions, the non-inferiority rule for N*, the four-outcome staging rule and the multiplicity rule.
+% Converted in session A4 from the former Methods section on statistics (sec:statistics, before R3); protocol only, no
+% results. Input by main.tex after \appendix. Numbers: configs/config.yaml (analysis, stats), results/g1_primary.json
+% (bootstrap seed).
+\section{Statistical Details}
+\label{app:stats}
+
+\subsection{Bootstrap}
+
+Intervals on the learning-curve and additional-resample designs come from a paired hierarchical bootstrap \citep{Efron1979bootstrap,Efron1993introduction} with \numCfgAnalysisBootstrapDraws{} replicates. In each replicate the resamples are drawn with replacement, then the test hosts are drawn with replacement within each drawn resample, every host with all its sites; every metric is recomputed on the drawn hosts, and the replicate value is the mean over the drawn resamples. The two levels carry the two sources of variation of a learning curve, the choice of training oxides and the choice of test oxides. One set of draws (generator seed \numGOnePrimaryBootstrapSeed{}) is shared by every model, training size and metric, so every contrast, $A$ among them, is computed on identical draws and is paired. Two-sided intervals are percentile intervals at level \numCfgAnalysisDisplayCi{}, and the one-sided upper bound $U$ is the \numCfgAnalysisNStarUpperQuantile{} quantile of the bootstrap distribution of $A$. Analyses on a single partition, the cross-validations and the family folds, have no resample level; they use a paired host-cluster bootstrap with \numCfgStatsClusterBootstrapN{} draws, which draws the test hosts with all their sites, identically for S and D.
+
+\subsection{Non-Inferiority and the Smallest Sufficient Training Size}
+
+S is non-inferior to D at a training size where $U < \delta$, that is, where the electronic descriptors lower the site error by less than $\delta$ at the one-sided level \numCfgAnalysisNStarAlpha{}; this is one arm of a two-one-sided-tests procedure \citep{Schuirmann1987comparison,Lakens2017equivalence}. $N^{*}$ is the smallest training size of the learning curve at which $U < \delta$ and at which $U < \delta$ also holds at every larger size. A size at which the bound falls below $\delta$ but rises above it again at a larger size is therefore not $N^{*}$. If the first qualifying size were the largest, $N^{*}$ would be reported as reached only there, without extrapolation, and if none qualified, $N^{*}$ would be reported as a lower bound, larger than the largest size. The same rule, with the same $\delta$, is applied to the within-host residual MAE. The ceiling on what pristine-host electronic information adds is $A$ with \numCfgAnalysisCTwoCeilingBudget{} training hosts with its two-sided interval.
+
+\subsection{Staging Outcomes}
+
+At each training size the contrasts $\mathrm{MAE}_\mathrm{D} - \mathrm{MAE}_\mathrm{P}$, the cost of predicting rather than computing the descriptors, and $\mathrm{MAE}_\mathrm{P} - \mathrm{MAE}_\mathrm{S}$, staging against learning the energy from structure directly, are estimated with the hierarchical bootstrap. $\mathrm{MAE}_\mathrm{P} - \mathrm{MAE}_\mathrm{S}$ takes one of four outcomes, tested in this order: P better when its two-sided interval at level \numCfgAnalysisStagingNullCi{} lies entirely below zero; P worse when that interval lies entirely above zero; equivalent when its two-sided interval at level \numCfgAnalysisEquivalenceTostCi{}, the interval of the two one-sided tests at level \numCfgAnalysisNStarAlpha{}, lies inside $\pm\delta_\mathrm{P}$ with $\delta_\mathrm{P} = \numNetStagingDeltaP{}$~eV; and inconclusive otherwise. A contrast classified as P worse can also lie within the margin, which the record notes as non-inferiority of P; the outcome of every training size is given in Section~\ref{sec:staging}.
+
+\subsection{Multiplicity}
+
+The requirement that the bound hold at $N^{*}$ and at every larger size of the learning curve is the protection against testing at several training sizes; no further correction is applied. The headline comparisons are few and fixed in advance: $A$ and its bound at each training size and design, $A_\mathrm{within}$ by the same rule, and the staging outcome per size. Every other interval of the paper, in particular the breakdown of Appendix~\ref{app:within} over chemical groups, is descriptive and uncorrected for multiplicity, so an isolated interval that excludes zero there is weak evidence.

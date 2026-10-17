@@ -1,0 +1,67 @@
+% Purpose: Appendix A, the data: the filter cascade (Table A1, Figure A1), the three integrity filters D1-D3 and the
+% descriptor classes (Table A2). Converted from the Supplementary Materials, Section S1 (paper/si/sections/s1_data.tex),
+% in session A4. Input by main.tex after \appendix. Every number is a macro (results/filter_cascade.json,
+% results/structure_audit.json, results/screening_absence.json); Table A2 is transcribed from docs/descriptor_taxonomy.csv.
+\section{Data}
+\label{app:data}
+
+The dataset holds the neutral oxygen vacancies, $V_\mathrm{O}^{\times}$, of the release of Kumagai et al.\ \citep{Kumagai2021insights} that pass a fixed cascade of filters (Table~\ref{tab:app_cascade}, Figure~\ref{fig:app_cascade}). The release holds \numFilterCascadeStepsReleaseSites{} completed neutral calculations in \numFilterCascadeStepsReleaseHosts{} host oxides. From them Kumagai et al.\ built a neutral machine-learning subset of \numFilterCascadeStepsMlSubsetSites{} vacancies in \numFilterCascadeStepsMlSubsetHosts{} hosts, from which they had already removed the perturbed-host-state entries (\numScreeningAbsenceReleaseNeutralCompletedPhs{} of the completed neutral entries), the entries whose band edges could not be determined and the dynamically unstable hosts. In a perturbed-host-state entry the two donor electrons of the vacancy do not stay in a localised in-gap state but delocalise into the conduction band of the host, so the subset, and every result of this work, describes deep, localised neutral vacancies in ordered oxides that the release classifies as non-magnetic. Three further filters, D1 to D3, remove what a data audit found inconsistent in that subset; they leave \numFilterCascadeStepsFinalSites{} oxygen sites in \numFilterCascadeStepsFinalHosts{} hosts, one host per formula.
+
+\begin{table}[H]
+\caption{Filter cascade of the dataset: oxygen sites, hosts and formulas left after each step (\texttt{results/filter\_cascade.json}).\label{tab:app_cascade}}
+\centering
+\small
+\begin{tabularx}{\linewidth}{lXrrr}
+\toprule
+Step & Criterion & Sites & Hosts & Formulas \\
+\midrule
+Release & completed neutral entries of the release & \numFilterCascadeStepsReleaseSites{} & \numFilterCascadeStepsReleaseHosts{} & \numFilterCascadeStepsReleaseFormulas{} \\
+Subset & neutral machine-learning subset of Kumagai et al. & \numFilterCascadeStepsMlSubsetSites{} & \numFilterCascadeStepsMlSubsetHosts{} & \numFilterCascadeStepsMlSubsetFormulas{} \\
+D1 & split vacancy, unknown defect type or relaxed configuration other than the initial vacancy & \numFilterCascadeStepsDOneSites{} & \numFilterCascadeStepsDOneHosts{} & \numFilterCascadeStepsDOneFormulas{} \\
+D2 & host Sr$_2$Zr$_7$O$_{16}$, whose site labels do not match the targets & \numFilterCascadeStepsDTwoSites{} & \numFilterCascadeStepsDTwoHosts{} & \numFilterCascadeStepsDTwoFormulas{} \\
+D3 & Ba$_4$Nb$_2$WO$_{12}$ and Sr$_2$SnO$_4$: vacancy site is an oxygen with the first cation shell of the unit-cell site & \numFilterCascadeStepsDThreeSites{} & \numFilterCascadeStepsDThreeHosts{} & \numFilterCascadeStepsDThreeFormulas{} \\
+\midrule
+Dataset & & \numFilterCascadeStepsFinalSites{} & \numFilterCascadeStepsFinalHosts{} & \numFilterCascadeStepsFinalFormulas{} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\figph{figureA1_cascade}
+\caption{Filter cascade from the database release to the dataset of \numFilterCascadeStepsFinalHosts{} hosts. From the completed neutral oxygen-vacancy entries of the release and its neutral machine-learning subset, D1 removes split, unknown-type and reconfigured vacancies, D2 removes the host Sr$_2$Zr$_7$O$_{16}$ and D3 checks the site mapping of two hosts with inconsistent cell metadata. Dashed boxes are the entries excluded at each step, with counts in Table~\ref{tab:app_cascade} and \texttt{results/filter\_cascade.json}.\label{fig:app_cascade}}
+\end{figure}
+
+The three filters concern the integrity of the labels, not the chemistry of the hosts. D1 removes the \numFilterCascadeStepsDOneNRemoved{} entries of the subset that the release itself flags as a split vacancy, an unknown defect type or a relaxed configuration that is not that of the initial vacancy. Each of them carries the last flag, so the stored energy may not belong to a single vacancy on the labelled site, which is the structure the networks read. D2 removes the \numFilterCascadeStepsDTwoNRemoved{} sites of Sr$_2$Zr$_7$O$_{16}$, whose site labels in the machine-learning tables do not match the targets of the release; the release gives no criterion that explains the mismatch, so the host is excluded rather than repaired. D3 concerns the two hosts whose cell metadata disagree with their supercells, Ba$_4$Nb$_2$WO$_{12}$ and Sr$_2$SnO$_4$; the Sr$_2$SnO$_4$ supercell of \numStructureAuditAnomalousHostsSrTwoSnOFourNAtomsSc{} atoms has \numStructureAuditAnomalousHostsSrTwoSnOFourVolumeRatio{} of the expected volume, because it was built from the primitive cell. An entry of these hosts is kept only if its labelled vacancy site maps to an oxygen of the supercell whose first cation shell matches that of the unit-cell site within \numFilterCascadeDThreeSrTwoSnOFourSitesOOneToleranceA{}~\AA{}. Every entry passed, so D3 removed \numFilterCascadeStepsDThreeNRemoved{} sites. Every site of the dataset lies in the published split of Kiyohara et al.\ \citep{Kiyohara2025machinelearning} (\numFilterCascadeKiyoharaSplitSitesAbsent{} sites absent; Appendix~\ref{app:splits}).
+
+The descriptors of the release fall into three classes (Table~\ref{tab:app_taxonomy}), set by the calculation that a new oxide would need. The host-electronic class holds properties of the pristine host from its DFT electronic structure: the PBEsol(+$U$) band gap, the electronic and ionic dielectric constants and the orbital character of the band edges, together with the formation energy of the host oxide, which measures how strongly oxygen is bound. The site-electronic class describes the oxygen to be removed in the pristine host: its Bader charge and volume, its Born effective charge, the same quantities averaged over and extremal among its Voronoi neighbours, and the centre of its O $p$ band below the valence-band maximum. The structural and compositional class holds the fractions of the solid angle of the oxygen Voronoi cell that face each element and the electronegativities of the neighbours. D receives the two electronic classes, \numRfElectronicNFeatures{} descriptors; RF-Kumagai uses all \numRfKumagaiNFeatures{} descriptors, RF-electronic the \numRfElectronicNFeatures{} electronic ones and RF-structural the \numRfStructuralNFeatures{} structural and compositional ones. Every descriptor is computed on the pristine host, so none contains the relaxed defect geometry or the defect energy. The host formation energy is named \texttt{formation\_energy} in the release and is not the vacancy formation energy that the models predict.
+
+\begin{table}[H]
+\caption{Descriptors of the release and their classes, transcribed from \texttt{docs/descriptor\_taxonomy.csv} (names as in the release, definitions abridged). The host-electronic and site-electronic descriptors are given to D. Every descriptor is a property of the pristine host.\label{tab:app_taxonomy}}
+\begin{adjustwidth}{-\extralength}{0cm}
+\centering
+\footnotesize
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}Xll>{\raggedright\arraybackslash}X@{}}
+\toprule
+Name & Class & Units & Definition \\
+\midrule
+\texttt{ave\_ele\_diele} & host-electronic & dimensionless & spherically averaged electronic (ion-clamped) dielectric constant of the pristine host, from DFPT \\
+\texttt{ave\_ion\_diele} & host-electronic & dimensionless & spherically averaged ionic dielectric constant of the pristine host, from DFPT \\
+\texttt{band\_gap} & host-electronic & eV & band gap of the pristine host from the PBEsol(+$U$) calculation, not the hybrid gap \\
+\texttt{cbm\_s}, \texttt{cbm\_p}, \texttt{cbm\_d}, \texttt{cbm\_f} & host-electronic & dimensionless & fraction of $s$, $p$, $d$ or $f$ orbital character in the conduction-band minimum of the pristine host (projection ratio) \\
+\texttt{vbm\_s}, \texttt{vbm\_p}, \texttt{vbm\_d}, \texttt{vbm\_f} & host-electronic & dimensionless & fraction of $s$, $p$, $d$ or $f$ orbital character in the valence-band maximum of the pristine host (projection ratio) \\
+\texttt{formation\_energy} & host-electronic & eV per atom & formation energy of the host oxide per atom from the Materials Project database (empirically corrected) \\
+\addlinespace
+\texttt{ave\_bec} & site-electronic & $e$ & spherically averaged Born effective charge (one third of the trace) of the oxygen to be removed (DFPT) \\
+\texttt{bader\_charge} & site-electronic & $e$ & Bader charge of the oxygen to be removed, from the all-electron density of the pristine unit cell; negative for the anion \\
+\texttt{bader\_volume} & site-electronic & \AAcube{} & Bader (zero-flux) volume of the oxygen to be removed \\
+\texttt{nn\_ave\_ave\_bec}, \texttt{nn\_max\_ave\_bec}, \texttt{nn\_min\_ave\_bec} & site-electronic & $e$ & solid-angle-weighted mean, maximum and minimum of the averaged Born effective charge over the Voronoi neighbours of the oxygen site \\
+\texttt{nn\_ave\_bader\_charge}, \texttt{nn\_max\_bader\_charge}, \texttt{nn\_min\_bader\_charge} & site-electronic & $e$ & solid-angle-weighted mean, maximum and minimum of the Bader charge over the Voronoi neighbours of the oxygen site \\
+\texttt{o2p\_center\_from\_vbm} & site-electronic & eV & centroid of the oxygen $p$ projected density of states of the oxygen site, as its distance below the valence-band maximum \citep{Deml2015intrinsic} \\
+\addlinespace
+\texttt{nn\_ave\_eleneg}, \texttt{nn\_max\_eleneg}, \texttt{nn\_min\_eleneg} & structural & Pauling units & solid-angle-weighted mean, maximum and minimum of the Pauling electronegativity over the Voronoi neighbours (cations and oxygen) \\
+\texttt{w\_X} & structural & fraction & fraction of the solid angle of the Voronoi cell of the oxygen site (pristine unit cell) that faces element X, for each element of the dataset \\
+\bottomrule
+\end{tabularx}
+\end{adjustwidth}
+\end{table}

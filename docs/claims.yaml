@@ -299,3 +299,62 @@ claims:
     falsifiable_how: "A He-initialisation tuning study of P1 in results/tuning/, or trial counts or best values that differed from the summaries, refutes the row."
     status: measured
     result_ref: results/tuning_v2_summary.json
+  # A4 (2026-10-17): rows for the statements of Appendices D to I that the merge of the Supplementary Materials into
+  # the appendices makes from existing records of the final network (He initialisation, validation-tuned; repository
+  # name v2) and, in Appendix D only, of the default-initialisation ablation. No value was computed in A4.
+  - id: A4-ABL
+    statement: "The structure-only error of the final network at 654 training hosts, 0.296 [0.276, 0.317] eV, lies above that of the default initialisation, 0.273 [0.252, 0.300] eV, with overlapping intervals; from 654 training hosts on (both 654-host designs and both cross-validations) the two-sided interval of A lies inside +-0.05 eV for both initialisations, at 400 for neither."
+    tested_by: "analysis/c1/final_network.py, G1 hierarchical bootstrap with the C1 draws (host-cluster bootstrap for the cross-validations)"
+    figure: "Table D1"
+    falsifiable_how: "Intervals that did not overlap, or an A interval at 654 or in either cross-validation that left +-0.05 eV, refutes the row."
+    status: measured
+    result_ref: results/derived_c1/default_init_ablation.json
+  - id: A4-WHGRP
+    statement: "In the within-host breakdown of the final network at 654 training hosts no S - D interval of the d-class, shallow-donor-prone, stability, band-gap or Bader-rank groups excludes zero; of the per-cation groups three do (Na and Sn in favour of D, Cd in favour of S), uncorrected for multiplicity."
+    tested_by: "analysis of results/within_host_breakdown.json (host-cluster bootstrap within each group, paired S and D)"
+    figure: "Table E1, Figure E1"
+    falsifiable_how: "A group interval in the record that contradicts the stated signs or exclusions refutes the row."
+    status: measured
+    result_ref: results/within_host_breakdown.json
+  - id: A4-CAPDIR
+    statement: "On the final network at 654 training hosts, runs that reach the 200-epoch limit lower A rather than raise it: including the cells that hold such a run changes the mean single-run A by -0.0032 eV (30 x 5) and -0.0007 eV (10 x 3), and removing the capped runs moves the 30 x 5 ensemble A from 0.033 to 0.037 eV."
+    tested_by: "analysis/w2/diagnostics.py (paired cells of the stored run records)"
+    figure: "Table F1"
+    falsifiable_how: "Paired-cell means that differed from the stored run records refute the row."
+    status: measured
+    result_ref: results/derived_w2/w2_training_limit.json
+  - id: A4-HMRF
+    statement: "Removing the 10 entries with a defect moment above 0.5 muB from training and test changes the site MAE of RF-Kumagai at 654 training hosts by -0.004 [-0.008, -0.0002] eV."
+    tested_by: "RF-Kumagai refit with and without the entries, paired host bootstrap"
+    figure: "none (Appendix F)"
+    falsifiable_how: "A refit that changed the forest error by more than the interval refutes the row."
+    status: measured
+    result_ref: results/sens_high_moment_rf.json
+  - id: A4-CGCNN
+    statement: "An untuned CGCNN on resample 0 shows A falling with training hosts, from 0.125 [0.050, 0.199] eV at 50 to 0.003 [-0.031, 0.035] eV at 654, against 0.232 and 0.031 [-0.010, 0.075] eV for the final network on the same resample."
+    tested_by: "CGCNN S and D runs on resample 0, host bootstrap of the single resample"
+    figure: "none (Appendix F)"
+    falsifiable_how: "A on the same draws that did not fall with training hosts refutes the row."
+    status: measured
+    result_ref: results/sens_cgcnn.json
+  - id: A4-GEOM
+    statement: "Of 818 hosts, 809 map onto the release supercell by translation and are relaxed with MACE-MP-0; 802 converge within 500 FIRE steps and are evaluated; no change in MAE of S, D or P at 200 or 654 training hosts on relaxed or rescaled cells exceeds 0.0033 eV in magnitude."
+    tested_by: "collaborator's evaluation of the final network on his relaxations (paired hierarchical bootstrap); convergence flags of results/mlip/relaxed_shard*.json.gz"
+    figure: "Table G1"
+    falsifiable_how: "A change in MAE beyond 0.0033 eV, or a different count of converged relaxations, refutes the row."
+    status: measured
+    result_ref: results/mlip_eval_v2.json
+  - id: A4-PROBE
+    statement: "For the final network the linear probe recovers more descriptor variance as training hosts grow (Spearman 0.964 [0.949, 0.980] host-electronic, 0.978 [0.970, 0.987] site-electronic) and beats shuffled labels at every size from 200, but does not beat an untrained encoder for the host-electronic class at any size from 200, so the control condition fails for both classes."
+    tested_by: "ridge probe of the readout input with grouped cross-validated penalty; resample bootstrap"
+    figure: "Figure H1"
+    falsifiable_how: "A host-electronic difference to the untrained encoder with an interval above zero at 200, 400 or 654 hosts refutes the row."
+    status: measured
+    result_ref: results/probe_descriptive.json
+  - id: A4-PAIRS
+    statement: "With 654 training hosts the structure-only network orders 3 of the 4 screened site pairs within a host as DFT does; the inverted pair, the two sites of ZrO2, has the smallest DFT difference (0.088 eV)."
+    tested_by: "screening predictions averaged over the resamples that hold the host out"
+    figure: "Table I2"
+    falsifiable_how: "Pair differences that differed from the stored screening predictions refute the row."
+    status: measured
+    result_ref: figures/main/data/screening_demo.json

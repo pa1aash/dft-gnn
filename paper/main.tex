@@ -98,12 +98,40 @@ $^{2}$ \quad Westview High School, San Diego, CA, USA; aiden.lee.sd@gmail.com}
 
 \conflictsofinterest{\input{sections/conflicts}}
 
-%% Appendices A-K. The Supplementary Materials (paper/si/) are merged into them in a later session; until then
-%% sections/appendix_stub.tex holds only their titles and labels (docs/pending_edits.md).
+%% Appendices A-K: the former Supplementary Materials (paper/si/, kept in the repository but no longer built or
+%% referenced) merged into lettered appendices in session A4 (docs/a4_merge_report.md). Figures and tables are numbered
+%% per appendix (Figure A1, Table B1, ...), as in MDPI articles with several appendices.
 \appendixtitles{yes}
 \appendixstart
 \appendix
-\input{sections/appendix_stub}
+\makeatletter
+\renewcommand{\thefigure}{\thesection\arabic{figure}}
+\renewcommand{\thetable}{\thesection\arabic{table}}
+\@addtoreset{figure}{section}
+\@addtoreset{table}{section}
+\makeatother
+%% Text constants and table helpers of the appendices whose definitions contain digits (kept here, outside the
+%% scanned section files, as for the constants of the preamble).
+\newcommand{\dten}{\ensuremath{d^{10}}}
+\newcommand{\Rsq}{\ensuremath{R^{2}}}
+\newcommand{\AAcube}{\AA\ensuremath{^{3}}}
+\newcommand{\shatwo}{SHA-256}
+\newcommand{\recprecision}{\texttt{results/precision\_a\_b400\_b654.json}}
+\newcommand{\pairhead}[1]{\multicolumn{2}{c}{#1}}
+\newcommand{\grouprow}[1]{\multicolumn{8}{l}{\textit{#1}}}
+\newcommand{\ablrules}{\cmidrule(lr){3-4}\cmidrule(l){9-10}}
+\newcommand{\ablgroup}[1]{\multicolumn{10}{l}{\textit{#1}}}
+\input{sections/appendix_a_data}
+\input{sections/appendix_b_network}
+\input{sections/appendix_c_splits}
+\input{sections/appendix_d_ablation}
+\input{sections/appendix_e_within}
+\input{sections/appendix_f_sens}
+\input{sections/appendix_g_geometry}
+\input{sections/appendix_h_probe}
+\input{sections/appendix_i_screening}
+\input{sections/appendix_j_stats}
+\input{sections/appendix_k_code}
 
 \begin{adjustwidth}{-\extralength}{0cm}
 \reftitle{References}
