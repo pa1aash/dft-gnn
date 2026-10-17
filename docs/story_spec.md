@@ -6,7 +6,9 @@ author decisions (a) to (g) of the S1 brief are applied; the voice rules are in 
 `docs/paragraph_map.md` and every undecided point in `docs/open_questions.md`. "The network" is the He-initialised,
 validation-tuned network (repository name v2); "default initialisation" names the first configuration (v1), which
 appears only in Appendix D and one Methods paragraph. Numbers below are read from `paper/generated/numbers.tex`; in
-the paper every one stays a macro. Nothing was computed.
+the paper every one stays a macro. Nothing was computed. Updated after merging task C1 (`a5c11f7`): the two-sided intervals at the cross-validation
+sizes are now confirmed (`results/derived_c1/final_network_summary.json`, `docs/c1_final_network_table.md`), so no
+wording is pending C1.
 
 ## (i) The claim
 
@@ -16,7 +18,7 @@ complete set of pristine-host DFT electronic descriptors, from about 650 trainin
 
 | # | Supporting claim | Evidence (final network) | Record; claim row |
 |---|---|---|---|
-| 1 | The descriptor advantage $A = \mathrm{MAE_S} - \mathrm{MAE_D}$ is bounded below $\delta = 0.05$ eV from 654 training hosts on, and not at 400. | 654, 30 resamples x 5 seeds: $A$ = 0.033 eV [0.021, 0.045], $U$ = 0.043. 654, learning-curve design (10 x 3): 0.015 [−0.008, 0.036], $U$ = 0.033. 400: $A$ = 0.054, $U$ = 0.075 (10 x 3); $A$ = 0.066, $U$ = 0.079 (30 x 5). (At 200 the 10 x 3 bound is 0.047; $N^{*}$ is 654 because 400 fails.) Cross-validation, about 736 and 777 hosts: $U$ = 0.039 and 0.040; two-sided wording **[PENDING C1]**. | `results/precision_a_b400_b654.json`, `results/c1c2_v2.json`, `results/cv_extended_budget.json`; PR1, C1/C2, CV1 |
+| 1 | The descriptor advantage $A = \mathrm{MAE_S} - \mathrm{MAE_D}$ is bounded below $\delta = 0.05$ eV from 654 training hosts on, and not at 400. | 654, 30 resamples x 5 seeds: $A$ = 0.033 eV [0.021, 0.045], $U$ = 0.043. 654, learning-curve design (10 x 3): 0.015 [−0.008, 0.036], $U$ = 0.033. 400: $A$ = 0.054, $U$ = 0.075 (10 x 3); $A$ = 0.066, $U$ = 0.079 (30 x 5). (At 200 the 10 x 3 bound is 0.047; $N^{*}$ is 654 because 400 fails.) Cross-validation, about 736 and 777 hosts: $A$ = 0.024 [0.005, 0.042] and 0.026 [0.010, 0.043], $U$ = 0.039 and 0.040; both intervals inside ±δ (confirmed by C1). | `results/precision_a_b400_b654.json`, `results/c1c2_v2.json`, `results/cv_extended_budget.json`, `results/derived_c1/final_network_summary.json`; PR1, C1/C2, CV1 |
 | 2 | What the descriptors still add is small, positive and host-level: at most about 0.04 eV, and nothing within a host. | $A_\mathrm{within}$ at 654 = −0.002 [−0.013, 0.009]; within-host Spearman S − D −0.042 (interval includes 0); ICC_host 0.930; P1 recovers the oxide formation energy best and site-level charges worst. | `results/c1c2_v2.json`, `results/within_host_breakdown.json`, `results/staging_v2.json`; WH1, C3a-v2 |
 | 3 | The structure-only route holds up in deployment: predicting the descriptors never beats it, and relaxed geometry barely moves it. | Staging: P never better than S at any budget; at 654, P − S = 0.028 [0.008, 0.053]. Geometry (809 relaxed hosts): $\Delta$MAE of S at 654 = +0.0002 [−0.0025, +0.0026] eV. | `results/staging_v2.json`, `results/mlip_eval_v2.json`; C3a-v2, C3b-809 |
 
@@ -28,7 +30,7 @@ published structure-only 0.29 eV (Kiyohara et al.); RF-Kumagai reproduces the pu
 | Limit | Single home | Elsewhere |
 |---|---|---|
 | Not within 0.05 eV at 400 training hosts ($U$ = 0.075) | Results 3.2, paragraph 2 | Abstract clause; Conclusions pointer |
-| Leave-one-family-out upper bound 0.060 eV, above $\delta$ | Results 3.2, paragraph 4 | Discussion 4.4 pointer |
+| Leave-one-family-out upper bound 0.060 eV, above $\delta$; the excess comes from one family, the alkali group-14 oxides (48 hosts; without it the bound is 0.037 eV; `results/derived_c1/loco_family.json`) | Results 3.2, paragraph 4 | Discussion 4.4 pointer |
 | Domain: deep neutral vacancies in ordered non-magnetic oxides, one functional and workflow; the perturbed-host-state filter drops shallow-donor hosts (SrTiO$_3$, BaTiO$_3$); charged vacancies untested | Methods 2.1 (Domain) | Abstract scope clause; Results 3.6 names the absent oxides; Discussion 4.4 one sentence |
 | No experimental validation | Discussion 4.4 | none |
 | Nothing known beyond about 777 training hosts; CV tests a different population | Results 3.2, paragraph 3 | none |
@@ -53,7 +55,7 @@ status, GPU-class effects, estimator differences between bootstraps, v2-only or 
 | 2.5 Statistics | MAE, within-host residual MAE, zero skill; $A$; bootstrap; non-inferiority and $N^{*}$; **$\delta$ stated once as fixed before the analysis**; staging rule | – | 350 |
 | 2.6 Checks | Geometry protocol (n = 809 relaxed hosts) and probe, one paragraph each, details in App. G, H | – | 150 |
 | 3.1 Host and site | ICC; oracle and zero skill; B0 and forests; reproduction of 0.29 eV | anchor | 400 |
-| 3.2 Learning curve | Fig. 2; $A$ by budget; $N^{*}$ = 654; interval inside ±δ; 400 limit; CV **[PENDING C1]**; leave-one-family-out limit | claim 1 | 800 |
+| 3.2 Learning curve | Fig. 2; $A$ by budget; $N^{*}$ = 654; interval inside ±δ; 400 limit; CV at about 736 and 777 hosts inside ±δ; leave-one-family-out limit and its family | claim 1 | 800 |
 | 3.3 Site resolution | Fig. 3; within-host skill; $A_\mathrm{within}$; Bader-charge reference | claim 2 | 400 |
 | 3.4 Staging | Fig. 4; P never better than S; D − P; P1 recovery by class | claim 3 | 350 |
 | 3.5 Relaxed geometry | Three components; $\Delta$MAE of S, D, P; table in App. G | claim 3 | 200 |
@@ -80,7 +82,7 @@ claim-bearing item in the main text. Rough budget: front matter and Abstract 1; 
 | A Data | Filter cascade (table and figure), D1-D3 details, descriptor taxonomy | Table 1, SI S1, Fig. S2 |
 | B Network and training | Readout schematic, protocol details, search space, tuned values and validation errors of the network, epoch-limit rule, tuning-overlap note | Methods, Table tuning, SI S2, Fig. S1, Tables S2-S4 |
 | C Splits | Split schematic, resample construction, CV folds, cation families, Kiyohara split | SI S3, Fig. S3 |
-| D Default-initialisation ablation | One table: default initialisation against the network (S and D MAE, $A$ and $U$ at 400 and 654, within-host spread at 200) | Methods `sec:backbones`, Table 2 v1 column |
+| D Default-initialisation ablation | One table: default initialisation against the network (S and D MAE, $A$, interval and $U$ at every size, and the within-host spread of the predictions), rendered from `results/derived_c1/default_init_ablation.json` (`docs/c1_ablation_table.md`) | Methods `sec:backbones`, Table 2 v1 column, C1 |
 | E Within-host breakdown | Groups table and figure; multiplicity statement | SI S4, Fig. S4, Table S7 |
 | F Sensitivities | High-moment exclusion (final-network rerun pending), training-limit counts, untuned CGCNN | SI S6, Fig. S6, Table S6 |
 | G Geometry check | Relaxation and mapping protocol, strain components, $\Delta$MAE table | Methods `sec:mlip`, Results 3.6 |
@@ -116,7 +118,7 @@ the set. Information goes in the captions.
 
 | New table | Source | Action |
 |---|---|---|
-| Table 1 Main results | Table 2 (`tab:headline`) | Keep, one value column, no label column; rows: ICC, oracle, B0, RF-Kumagai, S at 654, $A$ at 400 and 654 (both designs), CV $A$ **[PENDING C1]**, leave-one-family-out $A$, P − S at 654, $\Delta$MAE of S |
+| Table 1 Main results | Table 2 (`tab:headline`) | Keep, one value column, no label column; rows: ICC, oracle, B0, RF-Kumagai, S at 654, $A$ at 400 and 654 (both designs), CV $A$ at $K$ = 10 and 20, leave-one-family-out $A$, P − S at 654, $\Delta$MAE of S |
 | Table 2 Screened sites | Table 3 | Keep, slimmed to oxide, site, cations, DFT, prediction, $N$; full columns to Table I1 |
 | Tables A1-A2, B1-B3, C1, D1, E1, F1, G1, I1-I3 | Table 1, tuning table, SI tables | Move; Table D1 is the only place default-initialisation numbers appear |
 

@@ -62,7 +62,7 @@ rule b).
 | File:line | Caveat or label (abridged) | Verdict |
 |---|---|---|
 | abstract.tex:2 | "On the primary network, adopted post hoc after diagnostics of the originally registered one" | DELETE: rule (b); one network |
-| abstract.tex:2 | "On both networks its one-sided upper bound lay below the tolerance at 654, 736 and 777 ... but not at 400" | KEEP-ONCE 400 limit, home Results 3.2; Abstract keeps a one-clause pointer; CV part PENDING C1 |
+| abstract.tex:2 | "On both networks its one-sided upper bound lay below the tolerance at 654, 736 and 777 ... but not at 400" | KEEP-ONCE 400 limit, home Results 3.2; Abstract keeps a one-clause pointer; the CV part is supported by C1 (both two-sided intervals inside ±δ) |
 | abstract.tex:2 | "The result applies to deep, localised neutral oxygen vacancies in ordered hosts classified as non-magnetic in the release" | MERGE into domain statement (home Methods 2.1); Abstract keeps a short scope clause |
 | abstract.tex:2 | "geometry ... changed the originally registered network's error" | DELETE: default-initialisation result; replace with the network's geometry check |
 | introduction.tex:11 | "We claim no priority for the structure-only result"; "a precedent in a metal, not a benchmark for oxides" | MERGE into Discussion 4.3 (prior work), one sentence; defensive in the Introduction |

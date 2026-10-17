@@ -14,13 +14,12 @@ bound below 0.05 eV and two-sided interval inside ±0.05 eV). Recommendation: th
 Results 3.2 and Conclusions, because it is the more precise estimate and matches "small and positive"; the 10 x 3
 curve stays as Figure 2 and its 654 value appears once beside it. *Author.*
 
-**Q2. Two-sided intervals at the cross-validation sizes (task C1).** The brief says these are not yet computed, so
-the wording at about 736 and 777 hosts is marked **[PENDING C1]** everywhere. Note:
-`results/cv_extended_budget.json` already stores two-sided 95% host-cluster bootstrap intervals for the network:
-$A$ = 0.024 [0.005, 0.042] at $K$ = 10 (736.2 hosts) and 0.026 [0.010, 0.043] at $K$ = 20 (777.1 hosts), with $U$ = 0.039
-and 0.040; both intervals lie inside ±0.05 eV. If C1 is meant to recompute these with another estimator (for
-example a seed- or fold-level bootstrap), its result replaces them; if not, C1 may only need to confirm these
-values. *Author / task C1.*
+**Q2. Two-sided intervals at the cross-validation sizes (task C1). RESOLVED.** C1 merged into origin/main
+(`a5c11f7`) during S1 and recomputed them with the existing paired host-cluster bootstrap
+(`results/derived_c1/final_network_summary.json`, `docs/c1_final_network_table.md`): $A$ = 0.024 [0.005, 0.042] at
+$K$ = 10 (736.2 hosts) and 0.026 [0.010, 0.043] at $K$ = 20 (777.1 hosts), $U$ = 0.039 and 0.040; both intervals lie
+inside ±0.05 eV and exclude zero, and they equal the values already stored in `results/cv_extended_budget.json`. The
+story may therefore say "within 0.05 eV" at about 736 and 777 training hosts; no wording is pending.
 
 **Q3. Reproduction of the published 0.29 eV.** The value on Kiyohara's released split (0.283 eV
 [0.237, 0.329], `results/c0_official.json`) exists for
@@ -110,11 +109,18 @@ Results 3.2 so a reader of Figure 2 is not surprised; no discussion. *Author.*
 numbers (median spread of predictions across the sites of a test host 2.8e-5 eV at 200 hosts against a target
 spread of 0.121 eV; at initialisation the spread is at the same level) come from test-host predictions; the
 paragraph states this plainly, as rule (a) requires, and adds that the He choice and the re-tuning used validation
-oxides only. Recommendation: give the two spreads as macros in the paragraph and the rest in Table D1. *Settled
-unless the author objects.*
+oxides only. Recommendation: give the two spreads as macros in the paragraph and the rest in Table D1. Caution from C1
+(`docs/c1_ablation_table.md`, site-resolution table): the He-initialised network is also nearly flat within a host at
+the two smallest sizes (ratio of prediction spread to target spread 0.012 at 25 and 0.017 at 50 hosts, against
+0.001 and 0.004 for default initialisation), and departs from it at 100 and 200 hosts (0.123 and 0.265 against 0.000
+and 0.001). The paragraph should say that default initialisation stayed flat up to 200 hosts, not that He
+initialisation resolves sites at every size. *Author.*
 
 **Q15. Leave-one-family-out with default initialisation.** Default initialisation passes ($A$ = 0.008, $U$ = 0.027), the network does not ($A$ = 0.041 [0.018, 0.064], $U$ =
-0.060). With one network the limit is
+0.060). C1 (`results/derived_c1/loco_family.json`) traces the
+network's excess over δ to one family, the alkali group-14 oxides (Cs, K, Rb germanates, silicates and plumbates;
+48 hosts): without it the pooled bound is 0.037 eV. Recommendation: Results 3.2 states the 0.060 eV bound and names
+that family in one sentence, which turns the limit into chemistry. With one network the limit is
 stated plainly; the default-initialisation value goes to Table D1 only if the author wants the ablation table to
 carry it. *Author.*
 
