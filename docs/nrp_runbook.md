@@ -309,3 +309,72 @@ reruns the high-moment exclusion on the final network; it is code tagged `nrp-co
 - A new stage needs a code commit under the pinned paths, an annotated tag on that commit, and an entry for the tag
   in `CODE_REF_SUCCESSORS` for the code reference its specs carry (`nrp-code-v5` is already listed for N5); without
   the entry the worker refuses the job at the code-reference check.
+
+## 11. P1 tuning, descriptor classes and the re-staged P from `nrp-code-v5` (2026-10-19)
+
+Four stages on the v2 backbone (deviations row of 2026-10-19). All are v2 only (`make_specs.py --stage <s>` defaults
+to `--backbone v2` for them), their specs keep `code_ref` = `nrp-code-v1`, and `CODE_REF_SUCCESSORS` lists
+`nrp-code-v5` and `nrp-code-v6`.
+
+| group | spec file | stage | jobs | depends on | results (tracked) | kept on NRP |
+|---|---|---|---:|---|---|---|
+| N5 | `p1tune_v2.jsonl` | one P1 tuning study per anchor (50, 200, 654), 30 trials, epoch limit 400 | 3 | - | `results/tuning/` (record, trial CSV, SQLite copy), `results/p1tune_v2/` | the live study files in `$DFTGNN_TUNING_DIR` |
+| N5 | `dclass.jsonl` | D-host and D-site, B = 200, 400, 654 | 180 | - | `results/dclass/` | `checkpoints/` |
+| N6 | `p1v2b.jsonl` (made in C6) | P1 with `configs/tuned_p1_v2.yaml`, epoch limit 400 | 180 | N5 tuning, frozen on the Mac | `results/p1v2b/` | `checkpoints/` |
+| N6 | `pcompv2b.jsonl` (made in C6) | P = new P1 then the existing v2 D | 180 | its p1v2b job; the v2 D checkpoints | `results/pcompv2b/` | - |
+
+**Two phases.** Staging is re-tested in two cluster runs with one Mac session between them:
+1. Phase 1 (N5), checkout `nrp-code-v5`: run `p1tune_v2` and `dclass`, export `nrp/p1tune_v2` and `nrp/dclass`.
+2. **[MAC]** session C6: ingest both branches; `python scripts/tune/freeze_p1_v2.py` writes `configs/tuned_p1_v2.yaml`
+   from the three tuning records; `make_specs.py --stage p1v2b` and `--stage pcompv2b` write the N6 specs; commit and
+   tag `nrp-code-v6`. Until that file exists `make_specs.py` leaves both stages out of its default output and refuses
+   them by name.
+3. Phase 2 (N6), checkout `nrp-code-v6`: run `p1v2b` and `pcompv2b` in one queue (each P job waits for its P1 job),
+   export `nrp/p1v2b` and `nrp/pcompv2b`.
+
+**Phase 1 checkout and checks (CPU pod).** Use a fresh checkout beside the others; do not touch `/workspace/dft-gnn-v2`
+(it holds the v2 D checkpoints that phase 2 reads).
+
+```bash
+cd /tmp && rm -rf dft-gnn-v5 && git clone https://github.com/pa1aash/dft-gnn.git dft-gnn-v5 && cd dft-gnn-v5
+git fetch --tags && git checkout --detach nrp-code-v5
+cp -a /tmp/dft-gnn-v5 /workspace/dft-gnn-v5 && cd /workspace/dft-gnn-v5
+git config user.name aidenlee && git config user.email aiden.lee.sd@gmail.com
+for b in inputs checkpoints mace; do
+  tar -xf /workspace/bundles/nrp_$b.tar && bash scripts/nrp/verify_bundle.sh nrp_$b.sha256; done
+(cd splits && sha256sum -c --quiet MANIFEST.sha256) && echo "splits OK"
+DFTGNN_CHECKOUT=/workspace/dft-gnn-v5 bash scripts/nrp/stage_pod.sh env      # prints nrp-code-v1 -> <nrp-code-v5 commit>
+export PYTHONPATH=$PWD/src; PY=/tmp/venv/bin/python
+$PY scripts/queue/make_specs.py --check        # every available stage and backbone; each line ends in files match
+```
+
+**Phase 1 queues.** Each tuning job is one study that runs for hours (the 200-epoch P1 study at 654 hosts summed
+37,000 s of trials; allow twice that) and carries the estimate of the largest trial in the search space (17.2 GB).
+Give each study its own queue and GPU pod: with `--shard i/7` the three jobs fall in shards 1, 2 and 5, one each.
+The study files live in `$DFTGNN_TUNING_DIR` (default `/workspace/tuning_p1tune_v2`, outside the checkout), so a
+restarted pod resumes its study. Give tuning pods 16 GiB of memory (they hold the graph store twice). `dclass` uses
+the per-worker shard queues of section 9.
+
+```bash
+cd /workspace/dft-gnn-v5 && export PYTHONPATH=$PWD/src; PY=/tmp/venv/bin/python
+for i in 1 2 5; do $PY scripts/queue/enqueue.py specs --queue /workspace/dft-gnn-v5/jobs_tune$i --shard $i/7 \
+    --specs specs/p1tune_v2.jsonl; done                                   # one job in each
+N=<number of dclass GPU pods>
+for i in $(seq 0 $((N-1))); do $PY scripts/queue/enqueue.py specs --queue /workspace/dft-gnn-v5/jobs_s$i --shard $i/$N \
+    --specs specs/dclass.jsonl; done
+```
+
+Start one supervisor per queue as in section 9.2 (`--tranches N5`, chain directories under `/workspace/chain-v5`).
+GPU pods run `scripts/nrp/stage_pod.sh` with `DFTGNN_CHECKOUT=/workspace/dft-gnn-v5`, `DFTGNN_QUEUE` set to their queue
+and `DFTGNN_CHAIN=/workspace/chain-v5`. Export with `export_stage.sh p1tune_v2` and `export_stage.sh dclass` (with
+`--queue` per queue and `--no-push`, then one push per branch, as in section 9.4).
+
+**Phase 2** (after C6 tags `nrp-code-v6`): a fresh checkout `/workspace/dft-gnn-v6` at `nrp-code-v6`, the same input
+steps, then enqueue `specs/p1v2b.jsonl specs/pcompv2b.jsonl` together (sharded queues, `--tranches N6`). pcompv2b loads
+each D checkpoint from `/workspace/dft-gnn-v2/checkpoints` (or a directory in `DFTGNN_CKPT_DIRS`, separated by `:`)
+and stops if its sha256 differs from its `results/v2_sweep/` record. The P1 checkpoint must be in the same checkout's
+`checkpoints/`, so run both stages from one checkout.
+
+**Scope gates.** Session scope gates (`git diff --stat <tag> -- src scripts configs splits specs`) compare against the
+newest code tag: `nrp-code-v5` from this section on, `nrp-code-v6` after C6. A new stage still needs a code commit, an
+annotated tag and an entry for the tag in `CODE_REF_SUCCESSORS`.
