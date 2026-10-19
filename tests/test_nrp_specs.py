@@ -26,6 +26,7 @@ MS = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(MS)
 TUNED = str(ROOT / "configs" / "tuned_v1.yaml")
 V1_STAGES = [s for s in NRP.STAGES if s not in NRP.V2_ONLY]
+V2_OF_V1 = ("cv", "precision", "moment_v2")     # v2 versions of v1 stages (the C5 stages: tests/test_nrp_c5.py)
 
 
 def _gen(stage, hosts_file=None, tmp=Path("x")):
@@ -140,7 +141,7 @@ def test_relax_hosts_file_and_geomeval_dependencies(tmp_path, built):
 @pytest.fixture(scope="module")
 def built_v2():
     return {s: MS.generate(s, NRP.CODE_REF, "v2", None, str(NRP.TUNED_V2), Path("x") / f"{s}_v2.jsonl")
-            for s in NRP.V2_STAGES}
+            for s in V2_OF_V1}
 
 
 def test_backbone_v2_cv_and_precision(built, built_v2):
