@@ -20,11 +20,11 @@ the network; **v1 only** = the claim currently rests on the default-initialisati
 | Within-host site resolution: pooled within-host MAE, zero-skill reference | final | `results/within_host_breakdown.json` (`groups[variable=pooled].v2`) | S 0.146 [0.133, 0.161], D 0.146 [0.133, 0.160]; zero-skill 0.184 [0.166, 0.203] (network-free) | v1 block of the same record |
 | Within-host site resolution: prediction spread relative to the data | final (new) | `final_network_summary.json` (`table.within_host_prediction_spread`); `default_init_ablation.json` (`site_resolution`) | S spread / target spread: 0.012 at 25, 0.017 at 50, 0.123 at 100, 0.265 at 200, 0.412 at 654 | v1: 0.001, 0.004, 0.000, 0.001 at 25-200; 0.454 at 654 (`results/g1_diagnostics.json`) |
 | Staging: P - S, D - P per budget | final | `results/staging_v2.json` | P - S at 654 = +0.028 [+0.008, +0.053], upper +0.049: P worse, within the margin; P non-inferior at 400 and 654 only; P never better | `results/staging_v1.json` |
-| Staging: swap-in check (P with true descriptors reproduces D) | **PENDING** | `results/staging_swapin_check.json` lists v2 as "not run" | being rerun separately | v1: 3 of 3 cells passed, max deviation 0.0 |
+| Staging: swap-in check (P with true descriptors reproduces D) | **DONE** (N4, `docs/n4_swapin.md`) | `results/swapin/swapin_v2.json` | all 183 pairs (180 outer cells at 25-654 and 3 Kiyohara cells): max abs difference 0.0 eV at every budget; StagedP's rescaling is the identity in all 183, so this is a plumbing check, not a test of whether staging can win | v1: 3 of 3 cells passed, max deviation 0.0 |
 | Geometry (n = 809 relaxations) | v1 only for the registered analysis; final network descriptive only | `results/mlip_eval_v2.json` (collaborator's v2 evaluation, his estimator); `results/geometry_descriptive.json` (`cross_check_809`) | largest abs Delta-MAE 0.003 (P, MLIP geometry, 654); S at 654: +0.000 [-0.003, +0.003] | `results/geometry_c3b.json` (our 818 relaxations, 739 evaluated hosts, null rule, TOST) exists for v1 only |
 | Latent probe (C4) | final, descriptive | `results/probe_descriptive.json` (`s_v2`) | C4 does not hold under the A4 rule; trend rho host 0.964 [0.949, 0.980], site 0.978 [0.970, 0.987] | `results/probe_c4_v1.json`: C4 does not hold (moved to SI) |
 | Screening (10 sites, 7 hosts) | final | `results/screening_c5.json` (`mae_S_v2`); `figures/main/data/screening_demo.json` (`summary.v2`) | MAE of S = 0.420 [0.307, 0.553] | v1: 0.294 [0.195, 0.424] |
-| High-moment exclusion (A5) | **PENDING** | none (`results/sens_high_moment_v1.json` states that no v2 runs exist) | being rerun separately | A at 654 without 10 entries: -0.015 [-0.037, +0.005], upper +0.002 |
+| High-moment exclusion (A5) | **DONE** (N4, `docs/n4_highmoment.md`) | `results/derived_n4/high_moment_final_network.json` (`final_network`) | A at 654 without 10 entries: +0.027 [+0.001, +0.052], upper +0.0488 (below delta by 0.0012); same test sites without exclusion +0.016 [-0.007, +0.038], upper +0.034; paired change +0.011 [-0.008, +0.029]; U < 0.05 unchanged, but the two-sided interval is not inside +-0.05 | A at 654 without 10 entries: -0.015 [-0.037, +0.005], upper +0.002 |
 | Capped runs (600-epoch twins, A5) | **v1 only** | none (`results/sens_capped_post_hoc.json` `v2`: no capped reruns exist); descriptive capped-vs-uncapped counts for v2 in `results/precision_a_b400_b654.json` and `results/cv_extended_budget.json` (`descriptive.capped`) | n/a | A at 654 with twins: -0.008, upper +0.014 |
 | CGCNN cross-check (A5) | final comparator exists | `results/sens_cgcnn.json` (`table.megnet_v2`) | resample 0, 654: MEGNet-v2 A = +0.031 [-0.010, +0.075], upper +0.069; CGCNN A = +0.003 [-0.031, +0.035] (CGCNN untuned, network-free) | `table.megnet_v1`: -0.014 [-0.049, +0.020] |
 | Baselines (B0, RF) at every budget | network-free | `results/g1_primary.json` (`descriptive_curves`); `final_network_summary.json` | RF 0.346 [0.329, 0.365], B0 0.722 [0.691, 0.754] at 654 | same |
@@ -39,7 +39,8 @@ the network; **v1 only** = the claim currently rests on the default-initialisati
    (`results/probe_descriptive.json`).
 4. **S10b checkpoint forensic** (flag sweep, readout decomposition): run on v1 checkpoints only. The
    prediction-level spread statistic now exists for the final network (row above).
-5. **High-moment exclusion** and **staging swap-in check**: PENDING (being rerun separately).
+5. **High-moment exclusion** and **staging swap-in check**: DONE on the final network in N4 (session I1,
+   2026-10-19; `docs/n4_highmoment.md`, `docs/n4_swapin.md`); no longer v1 only.
 
 ## Unseen chemistry: which families drive the bound
 
