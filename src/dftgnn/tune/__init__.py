@@ -366,8 +366,10 @@ def _nullslot():
 # ---------------------------------------------------------------- summary
 
 def summarise(study: optuna.Study, model: str, anchor: int, cfg: Config, *, top: int = 5,
-              arch: dict | None = None) -> dict:
-    """Payload of ``write_result("tuning_<model>_a<anchor>")``."""
+              arch: dict | None = None, epochs: tuple[int, int] | None = None) -> dict:
+    """Payload of ``write_result("tuning_<model>_a<anchor>")``. ``epochs`` = (max_epochs, patience) of a study run
+    with ``epoch_override`` (p1tune_v2); by default the configured values."""
+    max_epochs, patience = epochs or (cfg.training.max_epochs, cfg.training.early_stopping.patience)
     done = sorted(study.get_trials(deepcopy=False, states=(optuna.trial.TrialState.COMPLETE,)),
                   key=lambda t: (t.value, t.number))
     failed = study.get_trials(deepcopy=False, states=(optuna.trial.TrialState.FAIL,))
@@ -379,7 +381,7 @@ def summarise(study: optuna.Study, model: str, anchor: int, cfg: Config, *, top:
     ua = best.user_attrs
     walls = [t.user_attrs.get("wall_s", 0.0) for t in done]
     # stopped by the epoch cap rather than by early stopping
-    capped = [t.number for t in done if t.user_attrs.get("epochs_run") == cfg.training.max_epochs]
+    capped = [t.number for t in done if t.user_attrs.get("epochs_run") == max_epochs]
     return {
         "model": model, "anchor": anchor, "study": study.study_name,
         "objective": "val_mae_Ef_eV" if model != "P1" else "val_mae_standardised_descriptors",
@@ -396,7 +398,7 @@ def summarise(study: optuna.Study, model: str, anchor: int, cfg: Config, *, top:
         "validation": {k: ua.get(k) for k in ("n_train_hosts", "n_val_hosts", "n_train_sites", "n_val_sites")},
         "sampler": {"name": "TPESampler", "seed": cfg.tuning.optuna.sampler_seed, "n_startup_trials": 10},
         "pruner": "NopPruner", "trial_seed": cfg.tuning.trial_seed,
-        "max_epochs": cfg.training.max_epochs, "patience": cfg.training.early_stopping.patience,
+        "max_epochs": max_epochs, "patience": patience,
         "sum_trial_wall_s": sum(walls),
         "pod_commit": ua.get("pod_commit"), "graphs_manifest_sha256": ua.get("graphs_manifest_sha256"),
         "test_hosts_loaded": False, "arch": arch or {},

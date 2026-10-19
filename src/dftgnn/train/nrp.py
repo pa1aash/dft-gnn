@@ -13,11 +13,23 @@ Stages, programme group (priority order) and job counts:
     N3   cv 180 per backbone (EXTENSION): {S, D} x K in {10, 20} x folds x seeds 0-2                  (v1 and v2)
     N4   precision 480 per backbone (EXTENSION): {S, D} x B in {400, 654} x (r = 10..29 x seeds 0-4
          + r = 0..9 x seeds 3, 4)                                                                     (v1 and v2)
+    N5   p1tune_v2 3: one Optuna study of P1 per tuning anchor (50, 200, 654), the S and D protocol of the v2
+         tuning with an epoch limit of 400 (a task stage, ``dftgnn.tasks``)                          (v2 only)
+    N5   dclass 180: D with the host-level descriptors only (D-host) and with the site-level descriptors only
+         (D-site), B in {200, 400, 654} x resamples 0-9 x seeds 0-2                                  (v2 only)
+    N6   p1v2b 180: P1 with the settings of configs/tuned_p1_v2.yaml and an epoch limit of 400, every budget x
+         resamples 0-9 x seeds 0-2; pcompv2b 180: P = the new P1 then the existing v2 D of the same cell (v2 only)
 The N2a and N2b stages reuse the S12 builders (``dftgnn.train.s12``); moment_v2 passes its sites, subdir, stage
 and tags to ``build_moment``, whose defaults keep the v1 ids. LOCO is not a stage: the
 collaborator's 30 v1 LOCO runs are adopted (docs/deviations.md, 2026-10-11). The v2 backbone (POST HOC,
 ``configs/tuned_v2.yaml``: its a654 values plus the fixed ``arch`` options) writes to ``results/cv_v2/``,
 ``results/precision_v2/`` and ``results/moment_v2/``.
+
+The N6 stages read ``configs/tuned_p1_v2.yaml``, frozen from the p1tune_v2 records on the Mac after N5. While that
+file is missing their builders refuse with a message naming it, and ``available_stages`` leaves them out (the
+default output of ``make_specs.py``). dclass keeps one descriptor class by setting the other to its training mean
+(the ``ablate`` option of ``dftgnn.train``, applied to the descriptor vector of every batch); the classes are those
+of ``docs/descriptor_taxonomy.csv``.
 """
 from __future__ import annotations
 
@@ -31,26 +43,39 @@ from dftgnn.config import Config, load_config
 from dftgnn.split import SPLITS_DIR, budget_train, load_split
 from dftgnn.split.cv import CV_KS, CV_NAME, split_name
 from dftgnn.split.ext import EXT_RESAMPLES
-from dftgnn.train import RunSpec, resolve_hosts, run_id
+from dftgnn.train import RunSpec, admission, resolve_hosts, run_id
 from dftgnn.train import s12 as S12
 from dftgnn.train.stages import TUNED, _job, load_tuned, tuned_hparams
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SPECS_DIR = REPO_ROOT / "specs"
 CODE_REF = "nrp-code-v1"
-# moment_v2 is last so that the priorities of the earlier stages (and their spec files) do not change
-STAGES = ("relax", "peval", "embed", "geomeval", "moment", "cgcnn", "capped", "cv", "precision", "moment_v2")
+# new stages are appended so that the priorities of the earlier stages (and their spec files) do not change
+STAGES = ("relax", "peval", "embed", "geomeval", "moment", "cgcnn", "capped", "cv", "precision", "moment_v2",
+          "p1tune_v2", "dclass", "p1v2b", "pcompv2b")
 GROUP = {"relax": "N2a", "peval": "N2a", "embed": "N2a", "geomeval": "N2a", "moment": "N2b", "cgcnn": "N2b",
-         "capped": "N2b", "cv": "N3", "precision": "N4", "moment_v2": "N2b"}
+         "capped": "N2b", "cv": "N3", "precision": "N4", "moment_v2": "N2b",
+         "p1tune_v2": "N5", "dclass": "N5", "p1v2b": "N6", "pcompv2b": "N6"}
 LABEL = {"relax": "registered", "peval": "registered", "embed": "registered",
          "geomeval": "registered (B = 200 DESCRIPTIVE EXTRA)", "moment": "registered", "cgcnn": "registered",
-         "capped": "POST HOC", "cv": "EXTENSION", "precision": "EXTENSION", "moment_v2": "POST HOC"}
+         "capped": "POST HOC", "cv": "EXTENSION", "precision": "EXTENSION", "moment_v2": "POST HOC",
+         "p1tune_v2": "POST HOC", "dclass": "POST HOC", "p1v2b": "POST HOC", "pcompv2b": "POST HOC"}
 EXPECTED = {"relax": 818, "peval": 183, "embed": 240, "geomeval": 180, "moment": 60, "cgcnn": 18, "capped": 33,
-            "cv": 180, "precision": 480, "moment_v2": 60}
+            "cv": 180, "precision": 480, "moment_v2": 60, "p1tune_v2": 3, "dclass": 180, "p1v2b": 180,
+            "pcompv2b": 180}
 BACKBONES = ("v1", "v2")
-V2_STAGES = ("cv", "precision", "moment_v2")   # stages with a v2 version (the v2 backbone of configs/tuned_v2.yaml)
-V2_ONLY = ("moment_v2",)                       # stages with no v1 version
+V2_STAGES = ("cv", "precision", "moment_v2", "p1tune_v2", "dclass", "p1v2b", "pcompv2b")   # stages with a v2 version
+V2_ONLY = ("moment_v2", "p1tune_v2", "dclass", "p1v2b", "pcompv2b")                       # stages with no v1 version
 TUNED_V2 = REPO_ROOT / "configs" / "tuned_v2.yaml"
+TUNED_P1_V2 = REPO_ROOT / "configs" / "tuned_p1_v2.yaml"   # written on the Mac from the p1tune_v2 records (C6)
+NEEDS_FILE = {"p1v2b": TUNED_P1_V2, "pcompv2b": TUNED_P1_V2}
+TAXONOMY = REPO_ROOT / "docs" / "descriptor_taxonomy.csv"
+V2_SWEEP_DIR = REPO_ROOT / "results" / "v2_sweep"          # records of the v2 D runs that pcompv2b reuses
+P_V2_DIR = REPO_ROOT / "results" / "p_v2"
+V2_CKPT_DIRS = ("/workspace/dft-gnn-v2/checkpoints",)      # NRP volume holding the v2 sweep checkpoints
+P1_EPOCHS = 400                                            # epoch limit of P1 in p1tune_v2 and p1v2b
+DCLASS_BUDGETS = (654, 400, 200)
+DCLASS = {"D-host": "desc_site", "D-site": "desc_host"}    # variant -> the class set to its training mean
 V2_LABEL = "EXTENSION, v2 backbone (POST HOC)"
 MOMENT_SPEC = SPECS_DIR / "moment.jsonl"       # source of the excluded sites of moment_v2
 V2_PRIORITY_OFFSET = 50_000                 # v2 jobs follow the v1 jobs of the same stage
@@ -59,6 +84,19 @@ PRECISION_BUDGETS = (400, 654)
 PRECISION_NEW = (EXT_RESAMPLES, range(5))   # r = 10..29, seeds 0-4
 PRECISION_REG = (range(10), (3, 4))         # r = 0..9, seeds 3 and 4
 CV_SEEDS = (0, 1, 2)
+
+
+def available_stages() -> tuple[str, ...]:
+    """Stages whose inputs exist: every stage except those whose file in ``NEEDS_FILE`` is missing."""
+    return tuple(s for s in STAGES if s not in NEEDS_FILE or NEEDS_FILE[s].is_file())
+
+
+def spec_targets() -> list[tuple[str, str]]:
+    """(stage, backbone) of every spec file the available stages define, in priority order."""
+    out = []
+    for s in available_stages():
+        out += [(s, b) for b in BACKBONES if (b == "v1" and s not in V2_ONLY) or (b == "v2" and s in V2_STAGES)]
+    return sorted(out, key=lambda t: (STAGES.index(t[0]), t[1]))
 
 
 def spec_name(stage: str, backbone: str) -> str:
@@ -134,6 +172,145 @@ def build_moment_v2(code: str, gsha: str, tuned: dict, cfg: Config, table: dict 
                             stage="moment_v2", tags={"v2": tuned["version"]})
 
 
+def build_p1tune_v2(code: str, gsha: str, tuned: dict, cfg: Config, table: dict | None) -> list[dict]:
+    """N5: one P1 study per tuning anchor under the v2 backbone (``tuned["arch"]``), with the search space, sampler,
+    trial seed, anchor resample, validation hosts and trial count of the S and D studies of configs/tuned_v2.yaml,
+    and an epoch limit of ``P1_EPOCHS`` with the configured patience. Each job is a task (``dftgnn.tasks``) that runs
+    or resumes the study and writes ``results/tuning/tuning_v2_P1_a<anchor>.json`` in the format of the S and D
+    records, plus its task record in ``results/p1tune_v2/``."""
+    t = cfg.tuning
+    space = {k: v.model_dump(mode="json") for k, v in t.search_space.items()}
+    est = None
+    if table is not None:     # the largest trial of the search space
+        est = max(admission.est_peak_for_spec(table, {"hidden_width": h, "megnet_blocks": m}, b)
+                  for h in space["hidden_width"]["choices"] for m in space["megnet_blocks"]["choices"]
+                  for b in space["batch_size"]["choices"])
+    jobs = []
+    for a in t.anchors:
+        spec = {"model": "P1", "study": f"v2_P1_a{a}", "anchor": a, "split": f"outer_r{t.anchor_resample}",
+                "r": t.anchor_resample, "budget": a, "seed": t.trial_seed,
+                "n_trials": t.optuna_trials_per_model_per_anchor, "max_epochs": P1_EPOCHS,
+                "patience": cfg.training.early_stopping.patience, "arch": dict(tuned["arch"]),
+                "results_subdir": "tuning", "tags": {"v2": tuned["version"]}}
+        key = {"stage": "p1tune_v2", **spec, "search_space": space, "sampler_seed": t.optuna.sampler_seed,
+               "code_sha": code, "graphs_manifest_sha256": gsha}
+        jobs.append(S12._task("p1tune_v2", key, spec, est=est))
+    return jobs
+
+
+def descriptor_classes(path: Path = TAXONOMY) -> dict[str, list[str]]:
+    """{"host": the 12 host-level, "site": the 10 site-level descriptor columns} of the taxonomy (``desc_`` names,
+    sorted, as in the graph store)."""
+    import csv
+
+    with open(path, newline="") as fh:
+        rows = list(csv.DictReader(fh))
+    out = {k: sorted(f"desc_{r['name']}" for r in rows if r["class"] == c)
+           for k, c in (("host", "host-electronic DFT"), ("site", "site-electronic DFT"))}
+    if (len(out["host"]), len(out["site"])) != (12, 10):
+        raise ValueError(f"{path}: {len(out['host'])} host-level and {len(out['site'])} site-level descriptors")
+    return out
+
+
+def build_dclass(code: str, gsha: str, tuned: dict, cfg: Config, table: dict | None) -> list[dict]:
+    """N5: D-host and D-site, each D trained as the v2 sweep trains D (its tuned values at the budget's anchor, the
+    same split, validation hosts and seed), with the other descriptor class at its training mean, results/dclass/.
+    The kept names enter the tags, and the trainer checks them against the store."""
+    d = tuned["d_variant"]
+    b2a = cfg.tuning.budget_to_anchor
+    kept = descriptor_classes()
+    jobs = []
+    for b in DCLASS_BUDGETS:
+        for r in range(cfg.split.n_outer_resamples):
+            for s in cfg.training.seeds:
+                for variant, ablate in DCLASS.items():
+                    names = kept["host" if variant == "D-host" else "site"]
+                    spec = RunSpec(model=d, **tuned_hparams(tuned, d, b2a[b]), split=f"outer_r{r}", r=r, budget=b,
+                                   seed=s, ablate=ablate, results_subdir="dclass",
+                                   tags={"dclass": variant, "descriptors_kept": names, "v2": tuned["version"]})
+                    jobs.append(_job(spec, "dclass", code, gsha, table=table))
+    return jobs
+
+
+def load_tuned_p1(path: Path | None = None) -> dict:
+    """``configs/tuned_p1_v2.yaml``: {"version", "arch", "max_epochs", "patience", "models": {"P1": {anchor: ...}}}."""
+    path = Path(path or TUNED_P1_V2)
+    if not path.is_file():
+        raise FileNotFoundError(f"{path} does not exist: the stages p1v2b and pcompv2b need the P1 settings frozen "
+                                "from the p1tune_v2 records (scripts/tune/freeze_p1_v2.py, Mac session C6)")
+    return load_tuned(path)
+
+
+def build_p1v2b(code: str, gsha: str, tuned: dict, cfg: Config, table: dict | None) -> list[dict]:
+    """N6: P1 under the v2 backbone with the p1tune_v2 settings of the budget's anchor and an epoch limit of
+    ``P1_EPOCHS``, at every budget x resamples 0-9 x seeds 0-2 (the cells of the P1 sweep, results/p1_v2/),
+    results/p1v2b/."""
+    tp = load_tuned_p1(NEEDS_FILE["p1v2b"])
+    if tp.get("arch") != tuned["arch"]:
+        raise ValueError(f"{NEEDS_FILE['p1v2b']}: arch {tp.get('arch')} differs from {tuned['arch']} of {TUNED_V2}")
+    pat = cfg.training.early_stopping.patience
+    if (tp.get("max_epochs"), tp.get("patience")) != (P1_EPOCHS, pat):
+        raise ValueError(f"{NEEDS_FILE['p1v2b']}: tuned with max_epochs {tp.get('max_epochs')}, patience {tp.get('patience')}; "
+                         f"expected {P1_EPOCHS}, {pat}")
+    b2a = cfg.tuning.budget_to_anchor
+    jobs = []
+    for b in sorted(cfg.budgets.hosts, reverse=True):
+        for r in range(cfg.split.n_outer_resamples):
+            for s in cfg.training.seeds:
+                spec = RunSpec(model="P1", **tuned_hparams(tp, "P1", b2a[b]), split=f"outer_r{r}", r=r, budget=b,
+                               seed=s, max_epochs=P1_EPOCHS, patience=pat, results_subdir="p1v2b",
+                               tags={"v2": tuned["version"], "p1_tuned": tp["version"]})
+                jobs.append(_job(spec, "p1v2b", code, gsha, table=table))
+    return jobs
+
+
+def v2_d_records(d: str) -> dict[tuple[str, int, int], dict]:
+    """(split, budget, seed) -> payload of the v2 sweep run of model ``d`` (results/v2_sweep/), each checked against
+    the D component of the P-v2 record of the same cell (results/p_v2/)."""
+    out = {}
+    for f in sorted(V2_SWEEP_DIR.glob("*.json")):
+        pay = json.loads(f.read_text())["payload"]
+        sp = pay["spec"]
+        if sp["model"] == d:
+            k = (sp["split"], sp["budget"], sp["seed"])
+            if k in out:
+                raise ValueError(f"two v2 sweep runs of {d} for {k}")
+            out[k] = {**pay, "record": str(f.relative_to(REPO_ROOT))}
+    for f in sorted(P_V2_DIR.glob("*.json")):
+        sp = json.loads(f.read_text())["payload"]["spec"]
+        k = (sp["split"], sp["budget"], sp["seed"])
+        if k in out and out[k]["run_id"] != sp["d_run"]:
+            raise ValueError(f"{f.name}: D component {sp['d_run']} is not the v2 sweep run {out[k]['run_id']}")
+    return out
+
+
+def build_pcompv2b(code: str, gsha: str, tuned: dict, cfg: Config, table: dict | None) -> list[dict]:
+    """N6: P = the p1v2b P1 then the existing v2 D of the same (split, budget, seed), on the test hosts, as the
+    P-v2 runs were built (the D run's hyperparameters in the spec), results/pcompv2b/. The D checkpoint is not in
+    this checkout: the spec pins its sha256 (from its v2 sweep record) and the volume directories where it lies,
+    and the evaluation loads it only if the hash matches. Each job waits for its P1 job."""
+    d = tuned["d_variant"]
+    recs = v2_d_records(d)
+    jobs = []
+    for p1 in build_p1v2b(code, gsha, tuned, cfg, table):
+        p = p1["spec"]
+        k = (p["split"], p["budget"], p["seed"])
+        if k not in recs:
+            raise ValueError(f"no v2 sweep run of {d} for {k}")
+        rec = recs[k]
+        ds, ck = rec["spec"], rec["checkpoint"]
+        pin = {rec["run_id"]: {"sha256": ck["sha256"], "record": rec["record"], "dirs": list(V2_CKPT_DIRS)}}
+        spec = RunSpec(model="P", hp=ds["hp"], lr=ds["lr"], weight_decay=ds["weight_decay"],
+                       batch_size=ds["batch_size"], split=p["split"], r=p["r"], budget=p["budget"], seed=p["seed"],
+                       results_subdir="pcompv2b", p1_run=p1["run_id"], d_run=rec["run_id"],
+                       tags={"v2": tuned["version"], "checkpoints": pin})
+        j = _job(spec, "pcompv2b", code, gsha, after=[p1["run_id"]])
+        if table is not None:
+            j["est_peak_gb"] = round(S12._est_infer(table, [p["hp"], ds["hp"]]), 3)
+        jobs.append(j)
+    return jobs
+
+
 # ------------------------------------------------------------------------------------------- generator
 def _benchmark() -> dict | None:
     from dftgnn.train import admission
@@ -161,6 +338,8 @@ def build_stage(stage: str, *, code_ref: str = CODE_REF, backbone: str = "v1", h
         raise ValueError(f"stage {stage!r} has a v1 version only")
     if backbone == "v1" and stage in V2_ONLY:
         raise ValueError(f"stage {stage!r} has a v2 version only")
+    if stage in NEEDS_FILE and not NEEDS_FILE[stage].is_file():
+        load_tuned_p1(NEEDS_FILE[stage])                   # raises with the message naming the missing file
     tuned_path = tuned_path if tuned_path is not None else (TUNED_V2 if backbone == "v2" else TUNED)
     cfg = cfg if cfg is not None else load_config()
     tuned, gsha, table, code = load_tuned(tuned_path), manifest_sha(), _benchmark(), code_ref
@@ -191,6 +370,8 @@ def build_stage(stage: str, *, code_ref: str = CODE_REF, backbone: str = "v1", h
         jobs = S12.build_cgcnn(code, gsha, cfg, table)
     elif stage == "capped":
         jobs = S12.build_capped(code, gsha, table)
+    elif stage in ("p1tune_v2", "dclass", "p1v2b", "pcompv2b"):
+        jobs = globals()[f"build_{stage}"](code, gsha, tuned, cfg, table)
     elif stage == "cv":
         jobs = build_cv(code, gsha, tuned, cfg, table, subdir="cv" if backbone == "v1" else "cv_v2")
     else:
@@ -239,7 +420,11 @@ def manifest(stage: str, jobs: list[dict], body: bytes, *, jsonl_name: str, code
             "splits_manifest_sha256": sha256_file(SPLITS_DIR / "MANIFEST.sha256"),
             "tuned": {"path": rel(tuned_path), "sha256": sha256_file(tuned_path)},
             "hosts_file": None if hosts_file is None else {"path": rel(hosts_file), "sha256": sha256_file(hosts_file)},
-            "generator": "scripts/queue/make_specs.py"}
+            "generator": "scripts/queue/make_specs.py",
+            **({"tuned_p1": {"path": rel(NEEDS_FILE[stage]), "sha256": sha256_file(NEEDS_FILE[stage])}}
+               if stage in NEEDS_FILE else {}),
+            **({"descriptor_taxonomy": {"path": rel(TAXONOMY), "sha256": sha256_file(TAXONOMY)}}
+               if stage == "dclass" else {})}
 
 
 # --------------------------------------------------------------------------------------------- checks
@@ -256,6 +441,10 @@ def leakage_hosts(job: dict, cfg: Config | None = None) -> list[tuple[set, set]]
     st, sp = job["stage"], job["spec"]
     if st == "relax":
         return []
+    if st == "p1tune_v2":                    # the study's anchor training and validation hosts
+        h = resolve_hosts(RunSpec(model="P1", hp={}, lr=0.0, weight_decay=0.0, batch_size=1, split=sp["split"],
+                                  r=sp["r"], budget=sp["budget"], seed=sp["seed"]), cfg)
+        return [(set(h["test"]), set(h["train"]) | set(h["val"]))]
     if "lr" in sp:
         h = resolve_hosts(RunSpec.from_dict(sp), cfg)
         return [(set(h["test"]), set(h["train"]) | set(h["val"]))]

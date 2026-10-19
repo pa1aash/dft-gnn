@@ -110,10 +110,11 @@ def code_sha(root: Path = REPO_ROOT) -> str:
 
 
 CODE_REF_PATHS = ("src", "scripts", "configs", "splits", "specs")
-# Successor tags whose code may run the specs pinned to a code reference (deviations rows of 2026-10-14 and
-# 2026-10-18), oldest first: v2 bug fixes, v4 the moment_v2 stage, v5 reserved for the stages of the next cluster job.
+# Successor tags whose code may run the specs pinned to a code reference (deviations rows of 2026-10-14, 2026-10-18
+# and 2026-10-19), oldest first: v2 bug fixes, v4 the moment_v2 stage, v5 the stages p1tune_v2, dclass, p1v2b and
+# pcompv2b, v6 reserved for the tuned P1 settings and the N6 specs (Mac session C6).
 # The run ids keep the original reference string; only the code check accepts the successor.
-CODE_REF_SUCCESSORS = {"nrp-code-v1": ("nrp-code-v2", "nrp-code-v4", "nrp-code-v5")}
+CODE_REF_SUCCESSORS = {"nrp-code-v1": ("nrp-code-v2", "nrp-code-v4", "nrp-code-v5", "nrp-code-v6")}
 
 
 def check_code_ref(ref: str, root: Path = REPO_ROOT) -> str:
@@ -123,7 +124,7 @@ def check_code_ref(ref: str, root: Path = REPO_ROOT) -> str:
     A spec with ``code_ref`` has its run id computed with ``ref`` in place of the commit SHA, so it may run only
     on that code: ``ref`` must resolve to an ancestor of HEAD and nothing under ``CODE_REF_PATHS`` may differ
     between it and HEAD (commits that add results on top of the tag are allowed). A successor of ``ref``
-    (``CODE_REF_SUCCESSORS``; nrp-code-v2, v4 and v5 for nrp-code-v1) is accepted in its place: it must exist, be an
+    (``CODE_REF_SUCCESSORS``; nrp-code-v2, v4, v5 and v6 for nrp-code-v1) is accepted in its place: it must exist, be an
     ancestor of HEAD, and nothing under ``CODE_REF_PATHS`` may differ between it and HEAD. Raises RuntimeError
     otherwise.
     """
@@ -310,6 +311,9 @@ def train_run(spec: RunSpec, data: Store, cfg: Config | None = None, *, device: 
         raise ValueError(f"unknown ablation {spec.ablate!r}")
     if spec.ablate in ("desc_host", "desc_site") and spec.model not in ("D-state", "D-late"):
         raise ValueError(f"{spec.ablate} ablation applies to D models only")
+    kept = (spec.tags or {}).get("descriptors_kept")   # dclass: the class the ablation keeps must be the one named
+    if kept is not None and kept != data.sites["desc_site_names" if spec.ablate == "desc_host" else "desc_host_names"]:
+        raise ValueError(f"descriptors_kept {kept} is not the class kept by ablation {spec.ablate!r}")
     device = device or pick_device()
     seed_everything(spec.seed)
     t0 = time.time()
@@ -434,14 +438,35 @@ def load_checkpoint(path: Path, device: torch.device | None = None) -> tuple[tor
     return net.eval(), ck
 
 
+def component_checkpoint(rid: str, spec: RunSpec, ckpt_dir: Path = CKPT_DIR) -> Path:
+    """Checkpoint file of a P component: ``<ckpt_dir>/<rid>.pt``. A component pinned in ``spec.tags["checkpoints"]``
+    (pcompv2b: a D checkpoint of another checkout) is looked up in ``ckpt_dir``, the directories of
+    ``$DFTGNN_CKPT_DIRS`` (separated by ``os.pathsep``) and the pinned ``dirs``, in that order, and the first file
+    found must have the pinned sha256."""
+    pin = ((spec.tags or {}).get("checkpoints") or {}).get(rid)
+    if pin is None:
+        return ckpt_dir / f"{rid}.pt"
+    from dftgnn.graphs.store import sha256_file
+
+    extra = [d for d in os.environ.get("DFTGNN_CKPT_DIRS", "").split(os.pathsep) if d]
+    dirs = [Path(ckpt_dir), *map(Path, extra), *map(Path, pin["dirs"])]
+    for d in dirs:
+        f = d / f"{rid}.pt"
+        if f.is_file():
+            if sha256_file(f) != pin["sha256"]:
+                raise RuntimeError(f"{f}: sha256 differs from {pin.get('record', 'the pinned hash')}")
+            return f
+    raise FileNotFoundError(f"checkpoint {rid}.pt not in {[str(d) for d in dirs]}; set DFTGNN_CKPT_DIRS")
+
+
 def evaluate_p(spec: RunSpec, data: Store, ckpt_dir: Path = CKPT_DIR, cfg: Config | None = None,
                device: torch.device | None = None) -> dict:
     """Staged model P = P1 then D on the test hosts of ``spec`` (no training)."""
     cfg = cfg if cfg is not None else load_config()
     device = device or pick_device()
     t0 = time.time()
-    p1, ck1 = load_checkpoint(ckpt_dir / f"{spec.p1_run}.pt", device)
-    d, ckd = load_checkpoint(ckpt_dir / f"{spec.d_run}.pt", device)
+    p1, ck1 = load_checkpoint(component_checkpoint(spec.p1_run, spec, ckpt_dir), device)
+    d, ckd = load_checkpoint(component_checkpoint(spec.d_run, spec, ckpt_dir), device)
     p = StagedP(p1, d, Standardiser(ck1["desc_mean"], ck1["desc_sd"]),
                 Standardiser(ckd["desc_mean"], ckd["desc_sd"])).to(device).eval()
     te = data.positions(resolve_hosts(spec, cfg)["test"])
