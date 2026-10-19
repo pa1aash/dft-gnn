@@ -150,3 +150,69 @@ and appendix inputs only) and stays open.
   `\numNetTolerance`, so the title may switch to the macro when main.tex is next edited.
 - Abstract: resolved in R4. The tolerance prints "0.05 eV" (`\numNetTolerance`). The Abstract now has 199 words, after
   the descriptor set of D and the staging qualifier were added (`docs/r4_changes.md`).
+
+## 7. Appendix F after N4 (session I1, 2026-10-19; no paper file edited)
+
+The network rerun of the high-moment exclusion now exists: `results/derived_n4/high_moment_final_network.json`
+(`docs/n4_highmoment.md`). The staging swap-in on the network exists too: `results/swapin/swapin_v2.json`
+(`docs/n4_swapin.md`). Both replace the open items "Appendix F, high-moment exclusion on the network: TO BE ADDED"
+and "Appendix F, Figure F1: not built" of section 2.
+
+### 7a. Macros to add (`paper/tools/net_macros.py`, record `results/derived_n4/high_moment_final_network.json`)
+
+Every macro below is one JSON pointer into `payload`. The names are proposals: the appendix session may rename them,
+but the pointers are fixed.
+
+| Proposed macro | Pointer | Value (eV) |
+|---|---|---|
+| `\numNetHighMomentCommonA` (+ `Lo`, `Hi`) | `final_network/primary_common_sites/A/mean` (`ci/0`, `ci/1`) | +0.016 [-0.007, +0.038] |
+| `\numNetHighMomentExclA` (+ `Lo`, `Hi`) | `final_network/high_moment/A/mean` (`ci/0`, `ci/1`) | +0.027 [+0.001, +0.052] |
+| `\numNetHighMomentExclAUpper` | `final_network/high_moment/A/upper_one_sided` | +0.049 (+0.0488) |
+| `\numNetHighMomentChangeA` (+ `Lo`, `Hi`) | `final_network/change_high_moment_minus_primary/A/mean` (`ci/0`, `ci/1`) | +0.011 [-0.008, +0.029] |
+
+### 7b. Appendix F, subsection "Entries with a High Defect Moment" (`paper/sections/appendix_f_sens.tex`)
+
+Replace the paragraph, from "The hosts are classified as non-magnetic" to "a small part of every test set.", with:
+
+```latex
+The hosts are classified as non-magnetic in the release, but \numSensHighMomentRfNExcludedEntries{} neutral vacancy calculations of the dataset end with a defect magnetic moment above \numSensHighMomentVOneThresholdMuB{}~$\mu_\mathrm{B}$; all lie in La- or Ce-containing oxides, apart from one tungstate, where the electrons left by the vacancy can localise on a reducible cation. The check removes these entries from training and test and repeats the fit. For the network with \numCfgBudgetsMax{} training hosts (ten resamples, three seeds), compared on the same test sites, the removal moves $A$ from \numNetHighMomentCommonA{} [\numNetHighMomentCommonALo{}, \numNetHighMomentCommonAHi{}]~eV to \numNetHighMomentExclA{} [\numNetHighMomentExclALo{}, \numNetHighMomentExclAHi{}]~eV, a change of \numNetHighMomentChangeA{} [\numNetHighMomentChangeALo{}, \numNetHighMomentChangeAHi{}]~eV whose interval contains zero (Figure~\ref{fig:app_sens}a; \texttt{results/derived\_n4/high\_moment\_final\_network.json}). The one-sided upper bound on $A$ becomes \numNetHighMomentExclAUpper{}~eV, still below $\delta = \numNetTolerance{}$~eV, so the statement at \numCfgBudgetsMax{} training hosts holds without these entries; the margin narrows, and the two-sided interval no longer lies inside $\pm\delta$. The runs without the entries were trained on a different pool of GPUs from the learning-curve runs, so the change also contains hardware variation. For RF-Kumagai with \numSensHighMomentRfPoolSize{} training hosts the removal changes the site MAE by \numSensHighMomentRfDeltaTotalExcludedMinusBaselineMaeMean{} [\numSensHighMomentRfDeltaTotalExcludedMinusBaselineMaeCiLo{}, \numSensHighMomentRfDeltaTotalExcludedMinusBaselineMaeCiHi{}]~eV (\texttt{results/sens\_high\_moment\_rf.json}), because the entries make up a small part of every test set.
+```
+
+Also, in the file header comment, replace "No figure (Figure F1 is not built)." with "Figure F1
+(fig:app_sens, a new label)." and add `results/derived_n4/high_moment_final_network.json` to the "Numbers:" list.
+
+### 7c. Figure F1 (`fig:app_sens`), data source
+
+Build F1 from the network records only. The former Figure S6 (`figures/si/fig_si_sensitivities.pdf`) used
+`results/sens_high_moment_v1.json` (default initialisation) for its panel (a), and that source is replaced.
+
+- Panel (a), A at 654 training hosts: `results/derived_n4/high_moment_final_network.json`. Use
+  `payload.final_network.primary_full_sites.A`, `payload.final_network.primary_common_sites.A` and
+  `payload.final_network.high_moment.A`, each with `mean`, `ci` and `upper_one_sided`. Use
+  `payload.final_network.change_high_moment_minus_primary.A` for the paired change, `payload.delta_eV` for the
+  dashed delta line and `payload.bootstrap` for the interval method. The full-site series equals row B654 of
+  `results/derived_c1/final_network_summary.json` (checked in `payload.reproduction`). The capped-twin series of
+  Figure S6 exists for the default initialisation only (`docs/c1_coverage.md`) and is not drawn.
+- Panel (b), the second architecture: `results/sens_cgcnn.json`, `payload.table.megnet_v2` and `payload.table.cgcnn`
+  (unchanged source).
+- After building, update `docs/figure_numbering.md` (row "Figure F1, sensitivities: not built") and write the caption
+  file under the 70-word limit of `scripts/check_captions.py`.
+
+### 7d. Claims row to add (`docs/claims.yaml`, outside the I1 scope)
+
+```yaml
+  - id: SENS1-v2
+    statement: "EXTENSION on the final network. Removing the 10 entries with |defect moment| > 0.5 muB from training and test sites (B = 654, 10 resamples x 3 seeds) changes A on the common test sites from +0.016 to +0.027 eV (paired change +0.011 eV, two-sided 95% interval [-0.008, +0.029]); the one-sided 95% upper bound on A stays below delta = 0.05 eV (+0.034 without, +0.049 with the exclusion), so the non-inferiority statement at 654 does not change; the two-sided interval with the exclusion, [+0.001, +0.052], is not inside +-delta."
+    tested_by: "analysis/n4/high_moment_final.py (estimator steps of analysis/sensitivity_analysis.high_moment, unchanged); G1 hierarchical bootstrap with the G1 draws; reproduces results/sens_high_moment_v1.json and row B654 of results/derived_c1/final_network_summary.json to 1e-9"
+    figure: "Figure F1, panel a (to be built)"
+    falsifiable_how: "A one-sided upper bound on the high-moment A at or above delta would change the non-inferiority statement at 654 for the final network."
+    status: measured
+    result_ref: results/derived_n4/high_moment_final_network.json
+```
+
+### 7e. Staging swap-in (no paper text required)
+
+The paper text does not mention the swap-in check. If the Methods or Results 3.4 (`sec:staging`) come to mention it, they should say
+that, on the network, the staged model with the true descriptors reproduces D exactly in all 183 pairs
+(`results/swapin/swapin_v2.json`). Because P1 and D standardise the descriptors identically, this is a plumbing check
+of the staged pipeline and not evidence that staging could win.
