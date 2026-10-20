@@ -40,25 +40,12 @@ BUDGETS = (25, 50, 100, 200, 400, 654)
 
 # figures whose caption must name these records (from docs/figure_style.md and docs/claims.yaml)
 FIGURE_RECORDS = {
-    "main/fig2_learning_curves.pdf": ("results/c1c2_v1.json", "results/c1c2_v2.json"),
-    "main/fig3_advantage.pdf": ("results/c1c2_v1.json", "results/c1c2_v2.json",
-                                "results/precision_a_b400_b654.json", "results/cv_extended_budget.json"),
-    "main/fig4_staging.pdf": ("results/staging_v1.json", "results/staging_v2.json"),
-    "main/fig5_geometry.pdf": ("results/geometry_c3b.json",),
-    "main/fig7_screening.pdf": ("figures/main/data/screening_demo.json",),
-    "main/fig6_within_host.pdf": ("results/g1_within_host.json",),
-    "si/fig6_probe.pdf": ("results/probe_c4_v1.json",),
     "si/fig_cascade.pdf": ("results/filter_cascade.json",),
-    "si/fig_g1_learning_curves.pdf": ("results/g1_primary.json",),
-    "si/fig_si_gpu_class.pdf": ("results/precision_a_b400_b654.json", "results/cv_extended_budget.json"),
-    "si/fig_si_sensitivities.pdf": ("results/sens_high_moment_v1.json", "results/sens_cgcnn.json",
-                                    "results/sens_capped_post_hoc.json"),
-    "si/fig_si_withinhost_groups.pdf": ("results/within_host_breakdown.json",),
 }
 # schematics and renders: no data, so no record; QA exceptions as documented in docs/figure_style.md
-NO_DATA_FIGURES = {"main/fig1_overview.pdf", "si/fig_readout.pdf", "si/fig_splits.pdf"}
-QA_EXCEPTIONS = {"main/fig1_overview.pdf": {"vector", "no_text_in_axes"}, "si/fig_readout.pdf": {"no_text_in_axes"},
-                 "si/fig_cascade.pdf": {"no_text_in_axes"}, "si/fig_splits.pdf": {"no_text_in_axes"}}
+NO_DATA_FIGURES = {"si/fig_readout.pdf", "si/fig_splits.pdf"}
+QA_EXCEPTIONS = {"si/fig_readout.pdf": {"no_text_in_axes"}, "si/fig_cascade.pdf": {"no_text_in_axes"},
+                 "si/fig_splits.pdf": {"no_text_in_axes"}}
 CAPTION_REF = re.compile(r"(?:results|figures/main/data|schematics|data)/[A-Za-z0-9_./-]+\.(?:json|parquet|pdf|csv|png)")
 
 

@@ -188,6 +188,8 @@ def fig_within_host(arms: dict) -> tuple[Path, str]:
 
 
 def main() -> None:
+    raise SystemExit("superseded: fig2_learning_curves, fig3_advantage and fig_within_host were removed with the "
+                     "one-network figure set; the main-text figures are built by figures/code/figure*.py")
     plt.style.use(str(ROOT / "scripts" / "paper.mplstyle"))
     arms = {a: r for a in ("v1", "v2") if (r := load(f"c1c2_{a}")) is not None and r.get("budgets")}
     diag = load("diagnostics_sweep")
