@@ -1,7 +1,0 @@
-# latexmk settings for paper/si/si.tex (Supplementary Materials). The MDPI bibliography style lives in the
-# untracked template (paper/template/Definitions, fetched by paper/tools/fetch_template.sh).
-$pdf_mode = 1;
-$ENV{'BSTINPUTS'} = '../template/Definitions:' . ($ENV{'BSTINPUTS'} // '');
-$ENV{'BIBINPUTS'} = '..:' . ($ENV{'BIBINPUTS'} // '');
-$pdflatex = 'pdflatex -interaction=nonstopmode -halt-on-error -file-line-error %O %S';
-@default_files = ('si.tex');

@@ -373,3 +373,35 @@ claims:
     falsifiable_how: "Pair differences that differed from the stored screening predictions refute the row."
     status: measured
     result_ref: figures/main/data/screening_demo.json
+  # EXTENSION on the final network (stage dclass, 180 runs; docs/deviations.md; analysis/dclass/dclass_analysis.py).
+  # D-host keeps the 12 host-level descriptors, D-site the 10 site-level descriptors; 10 resamples x 3 seeds, the sweep
+  # design, so A at 654 hosts is the sweep value (+0.015) and not the 30 x 5 headline. Sign: S - X and D - X are
+  # positive where X is more accurate. Macros: \numNetDclass... in paper/tools/net_macros.py. No paper prose yet.
+  - id: DCLASS-654
+    statement: "With 654 training hosts (10 resamples x 3 seeds) the network given only the host-level descriptors has MAE 0.242 [0.223, 0.263] eV and the network given only the site-level descriptors 0.244 [0.230, 0.261] eV, against 0.280 [0.263, 0.300] eV for the full-descriptor network D and 0.296 [0.276, 0.317] eV for the structure-only network S. S - D-host is +0.053 [+0.033, +0.073] eV (one-sided upper bound 0.070 eV) and S - D-site is +0.051 [+0.036, +0.066] eV (0.064 eV), both above the 0.05 eV tolerance; D - D-host is +0.038 [+0.026, +0.049] eV and D - D-site +0.036 [+0.022, +0.054] eV, so each single class is more accurate than the full set."
+    tested_by: "analysis/dclass/dclass_analysis.py (G1 hierarchical bootstrap, 2000 replicates, seed 20261008, draws shared with S and D; S, D MAE and A reproduce results/derived_c1/final_network_summary.json B654 to 1e-9)"
+    figure: "none (handoff M2)"
+    falsifiable_how: "A D-host or D-site MAE at 654 hosts whose paired gap to S had an interval including zero, or a gap to D below zero, would refute the row."
+    status: measured
+    result_ref: results/derived_dclass/dclass_gaps.json
+  - id: DCLASS-400
+    statement: "With 400 training hosts D-host has MAE 0.318 [0.296, 0.338] eV and D-site 0.316 [0.298, 0.337] eV, against 0.328 [0.308, 0.350] eV for D and 0.382 [0.356, 0.412] eV for S. S - D is +0.054 [+0.027, +0.080] eV (upper bound 0.075 eV), S - D-host +0.064 [+0.041, +0.088] eV and S - D-site +0.066 [+0.049, +0.084] eV; D - D-host is +0.011 [-0.004, +0.025] eV and D - D-site +0.012 [-0.005, +0.031] eV, intervals containing zero. Each class recovers 1.20 [0.95, 1.72] (host) and 1.23 [0.92, 1.98] (site) of A."
+    tested_by: "analysis/dclass/dclass_analysis.py (same estimator and draws as DCLASS-654; the recovery interval is the percentile interval of the replicate-wise ratio, reported where the interval of A excludes zero)"
+    figure: "none (handoff M2)"
+    falsifiable_how: "A recovery interval entirely below 1 for either class, or a D - class gap with an interval above zero, would refute the row."
+    status: measured
+    result_ref: results/derived_dclass/dclass_gaps.json
+  - id: DCLASS-200
+    statement: "With 200 training hosts D-host has MAE 0.455 [0.418, 0.501] eV and D-site 0.489 [0.458, 0.524] eV, against 0.432 [0.407, 0.458] eV for D and 0.456 [0.434, 0.478] eV for S. S - D is +0.024 [-0.006, +0.052] eV (upper bound 0.047 eV), S - D-host +0.001 [-0.046, +0.035] eV (0.033 eV) and S - D-site -0.033 [-0.066, -0.004] eV; D - D-host is -0.023 [-0.056, +0.007] eV and D - D-site -0.057 [-0.088, -0.028] eV, so at 200 hosts the site-level descriptors alone are less accurate than structure alone. The interval of A includes zero, so no recovery ratio interval is defined."
+    tested_by: "analysis/dclass/dclass_analysis.py (same estimator and draws as DCLASS-654)"
+    figure: "none (handoff M2)"
+    falsifiable_how: "A S - D-site interval including zero at 200 hosts would refute the statement that the site-level class alone is worse than structure alone."
+    status: measured
+    result_ref: results/derived_dclass/dclass_gaps.json
+  - id: DCLASS-HEALTH
+    statement: "8 of the 180 dclass runs reached the 200-epoch limit (7 at 654 hosts, 1 at 400 hosts, none at 200). Dropping their 7 (hosts, resample, seed) cells from S, D, D-host and D-site and re-ensembling over the remaining seeds moves the point value of every gap by at most 0.003 eV: at 654 hosts S - D-host +0.052 [+0.031, +0.073] eV, S - D-site +0.048 [+0.033, +0.064] eV, D - D-host +0.039 [+0.023, +0.058] eV, D - D-site +0.035 [+0.017, +0.055] eV, A +0.014 [-0.012, +0.037] eV."
+    tested_by: "analysis/dclass/dclass_analysis.py health.sensitivity (the main numbers keep all 180 runs)"
+    figure: "none (handoff M2)"
+    falsifiable_how: "A change of any gap in the sensitivity by more than its interval half-width, or a change of sign of a D - class gap, would refute the row."
+    status: measured
+    result_ref: results/derived_dclass/dclass_gaps.json
