@@ -30,7 +30,7 @@ can be deleted. The former scripts were not edited and still write the former st
 | Figure B1, readout schematic | `figures/si/figureB1_readout.pdf` | `figures/code/figure_moves.py` (copy) | byte-identical copy of `figures/si/fig_readout.pdf`, placed by `figures/code/fig_si_readout.py` from `schematics/fig_readout.tex` |
 | Figure C1, split designs | `figures/si/figureC1_splits.pdf` | `figures/code/figure_moves.py` (copy) | byte-identical copy of `figures/si/fig_splits.pdf`, placed by `figures/code/fig_si_schematics.py` from `schematics/fig_splits.tex` |
 | Figure E1, within-host breakdown | `figures/si/figureE1_within_host_groups.pdf` | `figures/code/figureE1_within_host_groups.py` | `results/within_host_breakdown.json` (network entries) |
-| Figure F1, sensitivities | not built | none | the high-moment exclusion on the network is being rerun; build once its record exists |
+| Figure F1, sensitivities | `figures/si/figureF1_sensitivities.pdf` | `paper/figgen/figureF1_sensitivities.py` | `results/derived_n4/high_moment_final_network.json` (panel a), `results/sens_cgcnn.json` (panel b, network and CGCNN) |
 | Figure H1, latent probe | `figures/si/figureH1_probe.pdf` | `figures/code/figureH1_probe.py` | `results/probe_descriptive.json` (block `s_v2`) |
 | Figure I1, SnO2 structure render | `figures/si/figureI1_sno2_vacancy.png` (with `.render.json`) | `figures/code/figure_moves.py` (copy) | byte-identical copy of `figures/si/structure_sno2_vacancy.png` |
 
@@ -56,7 +56,7 @@ has to be named. Every appendix caption that names a source names the record in 
 | Figure S3, split designs | `figures/si/fig_splits.pdf` | moved | Figure C1 |
 | Figure S4, within-host groups | `figures/si/fig_si_withinhost_groups.pdf` | moved, redrawn on the network | Figure E1 |
 | Figure S5, GPU class | `figures/si/fig_si_gpu_class.pdf` | deleted (one Methods sentence replaces it) | none |
-| Figure S6, sensitivities | `figures/si/fig_si_sensitivities.pdf` | to be rebuilt on the network; not built in W2b | Figure F1 (pending) |
+| Figure S6, sensitivities | `figures/si/fig_si_sensitivities.pdf` | rebuilt on the network by paper/figgen/figureF1_sensitivities.py | Figure F1 |
 | Figure S7, latent probe | `figures/si/fig6_probe.pdf` | moved, redrawn on the network's probe record | Figure H1 |
 | Figure S8, SnO2 render | `figures/si/structure_sno2_vacancy.png` | moved | Figure I1 |
 | unnumbered G1 learning curves | `figures/si/fig_g1_learning_curves.pdf` | deleted from the figure set (never cited; Figure 2 carries the network's curves) | none |
@@ -69,4 +69,4 @@ included once the SI is merged into the appendices (`docs/pending_edits.md`).
 **A4 update (2026-10-17).** The appendix figures are now included by `paper/main.tex`: Figure A1 (`fig:app_cascade`),
 B1 (`fig:app_readout`), C1 (`fig:app_splits`), E1 (`fig:app_within`), H1 (`fig:app_probe`) and I1 (`fig:app_sno2`,
 printed 69 mm wide, its 600 ppi width), numbered per appendix by `paper/main.tex`. The printed captions are rewritten
-from the `.caption.md` files to the 70-word limit of `scripts/check_captions.py`. Figure F1 is still not built.
+from the `.caption.md` files to the 70-word limit of `scripts/check_captions.py`. Figure F1 (`fig:app_sens`) was built in W1.

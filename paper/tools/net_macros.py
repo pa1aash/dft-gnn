@@ -120,6 +120,17 @@ def spec(root: Path, words: Callable[[int], str]) -> Spec:
         s.add(f"NetDescriptors{tag}", "results/staging_v2.json",
               ("p1_descriptors", "654", "by_class", cls, "n_descriptors"), "int")
 
+    # ---- high-moment exclusion on the network, Appendix F (AF1)
+    hm = "results/derived_n4/high_moment_final_network.json"
+    for tag, key in (("Common", "primary_common_sites"), ("Excl", "high_moment")):
+        p = ("final_network", key, "A")
+        s.add(f"NetHighMoment{tag}A", hm, p + ("mean",))
+        s.ci(f"NetHighMoment{tag}A", hm, p, "ci")
+    s.add("NetHighMomentExclAUpper", hm, ("final_network", "high_moment", "A", "upper_one_sided"))
+    p = ("final_network", "change_high_moment_minus_primary", "A")
+    s.add("NetHighMomentChangeA", hm, p + ("mean",))
+    s.ci("NetHighMomentChangeA", hm, p, "ci")
+
     # ---- reproduction of the published structure-only error (formula-grouped split, 654 hosts)
     c2 = "results/c1c2_v2.json"
     s.add("NetReproMaeS", c2, ("mae", "654", "S", "mae", "mean"))
