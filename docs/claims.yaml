@@ -210,6 +210,21 @@ claims:
     falsifiable_how: "A one-sided upper bound on the high-moment A at or above delta would change the non-inferiority statement at 654 for v1."
     status: measured
     result_ref: results/sens_high_moment_v1.json
+  # AF1 (W1, 2026-10-20): the final network. Replaces SENS1 (default-initialisation backbone, v1) in Appendix F.
+  # Numbers of Appendix F, Section "Entries with a High Defect Moment" and Figure F1: A at 654 training hosts on the
+  # common test sites (+0.016 [-0.007, +0.038] eV) and without the high-moment entries (+0.027 [+0.001, +0.052] eV,
+  # one-sided upper bound 0.0488 eV), paired change +0.011 [-0.008, +0.029] eV, delta 0.05 eV: all in
+  # results/derived_n4/high_moment_final_network.json (payload.final_network.*, payload.delta_eV; macros
+  # numNetHighMoment* in paper/tools/net_macros.py). RF-Kumagai change and entry count/threshold:
+  # results/sens_high_moment_rf.json. Epoch-limit counts and effects on A (Table F1): results/derived_w2/w2_training_limit.json
+  # and results/precision_a_b400_b654.json. CGCNN numbers (Figure F1b and the CGCNN subsection): results/sens_cgcnn.json.
+  - id: SENS1-v2
+    statement: "On the final network with 654 training hosts (10 resamples x 3 seeds), removing the 10 entries with a defect moment above 0.5 muB from training and test sites moves A = MAE_S - MAE_D on the common test sites from +0.016 [-0.007, +0.038] to +0.027 [+0.001, +0.052] eV (paired change +0.011 [-0.008, +0.029] eV, interval contains zero); the one-sided 95% upper bound on A is 0.0488 eV, below delta = 0.05 eV by 0.0012 eV, so the statement at 654 hosts holds without these entries; the two-sided interval no longer lies inside +-delta."
+    tested_by: "analysis/n4/high_moment_final.py (G1 hierarchical bootstrap with the G1 draws; the full-site primary series reproduces results/derived_c1/final_network_summary.json B654 exactly, payload.reproduction)"
+    figure: "Figure F1a (figures/si/figureF1_sensitivities.pdf; paper/figgen/figureF1_sensitivities.py)"
+    falsifiable_how: "A one-sided upper bound on A without the entries at or above delta would refute the statement at 654 hosts."
+    status: measured
+    result_ref: results/derived_n4/high_moment_final_network.json
   # EXTENSION, untuned CGCNN (A5; docs/deviations.md rows of 2026-10-10 §12 and 2026-10-14 §5, §12). Descriptive,
   # one resample, no hypothesis test.
   - id: SENS2
