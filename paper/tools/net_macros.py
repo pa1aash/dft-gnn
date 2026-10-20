@@ -322,7 +322,10 @@ def illustration(fmt: Callable) -> list[tuple[str, str, str, str]]:
     one_sf = round(factor, -math.floor(math.log10(factor)))
     src = f"exp(dE / k_B T), k_B = {kb!r} eV/K (scipy.constants, CODATA), T = {ILLUSTRATION_T_K} K, dE = "
     src += f"{ILLUSTRATION_DE_EV} eV"
-    return [("numNetIllusTemperature", fmt(ILLUSTRATION_T_K), repr(ILLUSTRATION_T_K), src + " (input T)"),
+    tol_factor = math.exp(0.05 / kt)
+    return [("numNetIllusTolFactor", "\\ensuremath{" + f"{tol_factor:.1f}" + "}", repr(tol_factor),
+             f"exp(delta / k_B T), delta = 0.05 eV, T = {ILLUSTRATION_T_K} K (one decimal)"),
+            ("numNetIllusTemperature", fmt(ILLUSTRATION_T_K), repr(ILLUSTRATION_T_K), src + " (input T)"),
             ("numNetIllusDeltaE", "\\ensuremath{" + f"{ILLUSTRATION_DE_EV:g}" + "}", repr(ILLUSTRATION_DE_EV),
              src + " (input dE)"),
             ("numNetIllusKT", fmt(kt), repr(kt), src + " (k_B T, eV)"),
