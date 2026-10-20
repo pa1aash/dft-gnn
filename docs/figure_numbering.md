@@ -69,4 +69,4 @@ included once the SI is merged into the appendices (`docs/pending_edits.md`).
 **A4 update (2026-10-17).** The appendix figures are now included by `paper/main.tex`: Figure A1 (`fig:app_cascade`),
 B1 (`fig:app_readout`), C1 (`fig:app_splits`), E1 (`fig:app_within`), H1 (`fig:app_probe`) and I1 (`fig:app_sno2`,
 printed 69 mm wide, its 600 ppi width), numbered per appendix by `paper/main.tex`. The printed captions are rewritten
-from the `.caption.md` files to the 70-word limit of `scripts/check_captions.py`. Figure F1 is still not built.
+from the `.caption.md` files to the 70-word limit of `scripts/check_captions.py`. Figure F1 (`fig:app_sens`) was built in W1.
