@@ -307,6 +307,31 @@ def spec(root: Path, words: Callable[[int], str]) -> Spec:
             s.ci(f"NetDsmall{t}{f}", ds, p + (k,))
             s.add(f"NetDsmall{t}{f}Upper", ds, p + (k, "upper_one_sided_95"))
             s.add(f"NetDsmall{t}{f}MaeD", ds, p + (k, "MAE_D", "mean"))
+
+    # ---- descriptor-class ablation of the final network (stage dclass, 10 x 3 design); the ratio interval exists
+    # only where the interval of A excludes zero, so the Lo and Hi macros of a ratio are defined for those budgets
+    dc = "results/derived_dclass/dclass_gaps.json"
+    dcb = load(dc)["budgets"]
+    s.add("NetDclassRuns", dc, ("health", "n_runs"), "int")
+    s.add("NetDclassCapRuns", dc, ("health", "n_runs_at_epoch_limit"), "int")
+    s.add("NetDclassCapCells", dc, ("health", "n_cells_dropped"), "int")
+    for B in (200, 400, 654):
+        t = f"NetDclass{s.b(B)}"
+        p = ("budgets", str(B))
+        for cl, tag in (("D-host", "Host"), ("D-site", "Site")):
+            s.add(f"{t}Mae{tag}", dc, p + ("MAE", cl, "mean"))
+            s.ci(f"{t}Mae{tag}", dc, p + ("MAE", cl))
+            r = p + ("recovery_of_A", cl)
+            s.add(f"{t}Ratio{tag}", dc, r + ("ratio",))
+            if dcb[str(B)]["recovery_of_A"][cl]["ratio_ci95_reported"]:
+                s.ci(f"{t}Ratio{tag}", dc, r, "ratio_ci95")
+        for g, tag in (("S_minus_D", "GapSD"), ("S_minus_Dhost", "GapSHost"), ("S_minus_Dsite", "GapSSite"),
+                       ("D_minus_Dhost", "GapDHost"), ("D_minus_Dsite", "GapDSite")):
+            for root, pre in ((p, ""), (("health", "sensitivity", str(B)), "Cap")):
+                q = root + ("gaps", g)
+                s.add(f"{t}{pre}{tag}", dc, q + ("A",))
+                s.ci(f"{t}{pre}{tag}", dc, q)
+                s.add(f"{t}{pre}{tag}Upper", dc, q + ("upper_one_sided_95",))
     return s
 
 
