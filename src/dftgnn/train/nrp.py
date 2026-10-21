@@ -43,7 +43,7 @@ from dftgnn.config import Config, load_config
 from dftgnn.split import SPLITS_DIR, budget_train, load_split
 from dftgnn.split.cv import CV_KS, CV_NAME, split_name
 from dftgnn.split.ext import EXT_RESAMPLES
-from dftgnn.train import RunSpec, admission, resolve_hosts, run_id
+from dftgnn.train import RunSpec, accepted_code_commits, admission, resolve_hosts, run_id
 from dftgnn.train import s12 as S12
 from dftgnn.train.stages import TUNED, _job, load_tuned, tuned_hparams
 
@@ -72,6 +72,8 @@ NEEDS_FILE = {"p1v2b": TUNED_P1_V2, "pcompv2b": TUNED_P1_V2}
 TAXONOMY = REPO_ROOT / "docs" / "descriptor_taxonomy.csv"
 V2_SWEEP_DIR = REPO_ROOT / "results" / "v2_sweep"          # records of the v2 D runs that pcompv2b reuses
 P_V2_DIR = REPO_ROOT / "results" / "p_v2"
+P1V2B_DIR = REPO_ROOT / "results" / "p1v2b"                # ingested p1v2b records: the dependencies of pcompv2b
+P1V2B_CHECKPOINTS = REPO_ROOT / "results" / "nrp" / "artefacts" / "p1v2b.sha256"   # "<sha256>  <size>  <path>" lines
 V2_CKPT_DIRS = ("/workspace/dft-gnn-v2/checkpoints",)      # NRP volume holding the v2 sweep checkpoints
 P1_EPOCHS = 400                                            # epoch limit of P1 in p1tune_v2 and p1v2b
 DCLASS_BUDGETS = (654, 400, 200)
@@ -492,10 +494,33 @@ def shard(jobs: list[dict], spec: str | None) -> list[dict]:
     return [j for j in jobs if int(j["run_id"], 16) % n == i]
 
 
+def p1v2b_result_verified(rid: str) -> bool:
+    """An ingested p1v2b record is a met dependency (pcompv2b) when ``results/p1v2b/<rid>.json`` names ``rid``, was
+    written from a clean tree by an accepted code commit (``accepted_code_commits`` of its code reference), and its
+    checkpoint sha256 equals the entry for that checkpoint in ``results/nrp/artefacts/p1v2b.sha256`` (the checkpoint
+    itself stays on NRP storage). Anything missing or different is refused."""
+    try:
+        rec = json.loads((P1V2B_DIR / f"{rid}.json").read_text())
+        pay = rec["payload"]
+        ck = pay["checkpoint"]
+        if rec["name"] != rid or pay["run_id"] != rid or rec["git_dirty"] is not False:
+            return False
+        if rec["git_sha"] not in accepted_code_commits(pay["code_ref"]):
+            return False
+        listed = {}
+        for line in P1V2B_CHECKPOINTS.read_text().splitlines():
+            if line.strip():
+                h, _size, path = line.split("  ", 2)
+                listed[path] = h
+        return ck["path"] in listed and listed[ck["path"]] == ck["sha256"]
+    except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError):
+        return False
+
+
 def task_result_verified(rid: str) -> bool:
     from dftgnn import tasks
 
-    return any(tasks.verified(tasks.result_path(st, rid), rid) for st in tasks.SUBDIR)
+    return any(tasks.verified(tasks.result_path(st, rid), rid) for st in tasks.SUBDIR) or p1v2b_result_verified(rid)
 
 
 def resolve_deps(jobs: list[dict], queue_root: Path, verified=task_result_verified) -> list[dict]:
