@@ -1,4 +1,5 @@
-"""Non-training queue tasks: ``relax``, ``embed``, ``geomeval`` (S12) and ``p1tune_v2`` (one P1 tuning study, N5).
+"""Non-training queue tasks: ``relax``, ``embed``, ``geomeval`` (S12), ``p1tune_v2`` (one P1 tuning study, N5) and
+``dtune_v2`` (one D tuning study in the extended search space, N7).
 
 A task job is ``{"run_id", "stage", "spec": {"model": <stage>, "r", "budget", "seed", ...}, "after", "est_peak_gb",
 "priority", "tranche"}``; the run id is ``infer.task_id`` of a key that includes the code SHA. Every task writes a
@@ -20,8 +21,10 @@ from dftgnn.hardware import hardware_info
 from dftgnn.io.results import write_result
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-TASK_STAGES = ("relax", "embed", "geomeval", "p1tune_v2")
-SUBDIR = {"relax": "mlip_v1", "embed": "embeddings_v1", "geomeval": "geomeval", "p1tune_v2": "p1tune_v2"}
+TASK_STAGES = ("relax", "embed", "geomeval", "p1tune_v2", "dtune_v2")
+SUBDIR = {"relax": "mlip_v1", "embed": "embeddings_v1", "geomeval": "geomeval", "p1tune_v2": "p1tune_v2",
+          "dtune_v2": "dtune_v2"}
+TUNING_STAGES = {"p1tune_v2": "P1", "dtune_v2": "D"}     # tuning task -> the model label of its studies
 
 
 def mace_sha() -> str:
@@ -141,10 +144,10 @@ def geomeval_key(geo_model: str, r: int, budget: int, seed: int, comps: dict, co
 
 
 # ------------------------------------------------------------------------------------------- p1tune_v2
-def tuning_storage() -> Path:
-    """Optuna SQLite directory of the p1tune_v2 studies, outside the checkout so that a resumed job (or a new pod)
-    continues the same study: ``$DFTGNN_TUNING_DIR``, else ``<checkout>/../tuning_p1tune_v2``."""
-    return Path(os.environ.get("DFTGNN_TUNING_DIR") or REPO_ROOT.parent / "tuning_p1tune_v2")
+def tuning_storage(stage: str = "p1tune_v2") -> Path:
+    """Optuna SQLite directory of a tuning stage's studies, outside the checkout so that a resumed job (or a new pod)
+    continues the same study: ``$DFTGNN_TUNING_DIR``, else ``<checkout>/../tuning_<stage>``."""
+    return Path(os.environ.get("DFTGNN_TUNING_DIR") or REPO_ROOT.parent / f"tuning_{stage}")
 
 
 def run_p1tune(rid: str, job: dict, data, device, storage: Path | None = None, log=print) -> Path:
@@ -152,18 +155,30 @@ def run_p1tune(rid: str, job: dict, data, device, storage: Path | None = None, l
     with the spec's arch and epoch limit), write ``results/tuning/tuning_<study>.json`` as ``scripts/tune/run_study.py``
     writes the S and D records (trial CSV and SQLite copy beside it), then the task record listing those three files.
     ``data`` is a ``TuningStore`` of the anchor resample (its test hosts removed from memory)."""
+    return run_tuning(rid, job, data, device, storage=storage, log=log)
+
+
+def run_tuning(rid: str, job: dict, data, device, storage: Path | None = None, log=print) -> Path:
+    """``run_p1tune`` for any stage of ``TUNING_STAGES``. A dtune_v2 spec carries its extended ``search_space``
+    (``dftgnn.tune.run_study(space=...)``); a p1tune_v2 spec has none and uses the configured space."""
     from dftgnn.config import load_config
     from dftgnn.train import admission, code_sha
-    from dftgnn.tune import RESULTS_DIR, archive_study, run_study, summarise
+    from dftgnn.tune import RESULTS_DIR, archive_study, run_study, space_from_dict, summarise
 
     spec, cfg = job["spec"], load_config()
+    stage = job.get("stage", "p1tune_v2")
+    model = TUNING_STAGES[stage]
     t = cfg.tuning
     if (spec["r"], spec["seed"], spec["n_trials"]) != (t.anchor_resample, t.trial_seed,
                                                       t.optuna_trials_per_model_per_anchor):
         raise ValueError(f"{rid}: spec differs from the configured tuning protocol")
+    if spec["model"] != model:
+        raise ValueError(f"{rid}: stage {stage} tunes {model}, the spec names {spec['model']}")
     name, anchor = spec["study"], spec["anchor"]
-    prefix = name.removesuffix(f"P1_a{anchor}")
-    storage = Path(storage or tuning_storage())
+    prefix = name.removesuffix(f"{model}_a{anchor}")
+    space_json = spec.get("search_space")
+    space = space_from_dict(space_json) if space_json is not None else None
+    storage = Path(storage or tuning_storage(stage))
     try:
         table = admission.load_benchmark()
         est = lambda p: admission.est_peak_for_spec(table, p, int(p["batch_size"]))
@@ -171,10 +186,11 @@ def run_p1tune(rid: str, job: dict, data, device, storage: Path | None = None, l
         est = None
     epochs = (spec["max_epochs"], spec["patience"])
     commit = code_sha()
-    study = run_study("P1", anchor, data, cfg=cfg, prefix=prefix, storage_dir=storage, csv_dir=RESULTS_DIR,
+    study = run_study(model, anchor, data, cfg=cfg, prefix=prefix, storage_dir=storage, csv_dir=RESULTS_DIR,
                       n_trials=spec["n_trials"], device=device, est_gb=est, pod_commit=commit,
-                      epoch_override=epochs, arch=spec["arch"], log=log)
-    payload = summarise(study, "P1", anchor, cfg, arch=spec["arch"], epochs=epochs)
+                      epoch_override=epochs, arch=spec["arch"], space=space, log=log)
+    payload = summarise(study, model, anchor, cfg, arch=spec["arch"], epochs=epochs, space=space,
+                        space_json=space_json)
     payload["artefacts"] = archive_study(storage / f"{name}.db", RESULTS_DIR / f"trials_{name}.csv",
                                          RESULTS_DIR / "optuna")
     rec = write_result(f"tuning_{name}", payload, config=cfg, results_dir=RESULTS_DIR)
@@ -183,7 +199,7 @@ def run_p1tune(rid: str, job: dict, data, device, storage: Path | None = None, l
            "best_value": payload["best_value"], "best_trial": payload["best_trial"],
            "n_complete": payload["n_complete"], "trials_reaching_cap": len(payload["trials_reaching_cap"]),
            "pod_commit": commit, "artifacts": arts, "hardware": hardware_info(device)}
-    return write_result(rid, pay, config=cfg, results_dir=result_path("p1tune_v2", rid).parent)
+    return write_result(rid, pay, config=cfg, results_dir=result_path(stage, rid).parent)
 
 
 # ---------------------------------------------------------------------------------------------- dispatch
@@ -221,12 +237,12 @@ class TaskRunner:
             path = run_embed(rid, spec, self.sites, self.prim, self.device)
         elif stage == "geomeval":
             path = run_geomeval(rid, spec, self.sites, self.prim, job["key"], self.device)
-        elif stage == "p1tune_v2":
+        elif stage in TUNING_STAGES:
             if self._tuning is None:
                 from dftgnn.tune import TuningStore
 
                 self._tuning = TuningStore(resample=spec["r"])
-            path = run_p1tune(rid, job, self._tuning, self.device, log=lambda m: print(m, flush=True))
+            path = run_tuning(rid, job, self._tuning, self.device, log=lambda m: print(m, flush=True))
         else:
             raise ValueError(f"unknown task stage {stage!r}")
         return {"status": "done", "result": str(path)}

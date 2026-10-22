@@ -22,6 +22,11 @@ trial a process takes a VRAM admission slot (``VramLedger``) sized by the S07 be
 (hidden width, batch size, MEGNet blocks) cell; the benchmark timed set2set pooling, and that value is
 used for mean pooling as well. A trial that runs out of memory is retried once with the device to itself
 (``needs_solo``).
+
+Extended search spaces (opt-in, dtune_v2; docs/deviations.md, 2026-10-23). ``run_study(space=...)`` replaces the
+configured space for one study. Parameters outside ``ARCH_KEYS`` and ``OPT_KEYS`` go into the architecture (``hp``),
+except ``MODEL_PARAM``, which picks the trained variant (D-state or D-late) of each trial; such a study is named after
+the model label ``D``. Without ``space`` the sampled parameters, specs, trial CSV and record are those of before.
 """
 from __future__ import annotations
 
@@ -37,6 +42,7 @@ from collections.abc import Callable
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import optuna
@@ -52,6 +58,8 @@ from dftgnn.train import admission as A
 MODELS = ("S", "D-state", "D-late", "P1")
 ARCH_KEYS = ("hidden_width", "megnet_blocks", "dropout", "readout_mlp_width", "pooling")
 OPT_KEYS = ("learning_rate", "weight_decay", "batch_size")
+MODEL_PARAM = "injection"     # extended spaces only: the D variant a trial trains
+D_VARIANTS = ("D-state", "D-late")
 RESULTS_DIR = REPO_ROOT / "results" / "tuning"
 STORAGE_DIR = Path("/workspace/tuning")
 BOUNDARY_FRACTION = 0.05      # a continuous value within 5% of its (log) range of an edge is a boundary hit
@@ -85,9 +93,33 @@ def suggest(trial: optuna.trial.BaseTrial, space: dict) -> dict:
 
 
 def split_params(params: dict) -> dict:
-    """Search-space parameters -> {"hp", "lr", "weight_decay", "batch_size"} as a RunSpec takes them."""
-    return {"hp": {k: params[k] for k in ARCH_KEYS}, "lr": float(params["learning_rate"]),
+    """Search-space parameters -> {"hp", "lr", "weight_decay", "batch_size"} as a RunSpec takes them. Parameters of an
+    extended space outside ``ARCH_KEYS`` and ``OPT_KEYS`` follow the architecture keys in ``hp``; ``MODEL_PARAM`` is
+    not a hyperparameter of the network and is left out."""
+    extra = {k: v for k, v in params.items() if k not in ARCH_KEYS and k not in OPT_KEYS and k != MODEL_PARAM}
+    return {"hp": {**{k: params[k] for k in ARCH_KEYS}, **extra}, "lr": float(params["learning_rate"]),
             "weight_decay": float(params["weight_decay"]), "batch_size": int(params["batch_size"])}
+
+
+def trial_model(model: str, params: dict) -> str:
+    """The variant a trial trains: ``params[MODEL_PARAM]`` when the space has it, else ``model``."""
+    return params.get(MODEL_PARAM, model)
+
+
+def space_from_dict(space: dict) -> dict:
+    """A search space written as JSON (``{name: {"dist", "low", "high", "choices"}}``, as in a job spec) in the
+    attribute form of ``tuning.search_space``."""
+    return {k: SimpleNamespace(dist=v["dist"], low=v.get("low"), high=v.get("high"), choices=v.get("choices"))
+            for k, v in space.items()}
+
+
+def csv_fields(space: dict | None) -> tuple[str, ...]:
+    """Trial CSV columns: ``CSV_FIELDS``, with the extra parameters of an extended space after ``OPT_KEYS``."""
+    if space is None:
+        return CSV_FIELDS
+    extra = tuple(k for k in space if k not in ARCH_KEYS and k not in OPT_KEYS)
+    i = CSV_FIELDS.index(OPT_KEYS[-1]) + 1
+    return (*CSV_FIELDS[:i], *extra, *CSV_FIELDS[i:])
 
 
 def boundary_hits(params: dict, space: dict, frac: float = BOUNDARY_FRACTION) -> dict[str, str]:
@@ -270,14 +302,14 @@ def n_complete(study: optuna.Study) -> int:
     return len(study.get_trials(deepcopy=False, states=(optuna.trial.TrialState.COMPLETE,)))
 
 
-def _append_csv(path: Path, row: dict) -> None:
+def _append_csv(path: Path, row: dict, fields: tuple[str, ...] = CSV_FIELDS) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     new = not path.is_file()
     with open(path, "a", newline="") as fh:
-        w = csv.DictWriter(fh, fieldnames=CSV_FIELDS)
+        w = csv.DictWriter(fh, fieldnames=fields)
         if new:
             w.writeheader()
-        w.writerow({k: row.get(k) for k in CSV_FIELDS})
+        w.writerow({k: row.get(k) for k in fields})
 
 
 def _free(device: torch.device) -> None:
@@ -291,10 +323,15 @@ def run_study(model: str, anchor: int, data: Store, *, cfg: Config | None = None
               device: torch.device | None = None, ledger: VramLedger | None = None,
               est_gb: Callable[[dict], float] | None = None, train_fn=train_run, pod_commit: str | None = None,
               epoch_override: tuple[int, int] | None = None, arch: dict | None = None,
-              log=print) -> optuna.Study:
-    """Run (or resume) the study of ``model`` at ``anchor`` until it holds ``n_trials`` COMPLETE trials."""
+              space: dict | None = None, log=print) -> optuna.Study:
+    """Run (or resume) the study of ``model`` at ``anchor`` until it holds ``n_trials`` COMPLETE trials.
+    ``space`` (attribute form, ``space_from_dict``) replaces the configured search space; with ``MODEL_PARAM`` in it
+    the model is ``D`` and each trial trains the sampled variant."""
     cfg = cfg if cfg is not None else load_config()
-    if model not in MODELS:
+    if space is not None and MODEL_PARAM in space:
+        if model != "D" or set(space[MODEL_PARAM].choices) - set(D_VARIANTS):
+            raise ValueError(f"{MODEL_PARAM} chooses among {D_VARIANTS} in a study of model D")
+    elif model not in MODELS:
         raise ValueError(f"{model} is not a tuned model")
     n_trials = cfg.tuning.optuna_trials_per_model_per_anchor if n_trials is None else n_trials
     device = device or torch.device("cpu")
@@ -308,10 +345,11 @@ def run_study(model: str, anchor: int, data: Store, *, cfg: Config | None = None
         raise AssertionError("a tuning run resolved test hosts")
     commit = pod_commit or code_sha()
     csv_path = Path(csv_dir) / f"trials_{name}.csv"
+    fields = csv_fields(space)
     while n_complete(study) < n_trials:
         trial = study.ask()
-        params = suggest(trial, cfg.tuning.search_space)
-        spec = trial_spec(model, anchor, params, cfg, name, arch)
+        params = suggest(trial, space if space is not None else cfg.tuning.search_space)
+        spec = trial_spec(trial_model(model, params), anchor, params, cfg, name, arch)
         if epoch_override is not None:
             spec.max_epochs, spec.patience = epoch_override
         gb = est_gb(params) if est_gb is not None else 0.0
@@ -352,7 +390,7 @@ def run_study(model: str, anchor: int, data: Store, *, cfg: Config | None = None
         study.tell(trial, value)
         _append_csv(csv_path, {"study": name, "trial": trial.number, "state": "COMPLETE", **params,
                                "objective": value, **attrs,
-                               "finished_utc": datetime.now(UTC).isoformat(timespec="seconds")})
+                               "finished_utc": datetime.now(UTC).isoformat(timespec="seconds")}, fields)
         log(f"{name} trial {trial.number}: objective {value:.4f} best_epoch {res['best_epoch']} "
             f"epochs {res['epochs_run']} wall {attrs['wall_s']:.0f}s ({n_complete(study)}/{n_trials})")
     return study
@@ -366,15 +404,19 @@ def _nullslot():
 # ---------------------------------------------------------------- summary
 
 def summarise(study: optuna.Study, model: str, anchor: int, cfg: Config, *, top: int = 5,
-              arch: dict | None = None, epochs: tuple[int, int] | None = None) -> dict:
+              arch: dict | None = None, epochs: tuple[int, int] | None = None, space: dict | None = None,
+              space_json: dict | None = None) -> dict:
     """Payload of ``write_result("tuning_<model>_a<anchor>")``. ``epochs`` = (max_epochs, patience) of a study run
-    with ``epoch_override`` (p1tune_v2); by default the configured values."""
+    with ``epoch_override`` (p1tune_v2); by default the configured values. ``space`` / ``space_json``: the extended
+    search space of a study run with ``space`` (dtune_v2), in attribute and JSON form; the payload then also holds
+    ``search_space`` and ``best_model`` (the variant of the best trial)."""
     max_epochs, patience = epochs or (cfg.training.max_epochs, cfg.training.early_stopping.patience)
     done = sorted(study.get_trials(deepcopy=False, states=(optuna.trial.TrialState.COMPLETE,)),
                   key=lambda t: (t.value, t.number))
     failed = study.get_trials(deepcopy=False, states=(optuna.trial.TrialState.FAIL,))
     best = done[0]
-    space = cfg.tuning.search_space
+    ext = space is not None
+    space = space if ext else cfg.tuning.search_space
     topk = [{"trial": t.number, "value": t.value, "params": t.params,
              "best_epoch": t.user_attrs.get("best_epoch"), "epochs_run": t.user_attrs.get("epochs_run")}
             for t in done[:top]]
@@ -402,6 +444,7 @@ def summarise(study: optuna.Study, model: str, anchor: int, cfg: Config, *, top:
         "sum_trial_wall_s": sum(walls),
         "pod_commit": ua.get("pod_commit"), "graphs_manifest_sha256": ua.get("graphs_manifest_sha256"),
         "test_hosts_loaded": False, "arch": arch or {},
+        **({"search_space": space_json, "best_model": trial_model(model, best.params)} if ext else {}),
     }
 
 

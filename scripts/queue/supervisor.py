@@ -56,12 +56,13 @@ SEC_PER_EPOCH_UPPER = 2.44
 CONTENTION = 4 / 1.23
 GUARD_GPU_H = 59.4      # docs/cost_table.md sweep + Kiyohara upper bound (55.4) + epoch-cap estimate (4)
 TRANCHES = ("T1", "T2", "T3", "T4")
-TASK_STAGES = ("relax", "embed", "geomeval", "p1tune_v2")
+TASK_STAGES = ("relax", "embed", "geomeval", "p1tune_v2", "dtune_v2")
 TASK_SUBDIR = {"relax": "mlip_v1", "embed": "embeddings_v1", "geomeval": "geomeval",
-               "p1tune_v2": "p1tune_v2"}                                                 # dftgnn.tasks.SUBDIR
+               "p1tune_v2": "p1tune_v2", "dtune_v2": "dtune_v2"}                          # dftgnn.tasks.SUBDIR
 # S11 CPU smoke (3 threads), seconds per task; relax is 30 FIRE steps x (0.068 + 0.0111 n_atoms) s; p1tune_v2 is one
-# 30-trial study, twice the summed trial time of the 200-epoch P1 study at anchor 654 (results/tuning)
-TASK_PRIOR_S = {"embed": 60.0, "geomeval": 180.0, "peval": 45.0, "p1tune_v2": 75000.0}
+# 30-trial study, twice the summed trial time of the 200-epoch P1 study at anchor 654 (results/tuning); dtune_v2
+# likewise from the v2 D-state study at anchor 654 (46,152 s)
+TASK_PRIOR_S = {"embed": 60.0, "geomeval": 180.0, "peval": 45.0, "p1tune_v2": 75000.0, "dtune_v2": 92000.0}
 
 
 def log(msg: str) -> None:
