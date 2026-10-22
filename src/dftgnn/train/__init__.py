@@ -113,9 +113,10 @@ CODE_REF_PATHS = ("src", "scripts", "configs", "splits", "specs")
 # Successor tags whose code may run the specs pinned to a code reference (deviations rows of 2026-10-14, 2026-10-18
 # and 2026-10-19), oldest first: v2 bug fixes, v4 the moment_v2 stage, v5 the stages p1tune_v2, dclass, p1v2b and
 # pcompv2b, v6 the tuned P1 settings and the N6 specs (Mac session C6), v7 the pcompv2b dependency check on the
-# ingested p1v2b records (Mac session M5).
+# ingested p1v2b records (Mac session M5), v8 the stage dtune_v2 and the dretrain_v2 code (Mac session C7).
 # The run ids keep the original reference string; only the code check accepts the successor.
-CODE_REF_SUCCESSORS = {"nrp-code-v1": ("nrp-code-v2", "nrp-code-v4", "nrp-code-v5", "nrp-code-v6", "nrp-code-v7")}
+CODE_REF_SUCCESSORS = {"nrp-code-v1": ("nrp-code-v2", "nrp-code-v4", "nrp-code-v5", "nrp-code-v6", "nrp-code-v7",
+                                       "nrp-code-v8")}
 
 
 def accepted_code_commits(ref: str, root: Path = REPO_ROOT) -> set[str]:
@@ -137,7 +138,7 @@ def check_code_ref(ref: str, root: Path = REPO_ROOT) -> str:
     A spec with ``code_ref`` has its run id computed with ``ref`` in place of the commit SHA, so it may run only
     on that code: ``ref`` must resolve to an ancestor of HEAD and nothing under ``CODE_REF_PATHS`` may differ
     between it and HEAD (commits that add results on top of the tag are allowed). A successor of ``ref``
-    (``CODE_REF_SUCCESSORS``; nrp-code-v2, v4, v5, v6 and v7 for nrp-code-v1) is accepted in its place: it must exist, be an
+    (``CODE_REF_SUCCESSORS``; nrp-code-v2, v4 to v8 for nrp-code-v1) is accepted in its place: it must exist, be an
     ancestor of HEAD, and nothing under ``CODE_REF_PATHS`` may differ between it and HEAD. Raises RuntimeError
     otherwise.
     """

@@ -378,3 +378,25 @@ and stops if its sha256 differs from its `results/v2_sweep/` record. The P1 chec
 **Scope gates.** Session scope gates (`git diff --stat <tag> -- src scripts configs splits specs`) compare against the
 newest code tag: `nrp-code-v5` from this section on, `nrp-code-v6` after C6. A new stage still needs a code commit, an
 annotated tag and an entry for the tag in `CODE_REF_SUCCESSORS`.
+
+## 12. D re-tuning and the D retrain from `nrp-code-v8` (2026-10-23)
+
+Two stages on the v2 backbone (deviations row of 2026-10-23), v2 only, `code_ref` = `nrp-code-v1`; `CODE_REF_SUCCESSORS`
+lists `nrp-code-v8`.
+
+| group | spec file | stage | jobs | depends on | results (tracked) | kept on NRP |
+|---|---|---|---:|---|---|---|
+| N7 | `dtune_v2.jsonl` | one D study per anchor (50, 200, 654), 30 trials, extended space, epoch limit 400 | 3 | - | `results/tuning/` (record, trial CSV, SQLite copy), `results/dtune_v2/` | the live study files in `$DFTGNN_TUNING_DIR` |
+| N8 | `dretrain_v2.jsonl` (made in C8) | D with `configs/tuned_d_v2.yaml`, epoch limit 400, the cells of the v2 D runs at 654 (30 x 5), 400 and 200 (10 x 3) | 210 | N7 tuning, frozen on the Mac | `results/dretrain_v2/` | `checkpoints/` |
+
+1. Phase 1 (N7), checkout `nrp-code-v8` (fresh, e.g. `/workspace/dft-gnn-v8`, input steps as in section 11):
+   `make_specs.py --check` must end every line in `files match` (17 lines). The three jobs fall in shards 1, 4 and 5
+   of `--shard i/9`, one each: give each its own queue and GPU pod (16 GiB memory), as for p1tune_v2. The study files
+   go to `$DFTGNN_TUNING_DIR` (default `<checkout>/../tuning_dtune_v2`). Export `nrp/dtune_v2`.
+2. **[MAC]** session C8: ingest `nrp/dtune_v2`; `python scripts/tune/freeze_d_v2.py` writes `configs/tuned_d_v2.yaml`;
+   `make_specs.py --stage dretrain_v2` writes the N8 spec; commit and tag `nrp-code-v9` (add it to
+   `CODE_REF_SUCCESSORS`). Until the file exists `make_specs.py` leaves dretrain_v2 out and refuses it by name.
+3. Phase 2 (N8), checkout `nrp-code-v9`: enqueue `specs/dretrain_v2.jsonl` on sharded queues (`--tranches N8`), export
+   `nrp/dretrain_v2`.
+
+Scope gates compare against `nrp-code-v8` from this section on.

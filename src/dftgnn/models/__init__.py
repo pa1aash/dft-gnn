@@ -22,6 +22,11 @@ Variants (``kind``):
              elsewhere); the initial global state is [0, 0] | host-electronic descriptors
     D-late   S backbone; all 22 descriptors are concatenated to the readout vector
     P1       S backbone and readout; head -> all 22 standardised descriptors
+
+Descriptor encoder (opt-in, ``desc_layers`` > 0; docs/deviations.md, 2026-10-23). In D-state and D-late each
+descriptor class passes through its own MLP of ``desc_layers`` layers of width ``desc_width`` before it is injected
+where the variant injects it. With ``desc_layers`` = 0 (the default) no module is created and the descriptors enter
+as before, so the default network, its parameter count and its initialisation are unchanged.
 """
 from __future__ import annotations
 
@@ -39,6 +44,7 @@ NODE_EMBED = 16           # matgl MEGNet default dim_node_embedding
 RBF_CENTRES = 100         # matgl MEGNet default dim_edge_embedding
 RBF_WIDTH = 0.5           # matgl MEGNet default gauss_width
 S2S_ITERS, S2S_LAYERS = 2, 1
+DESC_OPTIONS = ("desc_layers", "desc_width")
 
 
 @dataclass(frozen=True)
@@ -56,9 +62,18 @@ class HParams:
     # v2 options (docs/deviations.md, 2026-10-08). The defaults reproduce the pre-registered backbone.
     init: str = "default"          # "default": PyTorch / matgl init; "kaiming": He-uniform weights, zero biases
     local_readout: bool = False    # add the vacancy node's one-hop environment, computed from raw inputs
+    # descriptor encoder of D-state / D-late (dtune_v2, docs/deviations.md 2026-10-23); 0 layers: none
+    desc_layers: int = 0
+    desc_width: int = 0
 
     def to_dict(self) -> dict:
-        return asdict(self)
+        """The fields, without the descriptor-encoder options at their defaults, so every spec, run id and checkpoint
+        config written before they existed is unchanged."""
+        d = asdict(self)
+        for k in DESC_OPTIONS:
+            if d[k] == 0:
+                del d[k]
+        return d
 
 
 class Standardiser(nn.Module):
@@ -104,15 +119,18 @@ class VacancyNet(nn.Module):
             raise ValueError(f"unknown pooling {hp.pooling!r}")
         if hp.init not in ("default", "kaiming"):
             raise ValueError(f"unknown init {hp.init!r}")
+        if hp.desc_layers < 0 or (hp.desc_layers and (hp.desc_width <= 0 or kind not in ("D-state", "D-late"))):
+            raise ValueError(f"desc_layers {hp.desc_layers}, desc_width {hp.desc_width} need a D model and a width > 0")
         self.kind, self.hp, self.n_host, self.n_site = kind, hp, n_host, n_site
         self.config = {"kind": kind, "hp": hp.to_dict(), "n_host": n_host, "n_site": n_site,
                        "cutoff": cutoff}
         h, w = hp.hidden_width, hp.readout_mlp_width
         h2 = h // 2
         act = ActivationFunction["softplus2"].value()
-        node_extra = 1 + (n_site if kind == "D-state" else 0)
-        state_in = STATE_DIM + (n_host if kind == "D-state" else 0)
-        late = n_host + n_site if kind == "D-late" else 0
+        dh_dim, ds_dim = (hp.desc_width, hp.desc_width) if hp.desc_layers else (n_host, n_site)
+        node_extra = 1 + (ds_dim if kind == "D-state" else 0)
+        state_in = STATE_DIM + (dh_dim if kind == "D-state" else 0)
+        late = dh_dim + ds_dim if kind == "D-late" else 0
         n_out = n_host + n_site if kind == "P1" else 1
 
         self.bond_expansion = BondExpansion(rbf_type="Gaussian", initial=0.0, final=cutoff + 1.0,
@@ -139,6 +157,11 @@ class VacancyNet(nn.Module):
             self.readout_dim += h2
         self.dropout = nn.Dropout(hp.dropout) if hp.dropout else None
         self.head = MLP([self.readout_dim + late, w, w // 2, n_out], act, activate_last=False)
+        # created last, so that with the option off the modules above draw the same initial weights
+        self.desc_host_enc = self.desc_site_enc = None
+        if hp.desc_layers:
+            self.desc_host_enc = MLP([n_host] + [hp.desc_width] * hp.desc_layers, act, activate_last=True)
+            self.desc_site_enc = MLP([n_site] + [hp.desc_width] * hp.desc_layers, act, activate_last=True)
         if hp.init == "kaiming":
             for mod in self.modules():
                 if isinstance(mod, nn.Linear):
@@ -150,7 +173,10 @@ class VacancyNet(nn.Module):
     def _desc(self, batch, desc_host, desc_site):
         dh = batch.desc_host if desc_host is None else desc_host
         ds = batch.desc_site if desc_site is None else desc_site
-        return dh.float(), ds.float()
+        dh, ds = dh.float(), ds.float()
+        if self.desc_host_enc is not None:
+            dh, ds = self.desc_host_enc(dh), self.desc_site_enc(ds)
+        return dh, ds
 
     def readout_vector(self, batch, desc_host=None, desc_site=None) -> torch.Tensor:
         """[vacancy node | pooled nodes | global state] after the last block (the probe features)."""

@@ -8,7 +8,8 @@
     python scripts/queue/make_specs.py --check         # --check of every available stage and backbone
 
 Without ``--stage`` nothing is written. Stages whose input file is missing (p1v2b and pcompv2b before
-``configs/tuned_p1_v2.yaml`` exists) are left out of both forms; ``--stage`` on one of them stops with the file name.
+``configs/tuned_p1_v2.yaml`` exists, dretrain_v2 before ``configs/tuned_d_v2.yaml``) are left out of both forms;
+``--stage`` on one of them stops with the file name.
 
 Writes ``specs/<stage>.jsonl`` (one queue job per line, sorted by priority; canonical JSON) and
 ``specs/<stage>.manifest.json`` (counts and the sha256 of the jsonl; no time stamp). Pure: no GPU, no network.

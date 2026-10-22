@@ -48,7 +48,7 @@ def tuned_p1(tmp_path, monkeypatch):
 
 
 def test_stage_tables():
-    assert NRP.STAGES[-4:] == NEW and NRP.STAGES[:10] == ("relax", "peval", "embed", "geomeval", "moment", "cgcnn",
+    assert NRP.STAGES[10:14] == NEW and NRP.STAGES[:10] == ("relax", "peval", "embed", "geomeval", "moment", "cgcnn",
                                                          "capped", "cv", "precision", "moment_v2")
     for s in NEW:
         assert s in NRP.V2_STAGES and s in NRP.V2_ONLY and NRP.spec_name(s, "v2") == f"{s}.jsonl"
@@ -63,7 +63,8 @@ def test_n6_stages_wait_for_the_tuned_p1_file(monkeypatch, tmp_path, capsys):
     monkeypatch.setitem(NRP.NEEDS_FILE, "p1v2b", missing)
     monkeypatch.setitem(NRP.NEEDS_FILE, "pcompv2b", missing)
     assert "p1v2b" not in NRP.available_stages() and "pcompv2b" not in NRP.available_stages()
-    assert {s for s, _ in NRP.spec_targets()} == set(NRP.STAGES) - {"p1v2b", "pcompv2b"}
+    assert {s for s, _ in NRP.spec_targets()} == set(NRP.available_stages()) == set(NRP.STAGES) - {"p1v2b", "pcompv2b"} - (
+        set() if NRP.NEEDS_FILE["dretrain_v2"].is_file() else {"dretrain_v2"})
     for s in ("p1v2b", "pcompv2b"):
         with pytest.raises(FileNotFoundError, match="absent.yaml does not exist"):
             NRP.build_stage(s, backbone="v2")

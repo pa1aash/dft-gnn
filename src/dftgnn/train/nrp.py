@@ -19,6 +19,11 @@ Stages, programme group (priority order) and job counts:
          (D-site), B in {200, 400, 654} x resamples 0-9 x seeds 0-2                                  (v2 only)
     N6   p1v2b 180: P1 with the settings of configs/tuned_p1_v2.yaml and an epoch limit of 400, every budget x
          resamples 0-9 x seeds 0-2; pcompv2b 180: P = the new P1 then the existing v2 D of the same cell (v2 only)
+    N7   dtune_v2 3: one Optuna study of D per tuning anchor in a superset of the v2 search space (wider dropout and
+         weight decay, the injection variant, a descriptor encoder), epoch limit 400 (a task stage)     (v2 only)
+    N8   dretrain_v2 210: D with the settings of configs/tuned_d_v2.yaml and an epoch limit of 400 on the cells of
+         the existing v2 D runs: B = 654 x the 30 x 5 grid (v2 sweep + precision), B = 400 and 200 x resamples
+         0-9 x seeds 0-2                                                                              (v2 only)
 The N2a and N2b stages reuse the S12 builders (``dftgnn.train.s12``); moment_v2 passes its sites, subdir, stage
 and tags to ``build_moment``, whose defaults keep the v1 ids. LOCO is not a stage: the
 collaborator's 30 v1 LOCO runs are adopted (docs/deviations.md, 2026-10-11). The v2 backbone (POST HOC,
@@ -27,7 +32,8 @@ collaborator's 30 v1 LOCO runs are adopted (docs/deviations.md, 2026-10-11). The
 
 The N6 stages read ``configs/tuned_p1_v2.yaml``, frozen from the p1tune_v2 records on the Mac after N5. While that
 file is missing their builders refuse with a message naming it, and ``available_stages`` leaves them out (the
-default output of ``make_specs.py``). dclass keeps one descriptor class by setting the other to its training mean
+default output of ``make_specs.py``); so does dretrain_v2 before ``configs/tuned_d_v2.yaml`` (frozen from the
+dtune_v2 records). dclass keeps one descriptor class by setting the other to its training mean
 (the ``ablate`` option of ``dftgnn.train``, applied to the descriptor vector of every batch); the classes are those
 of ``docs/descriptor_taxonomy.csv``.
 """
@@ -52,23 +58,26 @@ SPECS_DIR = REPO_ROOT / "specs"
 CODE_REF = "nrp-code-v1"
 # new stages are appended so that the priorities of the earlier stages (and their spec files) do not change
 STAGES = ("relax", "peval", "embed", "geomeval", "moment", "cgcnn", "capped", "cv", "precision", "moment_v2",
-          "p1tune_v2", "dclass", "p1v2b", "pcompv2b")
+          "p1tune_v2", "dclass", "p1v2b", "pcompv2b", "dtune_v2", "dretrain_v2")
 GROUP = {"relax": "N2a", "peval": "N2a", "embed": "N2a", "geomeval": "N2a", "moment": "N2b", "cgcnn": "N2b",
          "capped": "N2b", "cv": "N3", "precision": "N4", "moment_v2": "N2b",
-         "p1tune_v2": "N5", "dclass": "N5", "p1v2b": "N6", "pcompv2b": "N6"}
+         "p1tune_v2": "N5", "dclass": "N5", "p1v2b": "N6", "pcompv2b": "N6", "dtune_v2": "N7", "dretrain_v2": "N8"}
 LABEL = {"relax": "registered", "peval": "registered", "embed": "registered",
          "geomeval": "registered (B = 200 DESCRIPTIVE EXTRA)", "moment": "registered", "cgcnn": "registered",
          "capped": "POST HOC", "cv": "EXTENSION", "precision": "EXTENSION", "moment_v2": "POST HOC",
-         "p1tune_v2": "POST HOC", "dclass": "POST HOC", "p1v2b": "POST HOC", "pcompv2b": "POST HOC"}
+         "p1tune_v2": "POST HOC", "dclass": "POST HOC", "p1v2b": "POST HOC", "pcompv2b": "POST HOC",
+         "dtune_v2": "POST HOC", "dretrain_v2": "POST HOC"}
 EXPECTED = {"relax": 818, "peval": 183, "embed": 240, "geomeval": 180, "moment": 60, "cgcnn": 18, "capped": 33,
             "cv": 180, "precision": 480, "moment_v2": 60, "p1tune_v2": 3, "dclass": 180, "p1v2b": 180,
-            "pcompv2b": 180}
+            "pcompv2b": 180, "dtune_v2": 3, "dretrain_v2": 210}
 BACKBONES = ("v1", "v2")
-V2_STAGES = ("cv", "precision", "moment_v2", "p1tune_v2", "dclass", "p1v2b", "pcompv2b")   # stages with a v2 version
-V2_ONLY = ("moment_v2", "p1tune_v2", "dclass", "p1v2b", "pcompv2b")                       # stages with no v1 version
+V2_STAGES = ("cv", "precision", "moment_v2", "p1tune_v2", "dclass", "p1v2b", "pcompv2b", "dtune_v2",
+             "dretrain_v2")                                                              # stages with a v2 version
+V2_ONLY = ("moment_v2", "p1tune_v2", "dclass", "p1v2b", "pcompv2b", "dtune_v2", "dretrain_v2")   # no v1 version
 TUNED_V2 = REPO_ROOT / "configs" / "tuned_v2.yaml"
 TUNED_P1_V2 = REPO_ROOT / "configs" / "tuned_p1_v2.yaml"   # written on the Mac from the p1tune_v2 records (C6)
-NEEDS_FILE = {"p1v2b": TUNED_P1_V2, "pcompv2b": TUNED_P1_V2}
+TUNED_D_V2 = REPO_ROOT / "configs" / "tuned_d_v2.yaml"     # written on the Mac from the dtune_v2 records (C8)
+NEEDS_FILE = {"p1v2b": TUNED_P1_V2, "pcompv2b": TUNED_P1_V2, "dretrain_v2": TUNED_D_V2}
 TAXONOMY = REPO_ROOT / "docs" / "descriptor_taxonomy.csv"
 V2_SWEEP_DIR = REPO_ROOT / "results" / "v2_sweep"          # records of the v2 D runs that pcompv2b reuses
 P_V2_DIR = REPO_ROOT / "results" / "p_v2"
@@ -79,6 +88,17 @@ P1_EPOCHS = 400                                            # epoch limit of P1 i
 DCLASS_BUDGETS = (654, 400, 200)
 DCLASS = {"D-host": "desc_site", "D-site": "desc_host"}    # variant -> the class set to its training mean
 V2_LABEL = "EXTENSION, v2 backbone (POST HOC)"
+D_EPOCHS = 400                                             # epoch limit of D in dtune_v2 and dretrain_v2
+# dtune_v2: changes to the configured search space (the space of every earlier study). Wider ranges contain the old
+# ones; the new parameters contain the old network (injection D-state, desc_layers 0), so the space is a superset.
+DTUNE_SPACE = {
+    "dropout": {"dist": "uniform", "low": 0.0, "high": 0.5, "choices": None},
+    "weight_decay": {"dist": "log_uniform", "low": 1e-7, "high": 1e-2, "choices": None},
+    "injection": {"dist": "categorical", "low": None, "high": None, "choices": ["D-state", "D-late"]},
+    "desc_layers": {"dist": "categorical", "low": None, "high": None, "choices": [0, 1, 2]},
+    "desc_width": {"dist": "categorical", "low": None, "high": None, "choices": [16, 32, 64]},
+}
+DRETRAIN_SMALL = (400, 200)                                # dretrain_v2 budgets on the v2 sweep grid; 654 on 30 x 5
 MOMENT_SPEC = SPECS_DIR / "moment.jsonl"       # source of the excluded sites of moment_v2
 V2_PRIORITY_OFFSET = 50_000                 # v2 jobs follow the v1 jobs of the same stage
 PRIORITY_STRIDE = 100_000
@@ -313,6 +333,97 @@ def build_pcompv2b(code: str, gsha: str, tuned: dict, cfg: Config, table: dict |
     return jobs
 
 
+def dtune_space(cfg: Config) -> dict:
+    """The dtune_v2 search space (JSON form): the configured space with ``DTUNE_SPACE`` applied. Raises unless it
+    contains every configured parameter with its full range or all its choices."""
+    old = {k: v.model_dump(mode="json") for k, v in cfg.tuning.search_space.items()}
+    new = {**old, **{k: dict(v) for k, v in DTUNE_SPACE.items()}}
+    for k, o in old.items():
+        n = new[k]
+        if n["dist"] != o["dist"]:
+            raise ValueError(f"dtune_v2 changes the distribution of {k}")
+        if o["choices"] is not None and not set(o["choices"]) <= set(n["choices"]):
+            raise ValueError(f"dtune_v2 drops choices of {k}")
+        if o["choices"] is None and not n["low"] <= o["low"] < o["high"] <= n["high"]:
+            raise ValueError(f"dtune_v2 narrows the range of {k}")
+    return new
+
+
+def build_dtune_v2(code: str, gsha: str, tuned: dict, cfg: Config, table: dict | None) -> list[dict]:
+    """N7: one D study per tuning anchor under the v2 backbone, as p1tune_v2 runs P1 (sampler, trial seed, anchor
+    resample, validation hosts, 30 trials, inner validation MAE of E_f as objective), in the space ``dtune_space``
+    with an epoch limit of ``D_EPOCHS`` and the configured patience. Each trial trains the sampled injection variant.
+    Each job writes ``results/tuning/tuning_v2_D_a<anchor>.json`` and its task record in ``results/dtune_v2/``."""
+    t = cfg.tuning
+    space = dtune_space(cfg)
+    est = None
+    if table is not None:     # the largest trial of the search space
+        est = max(admission.est_peak_for_spec(table, {"hidden_width": h, "megnet_blocks": m}, b)
+                  for h in space["hidden_width"]["choices"] for m in space["megnet_blocks"]["choices"]
+                  for b in space["batch_size"]["choices"])
+    jobs = []
+    for a in t.anchors:
+        spec = {"model": "D", "study": f"v2_D_a{a}", "anchor": a, "split": f"outer_r{t.anchor_resample}",
+                "r": t.anchor_resample, "budget": a, "seed": t.trial_seed,
+                "n_trials": t.optuna_trials_per_model_per_anchor, "max_epochs": D_EPOCHS,
+                "patience": cfg.training.early_stopping.patience, "arch": dict(tuned["arch"]),
+                "search_space": space, "results_subdir": "tuning", "tags": {"v2": tuned["version"]}}
+        key = {"stage": "dtune_v2", **spec, "sampler_seed": t.optuna.sampler_seed, "code_sha": code,
+               "graphs_manifest_sha256": gsha}
+        jobs.append(S12._task("dtune_v2", key, spec, est=est))
+    return jobs
+
+
+def load_tuned_d(path: Path | None = None) -> dict:
+    """``configs/tuned_d_v2.yaml``: {"version", "arch", "max_epochs", "patience", "models": {"D": {anchor: ...}}}, each
+    anchor's parameters including ``injection`` (the D variant)."""
+    path = Path(path or TUNED_D_V2)
+    if not path.is_file():
+        raise FileNotFoundError(f"{path} does not exist: the stage dretrain_v2 needs the D settings frozen from the "
+                                "dtune_v2 records (scripts/tune/freeze_d_v2.py, Mac session C8)")
+    return load_tuned(path)
+
+
+def tuned_d_hparams(td: dict, anchor: int) -> tuple[str, dict]:
+    """(D variant, RunSpec hyperparameters) of an anchor of ``configs/tuned_d_v2.yaml``, with its ``arch``."""
+    p = dict(td["models"]["D"][anchor])
+    kind = p.pop("injection")
+    if kind not in ("D-state", "D-late"):
+        raise ValueError(f"tuned D a{anchor}: unknown injection {kind!r}")
+    return kind, tuned_hparams({"models": {"D": {anchor: p}}, "arch": td.get("arch")}, "D", anchor)
+
+
+def dretrain_cells(cfg: Config) -> list[tuple[int, int, int]]:
+    """(r, B, seed) of dretrain_v2, the cells of the existing v2 D runs: B = 654 on the 30 x 5 headline grid (v2 sweep
+    resamples 0-9 x seeds 0-2, then the precision cells), B = 400 and 200 on the v2 sweep grid."""
+    sweep = [(r, s) for r in range(cfg.split.n_outer_resamples) for s in cfg.training.seeds]
+    out = [(r, 654, s) for r, s in sweep] + [c for c in precision_cells() if c[1] == 654]
+    for b in DRETRAIN_SMALL:
+        out += [(r, b, s) for r, s in sweep]
+    return out
+
+
+def build_dretrain_v2(code: str, gsha: str, tuned: dict, cfg: Config, table: dict | None) -> list[dict]:
+    """N8: D under the v2 backbone with the dtune_v2 settings of the budget's anchor (its variant included) and an
+    epoch limit of ``D_EPOCHS``, on ``dretrain_cells``: the split, validation hosts, test hosts and seed of the
+    existing v2 D run (and S run) of each cell, results/dretrain_v2/."""
+    td = load_tuned_d(NEEDS_FILE["dretrain_v2"])
+    if td.get("arch") != tuned["arch"]:
+        raise ValueError(f"{NEEDS_FILE['dretrain_v2']}: arch {td.get('arch')} differs from {tuned['arch']} of {TUNED_V2}")
+    pat = cfg.training.early_stopping.patience
+    if (td.get("max_epochs"), td.get("patience")) != (D_EPOCHS, pat):
+        raise ValueError(f"{NEEDS_FILE['dretrain_v2']}: tuned with max_epochs {td.get('max_epochs')}, patience "
+                         f"{td.get('patience')}; expected {D_EPOCHS}, {pat}")
+    b2a = cfg.tuning.budget_to_anchor
+    jobs = []
+    for r, b, s in dretrain_cells(cfg):
+        kind, hp = tuned_d_hparams(td, b2a[b])
+        spec = RunSpec(model=kind, **hp, split=f"outer_r{r}", r=r, budget=b, seed=s, max_epochs=D_EPOCHS, patience=pat,
+                       results_subdir="dretrain_v2", tags={"v2": tuned["version"], "d_tuned": td["version"]})
+        jobs.append(_job(spec, "dretrain_v2", code, gsha, table=table))
+    return jobs
+
+
 # ------------------------------------------------------------------------------------------- generator
 def _benchmark() -> dict | None:
     from dftgnn.train import admission
@@ -340,8 +451,8 @@ def build_stage(stage: str, *, code_ref: str = CODE_REF, backbone: str = "v1", h
         raise ValueError(f"stage {stage!r} has a v1 version only")
     if backbone == "v1" and stage in V2_ONLY:
         raise ValueError(f"stage {stage!r} has a v2 version only")
-    if stage in NEEDS_FILE and not NEEDS_FILE[stage].is_file():
-        load_tuned_p1(NEEDS_FILE[stage])                   # raises with the message naming the missing file
+    if stage in NEEDS_FILE and not NEEDS_FILE[stage].is_file():   # raises with the message naming the missing file
+        (load_tuned_d if stage == "dretrain_v2" else load_tuned_p1)(NEEDS_FILE[stage])
     tuned_path = tuned_path if tuned_path is not None else (TUNED_V2 if backbone == "v2" else TUNED)
     cfg = cfg if cfg is not None else load_config()
     tuned, gsha, table, code = load_tuned(tuned_path), manifest_sha(), _benchmark(), code_ref
@@ -372,7 +483,7 @@ def build_stage(stage: str, *, code_ref: str = CODE_REF, backbone: str = "v1", h
         jobs = S12.build_cgcnn(code, gsha, cfg, table)
     elif stage == "capped":
         jobs = S12.build_capped(code, gsha, table)
-    elif stage in ("p1tune_v2", "dclass", "p1v2b", "pcompv2b"):
+    elif stage in ("p1tune_v2", "dclass", "p1v2b", "pcompv2b", "dtune_v2", "dretrain_v2"):
         jobs = globals()[f"build_{stage}"](code, gsha, tuned, cfg, table)
     elif stage == "cv":
         jobs = build_cv(code, gsha, tuned, cfg, table, subdir="cv" if backbone == "v1" else "cv_v2")
@@ -424,7 +535,9 @@ def manifest(stage: str, jobs: list[dict], body: bytes, *, jsonl_name: str, code
             "hosts_file": None if hosts_file is None else {"path": rel(hosts_file), "sha256": sha256_file(hosts_file)},
             "generator": "scripts/queue/make_specs.py",
             **({"tuned_p1": {"path": rel(NEEDS_FILE[stage]), "sha256": sha256_file(NEEDS_FILE[stage])}}
-               if stage in NEEDS_FILE else {}),
+               if stage in NEEDS_FILE and stage != "dretrain_v2" else {}),
+            **({"tuned_d": {"path": rel(NEEDS_FILE[stage]), "sha256": sha256_file(NEEDS_FILE[stage])}}
+               if stage == "dretrain_v2" else {}),
             **({"descriptor_taxonomy": {"path": rel(TAXONOMY), "sha256": sha256_file(TAXONOMY)}}
                if stage == "dclass" else {})}
 
@@ -443,7 +556,7 @@ def leakage_hosts(job: dict, cfg: Config | None = None) -> list[tuple[set, set]]
     st, sp = job["stage"], job["spec"]
     if st == "relax":
         return []
-    if st == "p1tune_v2":                    # the study's anchor training and validation hosts
+    if st in ("p1tune_v2", "dtune_v2"):      # the study's anchor training and validation hosts
         h = resolve_hosts(RunSpec(model="P1", hp={}, lr=0.0, weight_decay=0.0, batch_size=1, split=sp["split"],
                                   r=sp["r"], budget=sp["budget"], seed=sp["seed"]), cfg)
         return [(set(h["test"]), set(h["train"]) | set(h["val"]))]
