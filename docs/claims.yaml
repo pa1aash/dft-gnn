@@ -405,3 +405,43 @@ claims:
     falsifiable_how: "A change of any gap in the sensitivity by more than its interval half-width, or a change of sign of a D - class gap, would refute the row."
     status: measured
     result_ref: results/derived_dclass/dclass_gaps.json
+  # EXTENSION on the final network (stages p1v2b and pcompv2b, 180 + 180 runs; analysis/m3/staging_fair.py). The
+  # descriptor predictor P1 was re-tuned (30 trials at each of 50, 200 and 654 hosts, configs/tuned_p1_v2.yaml) and
+  # retrained with an epoch limit of 400; P composes it with the D checkpoints of the same cell. 10 resamples x 3 seeds
+  # (the sweep design; the 30 x 5 headline design has no P runs). Sign: P - S and P - D positive where P is less
+  # accurate. Macros: \numNetStg... in paper/tools/net_macros.py. These rows replace C3a-v2 for the paper's staging text.
+  - id: STG-654
+    statement: "With 654 training hosts the staged network P (retrained P1 composed with D) has MAE 0.323 [0.303, 0.345] eV against 0.296 [0.276, 0.317] eV for S and 0.280 [0.263, 0.300] eV for D. P - S is +0.027 [+0.006, +0.050] eV (one-sided bounds +0.009 and +0.047), so P is less accurate than S, by less than the 0.05 eV tolerance (four-outcome rule: P worse, within the margin); P - D is +0.042 [+0.025, +0.060] eV. The 95% interval of MAE_S - MAE_P, [-0.050, -0.006] eV, lies below zero, so staging does not help (wording tier N)."
+    tested_by: "analysis/m3/staging_fair.py (staging estimator of analysis/staging_analysis.py unchanged: seed ensemble, G1 hierarchical bootstrap, 2000 replicates, seed 20261008, draws shared by S, D and P; S and D reproduce results/staging_v2.json to 1e-9)"
+    figure: "Figure 4 (figures/main/figure4_staging.pdf)"
+    falsifiable_how: "An interval of MAE_S - MAE_P at 654 hosts with a lower bound above zero would refute the row."
+    status: measured
+    result_ref: results/derived_staging/staging_fair.json
+  - id: STG-400
+    statement: "With 400 training hosts P has MAE 0.395 [0.368, 0.425] eV against 0.382 [0.356, 0.412] eV for S and 0.328 [0.308, 0.350] eV for D. P - S is +0.013 [-0.012, +0.039] eV with one-sided bounds -0.007 and +0.034 eV, inside the 0.05 eV tolerance (equivalent), while S - D is +0.054 [+0.027, +0.080] eV and P - D +0.067 [+0.042, +0.092] eV: P recovers none of the descriptor advantage that D has at this size."
+    tested_by: "analysis/m3/staging_fair.py (same estimator and draws as STG-654)"
+    figure: "Figure 4"
+    falsifiable_how: "A P - D interval at 400 hosts including zero, or a P - S interval below zero, would refute the row."
+    status: measured
+    result_ref: results/derived_staging/staging_fair.json
+  - id: STG-SMALL
+    statement: "With 100 and 200 training hosts P is less accurate than S: P - S is +0.114 [+0.063, +0.166] eV and +0.138 [+0.111, +0.165] eV. With 25 and 50 hosts the outcome is inconclusive (P - S +0.053 [-0.005, +0.108] and +0.032 [-0.055, +0.117] eV, upper bounds 0.103 eV), and D itself is unstable there (MAE 1.275 [0.882, 1.829] and 1.468 [0.696, 2.743] eV). At no budget is P better than S."
+    tested_by: "analysis/m3/staging_fair.py (same estimator and draws as STG-654)"
+    figure: "Figure 4"
+    falsifiable_how: "A P - S interval below zero at any budget would refute the last sentence."
+    status: measured
+    result_ref: results/derived_staging/staging_fair.json
+  - id: STG-P1
+    statement: "The retrained P1 (180 runs, epoch limit 400) stops by early stopping in every run (0 at the limit; longest run 344 epochs, at 654 hosts). Its test-site coefficient of determination, averaged over each descriptor class, is 0.757 (12 host-level) and 0.623 (10 site-level) with 654 hosts, 0.672 and 0.529 with 400, 0.515 and 0.336 with 200; the oxide formation energy is predicted best (0.963) and the Bader charge of the oxygen to be removed reaches 0.391 at 654 hosts. Below 100 hosts the class means are near or below zero."
+    tested_by: "analysis/m3/staging_fair.py p1.retrained (per-descriptor R2 and MAE recorded in each results/p1v2b record, averaged over the 30 runs of a budget)"
+    figure: "none (text, Section 3.4)"
+    falsifiable_how: "A p1v2b run with epochs_run equal to max_epochs, or class means differing from the records, would refute the row."
+    status: measured
+    result_ref: results/derived_staging/staging_fair.json
+  - id: STG-SWAPIN
+    statement: "Fed the true descriptors in place of P1's predictions, the energy head of P is D (identity verified for every P/D pair of the final network in results/swapin/swapin_v2.json, max difference 0.0 eV; every D checkpoint of pcompv2b is among those pairs). The swap-in lowers the MAE by P - D: 0.042 [0.025, 0.060] eV at 654 hosts, 0.067 [0.042, 0.092] eV at 400, 0.162 [0.127, 0.193] eV at 200, 0.197 [0.095, 0.263] eV at 100, and moves single-site predictions by 0.226 eV on average at 654 hosts (0.294 at 400). The information D uses is therefore lost between the structure and the predicted descriptors, not in the energy head (proposal; the head was trained on exact descriptors only)."
+    tested_by: "analysis/m3/staging_fair.py swap_in (stored D minus stored P predictions, seed ensembles, same draws; the network is not re-executed because the checkpoints are on cluster storage)"
+    figure: "Figure 4b (P - D)"
+    falsifiable_how: "A swap-in pair of pcompv2b whose D checkpoint is absent from results/swapin/swapin_v2.json, or a P - D interval including zero at 400 or 654 hosts, would refute the row."
+    status: measured
+    result_ref: results/derived_staging/staging_fair.json

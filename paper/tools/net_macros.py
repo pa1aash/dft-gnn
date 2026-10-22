@@ -9,7 +9,7 @@ source column of numbers.tsv gives it. A missing pointer is an error, so a renam
 Formats: "num" is the house rule of make_numbers.fmt (three decimals); "dp4" prints four decimals (energy changes
 below 0.01 eV, as in the geometry check); "int" an exact integer; "hosts" the nearest whole number of hosts (the
 cross-validation sizes are fold means); "word" a boolean as the word yes or no; "text" a short string as is;
-"trim" three decimals without trailing zeros, for a set value or a published value printed at the precision of its
+"sig" three significant figures (tuned values, as make_numbers.fmt_sig); "trim" three decimals without trailing zeros, for a set value or a published value printed at the precision of its
 source (the tolerance 0.05 eV, the published 0.29 eV). A record ending in .yaml is read whole (no payload).
 
 One block is not a record leaf: ILLUSTRATION, the Boltzmann-factor example of the Introduction (R4), evaluated from
@@ -332,6 +332,51 @@ def spec(root: Path, words: Callable[[int], str]) -> Spec:
                 s.add(f"{t}{pre}{tag}", dc, q + ("A",))
                 s.ci(f"{t}{pre}{tag}", dc, q)
                 s.add(f"{t}{pre}{tag}Upper", dc, q + ("upper_one_sided_95",))
+
+    # ---- fair staging test (M3): descriptor predictor P1 re-tuned and trained to convergence, composed with the D
+    # checkpoints of the final network (stages p1v2b and pcompv2b, 10 x 3 design); sign: P - S and P - D positive
+    # where P is less accurate; Swap = MAE of P fed the true descriptors (= D) minus MAE of P
+    sf = "results/derived_staging/staging_fair.json"
+    s.add("NetStgTier", sf, ("tier_at_654", "tier"), "text")
+    s.add("NetStgPOneCapRuns", sf, ("p1", "n_at_epoch_limit"), "int")
+    s.add("NetStgPOneRuns", sf, ("health", "n_runs"), "int")
+    for b in BUDGETS:
+        t, p = f"NetStg{s.b(b)}", ("budgets", str(b))
+        for m in ("S", "D", "P"):
+            s.add(f"{t}Mae{m}", sf, p + ("mae", m, "mean"))
+            s.ci(f"{t}Mae{m}", sf, p + ("mae", m))
+        for g, tag in (("P_minus_S", "PMinusS"), ("P_minus_D", "PMinusD"), ("S_minus_D", "SMinusD")):
+            s.add(f"{t}{tag}", sf, p + (g, "mean"))
+            s.ci(f"{t}{tag}", sf, p + (g,))
+            s.add(f"{t}{tag}Upper", sf, p + (g, "upper_one_sided_95"))
+            s.add(f"{t}{tag}Lower", sf, p + (g, "lower_one_sided_95"))
+        s.add(f"{t}Outcome", sf, p + ("P_minus_S", "outcome"), "text")
+        s.add(f"{t}Tier", sf, p + ("tier", "tier"), "text")
+        w = ("swap_in", "per_budget", str(b))
+        s.add(f"{t}Swap", sf, w + ("mae_change_true_minus_predicted_eV", "mean"))
+        s.ci(f"{t}Swap", sf, w + ("mae_change_true_minus_predicted_eV",))
+        s.add(f"{t}SwapSite", sf, w + ("mean_abs_site_change_eV",))
+        q = ("p1", "retrained", str(b))
+        s.add(f"{t}POneStdMae", sf, q + ("mean_standardised_mae",))
+        s.add(f"{t}POneRsqHost", sf, q + ("class_mean_r2", "host_electronic"))
+        s.add(f"{t}POneRsqSite", sf, q + ("class_mean_r2", "site_electronic"))
+        s.add(f"{t}POneCapped", sf, q + ("n_at_epoch_limit",), "int")
+        s.add(f"{t}POneMaxEpochsRun", sf, q + ("max_epochs_run",), "int")
+    for d, tag in (("desc_formation_energy", "Formation"), ("desc_bader_charge", "Bader")):
+        s.add(f"NetStgSixHundredFiftyFourPOneRsq{tag}", sf, ("p1", "retrained", "654", "r2_per_descriptor", d))
+    # tuned settings of P1 (Appendix B, Table B2): configs/tuned_p1_v2.yaml and the tuning records of its studies
+    tp = "configs/tuned_p1_v2.yaml"
+    s.add("NetStgPOneMaxEpochs", tp, ("max_epochs",), "int")
+    for a in (50, 200, 654):
+        t, p = f"NetStgPOneTuned{s.b(a)}", ("models", "P1", a)
+        for k, tag, f in (("learning_rate", "LearningRate", "sig"), ("weight_decay", "WeightDecay", "sig"),
+                          ("hidden_width", "HiddenWidth", "int"), ("megnet_blocks", "MegnetBlocks", "int"),
+                          ("dropout", "Dropout", "sig"), ("batch_size", "BatchSize", "int"),
+                          ("readout_mlp_width", "ReadoutMlpWidth", "int"), ("pooling", "Pooling", "text")):
+            s.add(f"{t}{tag}", tp, p + (k,), f)
+        tr = f"results/tuning/tuning_v2_P1_a{a}.json"
+        s.add(f"{t}BestValue", tr, ("best_value",))
+        s.add(f"{t}Trials", tr, ("n_complete",), "int")
     return s
 
 
@@ -397,6 +442,13 @@ def net_macros(root: Path, fmt: Callable, words: Callable[[int], str]) -> list[t
             txt = f"{abs(node):.3f}".rstrip("0").rstrip(".")
             latex = f"\\ensuremath{{{'-' if node < 0 else ''}{txt}}}"
             src += " (trailing zeros dropped)"
+        elif f == "sig":
+            txt = f"{abs(node):.3g}" if abs(node) >= 0.01 or node == 0 else None
+            if txt is None:
+                m, e = f"{abs(node):.2e}".split("e")
+                txt = f"{m}\\times10^{{{int(e)}}}"
+            latex = f"\\ensuremath{{{'-' if node < 0 else ''}{txt}}}"
+            src += " (three significant figures)"
         elif f == "dp4":
             txt = f"{abs(node):.4f}"
             latex = f"\\ensuremath{{{'-' if node < 0 and txt != '0.0000' else ''}{txt}}}"
