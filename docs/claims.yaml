@@ -432,7 +432,7 @@ claims:
     status: measured
     result_ref: results/derived_staging/staging_fair.json
   - id: STG-P1
-    statement: "The retrained P1 (180 runs, epoch limit 400) stops by early stopping in every run (0 at the limit; longest run 344 epochs, at 654 hosts). Its test-site coefficient of determination, averaged over each descriptor class, is 0.757 (12 host-level) and 0.623 (10 site-level) with 654 hosts, 0.672 and 0.529 with 400, 0.515 and 0.336 with 200; the oxide formation energy is predicted best (0.963) and the Bader charge of the oxygen to be removed reaches 0.391 at 654 hosts. Below 100 hosts the class means are near or below zero."
+    statement: "The retrained P1 (re-tuned with 30 trials at each of 50, 200 and 654 hosts; 180 runs, epoch limit 400) stops by early stopping in every run (0 at the limit; longest run 344 epochs, at 654 hosts). Its test-site coefficient of determination, averaged over each descriptor class, is 0.757 (12 host-level) and 0.623 (10 site-level) with 654 hosts, 0.672 and 0.529 with 400, 0.515 and 0.336 with 200; the oxide formation energy is predicted best (0.963) and the Bader charge of the oxygen to be removed reaches 0.391 at 654 hosts. Below 100 hosts the class means are near or below zero."
     tested_by: "analysis/m3/staging_fair.py p1.retrained (per-descriptor R2 and MAE recorded in each results/p1v2b record, averaged over the 30 runs of a budget)"
     figure: "none (text, Section 3.4)"
     falsifiable_how: "A p1v2b run with epochs_run equal to max_epochs, or class means differing from the records, would refute the row."
