@@ -19,7 +19,7 @@ can be deleted. The former scripts were not edited and still write the former st
 | Figure 1, models and input representation | `figures/main/figure1_models.pdf`; panel (b) `figures/main/fig1_zno_vacancy.png` | `figures/code/figure1_models.py` (panel (a) from `figures/code/figure1_pipeline.tex`) | none |
 | Figure 2, site error and descriptor advantage against training hosts | `figures/main/figure2_descriptor_advantage.pdf` | `figures/code/figure2_descriptor_advantage.py` | `results/derived_c1/final_network_summary.json` |
 | Figure 3, site resolution within a host | `figures/main/figure3_within_host.pdf` | `figures/code/figure3_within_host.py` | `results/c1c2_v2.json`, `results/precision_g1_v2.json`, `results/cv_g1_v2.json` |
-| Figure 4, staging | `figures/main/figure4_staging.pdf` | `figures/code/figure4_staging.py` | `results/staging_v2.json` |
+| Figure 4, staging | `figures/main/figure4_staging.pdf` | `paper/figgen/figure4_staging.py` | `results/derived_staging/staging_fair.json` |
 | Figure 5, screening of named oxides | `figures/main/figure5_screening.pdf` | `figures/code/figure5_screening.py` | `figures/main/data/screening_demo.json` |
 
 ## Appendices
