@@ -125,7 +125,7 @@ def p1_block(df: pd.DataFrame) -> dict:
         site = [v for k, v in r2.items() if k not in HOST_DESC]
         if len(host) != 12 or len(site) != 10:
             raise AssertionError("descriptor classes are not 12 host + 10 site")
-        out[str(B)] = {"n_runs": int(len(g)), "mean_standardised_mae": float(g.std_mae.mean()),
+        out[str(B)] = {"n_runs": len(g), "mean_standardised_mae": float(g.std_mae.mean()),
                        "mean_standardised_mae_sd": float(g.std_mae.std(ddof=1)),
                        "class_mean_r2": {"host_electronic": float(np.mean(host)), "site_electronic": float(np.mean(site))},
                        "all_mean_r2": float(np.mean(host + site)), "r2_per_descriptor": r2,
@@ -149,7 +149,7 @@ def old_p1_block() -> dict:
     for B in BUDGETS:
         g = df[df.B == B]
         r2 = {k[3:]: float(g[k].mean()) for k in g.columns if k.startswith("r2|")}
-        out[str(B)] = {"n_runs": int(len(g)), "mean_standardised_mae": float(g.std_mae.mean()),
+        out[str(B)] = {"n_runs": len(g), "mean_standardised_mae": float(g.std_mae.mean()),
                        "class_mean_r2": {"host_electronic": float(np.mean([v for k, v in r2.items() if k in HOST_DESC])),
                                          "site_electronic": float(np.mean([v for k, v in r2.items()
                                                                            if k not in HOST_DESC]))},
@@ -249,6 +249,7 @@ def block(ens: pd.DataFrame, draws) -> dict:
     out = {}
     for B in BUDGETS:
         ps = sa.paired(st["P"][B], st["S"][B], draws)
+        ps.update(sa.tost_outcome(ps["ci95"], ps["ci90"], DELTA), noninferior=sa.noninferior(ps["upper_one_sided_95"]))
         pd_ = sa.paired(st["P"][B], st["D"][B], draws)
         sd = sa.paired(st["S"][B], st["D"][B], draws)
         po = sa.paired(st["P"][B], st["P_old"][B], draws)
@@ -280,7 +281,7 @@ def swapin_change(long: pd.DataFrame, res: dict) -> dict:
         out[str(B)] = {"mae_change_true_minus_predicted_eV": {"mean": -pm["mean"],
                                                               "ci95": [-pm["ci95"][1], -pm["ci95"][0]]},
                        "mean_abs_site_change_eV": float(dd.mean()), "median_abs_site_change_eV": float(dd.median()),
-                       "max_abs_site_change_eV": float(dd.max()), "n_site_cells": int(len(dd))}
+                       "max_abs_site_change_eV": float(dd.max()), "n_site_cells": len(dd)}
     return out
 
 
