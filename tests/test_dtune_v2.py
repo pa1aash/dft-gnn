@@ -290,8 +290,8 @@ def test_dretrain_v2_spec_pairs_with_the_existing_d_runs(tmp_path, monkeypatch):
         NRP.build_stage("dretrain_v2", backbone="v2")
 
 
-def test_code_ref_successors_include_v8():
+def test_code_ref_successors_include_v9():
     assert CODE_REF_SUCCESSORS["nrp-code-v1"] == ("nrp-code-v2", "nrp-code-v4", "nrp-code-v5", "nrp-code-v6",
-                                                  "nrp-code-v7", "nrp-code-v8")
+                                                  "nrp-code-v7", "nrp-code-v8", "nrp-code-v9")
     assert NRP.STAGES[:16] == ("relax", "peval", "embed", "geomeval", "moment", "cgcnn", "capped", "cv", "precision",
                                "moment_v2", "p1tune_v2", "dclass", "p1v2b", "pcompv2b", "dtune_v2", "dretrain_v2")
